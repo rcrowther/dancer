@@ -1,0 +1,158 @@
+= Format
+
+We use the format, fundamentally, of lillypond. It can embrace simutaeous happening---jump/turn, step/clap. And parallell happening---different dancers.
+
+Lillypond will need substancial adaption.
+
+We base on musical bars and beats. Most dancing is against or with the beat. However, we need this to stay fairly abstract, so makers can be put in. Then the markup can be recallibrated agaist video, as .srt subtitles are. We have no need so much for speed markup, etc.
+
+== File generalities
+Instructions are introduced with a slash
+
+\someinstruction
+
+braces introduce all commands,
+{}
+
+and instructions are outside brasces, which work for parameters,
+
+\someinstruction{}
+
+Comments use a hash
+
+# comment
+
+(not lilypond '%')
+
+block comment
+##
+#
+
+Whitespace is generally ignored, except as separator, and for line-end-finishing a comment. File text is case-sensitive.
+
+== All/About
+''about' is metadata. Here some useful ''about' properties,
+
+
+\about {
+\title  Coconutters
+\performer Britannia Coconutters
+\place Bacup
+\date 2012
+\style clog
+\author rob crowther
+\authorEmail robclog@gmail.com 
+\version
+}
+
+''version' is the version of this program the markup was written for.
+
+
+''all' is like ''global' in computer programming (''do this unless overridden').
+
+\all {
+\maxDancerCount: 5
+\tempo 64
+\barbeats 4
+}
+
+== Time/tempo marks
+Not much needed here. Don't bother with the fussy music notation of lengths. \tempo as beats per min, \barbeats as simple count,
+
+\tempo 64
+\barbeats 4
+
+These should be usable in \all, and within a sequence (see below).
+
+
+== Dancer Count
+Unfortunately, we will need a way to introduce and remove dancers. For now, ignoring this feature.
+
+
+== Moves
+We need a mass of events. Not like musical pitches.
+
+clap
+step-left
+turn-right
+crouch
+
+These fall into categories. We need a lot here.
+
+=== Simple categories
+I think these are the most basic?
+
+@ direction
+@ leg movement (step/turn)
+@ hand/arm actions
+
+=== Complex categories
+A lot, I'm afraid. Good dancers can project. Beyond direction,
+
+@ body height - crouch/ground-lying/stoop?
+@ speed - slow wipe of arm or fast?
+@ duration - short wipe of arm or long?
+@ finess of action - crooked arm or straight?
+ 
+=== Concise notation
+Since these moves cannot be captured like a musical pitch, 'note middle-a', we probably need flexible reference systems e.g. in this system, 'c' = 'clap', 's' = 'step', 't' = 'turn' etc.
+
+=== Move modifiers
+These would naturally come after the event.
+
+What do we use numbers for? In music, duration of note, but in dance, the vast majority of maoves will happen over one or two or half notes?
+
+==== Duration
+Like lillypond, any change in duration should persist until otherwise stated.
+
+===== Pause
+lillypond uses 'r', with or without duration. 'r' as a move-mark is reserved.
+
+== Sequence
+{clap step-right}
+
+==Simutaeous
+<<
+{clap step-right}
+{clap clap}
+{clap clap}
+>>
+
+== Contexts
+Person - single person (multi movement)
+Score multi-person
+
+      \new Staff = "cello" <<
+         \new Person <<
+            \new Legs 
+            \new Arms 
+            \new Position
+         >>
+         \new Person <<
+            \new Legs 
+            \new Arms 
+            \new Position
+         >>
+       >>
+
+
+== Variables
+person1 = \new Person <<
+            \new Legs 
+            \new Arms 
+            \new Position
+         >>
+
+person2 = \new Person <<
+            \new Legs 
+            \new Arms 
+            \new Position
+         >>
+
+{
+<<
+\person1
+\person2
+>>
+}
+
