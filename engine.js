@@ -45,6 +45,18 @@ i -= 1;
 }
 }
 
+function pointAllE(pa){
+var i = pa.length - 1; 
+while(i >= 0) {
+e=pa[i].pointer;
+e.setAttribute("x1", "16");
+e.setAttribute("y1", "16");
+e.setAttribute("x2", "32");
+e.setAttribute("y2", "16");
+i -= 1;
+}
+}
+
 function pointAllS(pa){
 var i = pa.length - 1; 
 while(i >= 0) {
@@ -57,17 +69,7 @@ i -= 1;
 }
 }
 
-function pointAllE(pa){
-var i = pa.length - 1; 
-while(i >= 0) {
-e=pa[i].pointer;
-e.setAttribute("x1", "16");
-e.setAttribute("y1", "16");
-e.setAttribute("x2", "32");
-e.setAttribute("y2", "16");
-i -= 1;
-}
-}
+
 
 function pointAllW(pa){
 var i = pa.length - 1; 
@@ -205,16 +207,15 @@ var createPerson=function(svg, x,y){
 
 
 
-var moveToAction = {
- 'S': moveAllS,
- 'E' : moveAllE,
- 'S': moveAllS,
- 'W': moveAllW
-/*
- 'TurnL': moveTurnL,
- 'TurnR': moveTurnR,
-*/
-
+var actionMoves = {
+ 'stepN': moveAllN,
+ 'stepE' : moveAllE,
+ 'stepS': moveAllS,
+ 'stepW': moveAllW,
+ 'pointN': pointAllN,
+ 'pointE': pointAllE,
+ 'pointS': pointAllS,
+ 'pointW': pointAllW
 
 }
 
@@ -306,13 +307,78 @@ var svg = null;
 // person array
 var pA = [];
 
+var action = 0
+var duration = 1
+var target = 2
+var direction = 3
 
-function performMove(){
+var callrate = 1300
+
+
+//! Done not showing
+//! applause always showing (needs callback)
+//! animation not fluid
+//! animation not with duration
+//! hush not showing
+//! swan lake not working
+//! cancel not working
+//! have to refresh for options
+function performActionMove(actionCallback) {
+ a(pA) 
 }
 
 
 
+
 // Perform/UI //
+
+var movesTotal = null
+var movesI = 0
+var moves = null
+
+function performMove(m) {
+  ma = m[action]
+  if (ma=='step' || ma=='point') {
+    //alert('move:' +ma)
+    mId = ma + m[direction]
+    a = actionMoves[mId]
+    performActionMove(a)
+    setTimeout(function() { performNextMove(); }, (callrate));
+  }
+  else {
+    //alert('not action:' +ma)
+    setTimeout(function() { performNextMove(); }, (callrate));
+  }
+}
+
+function performNextMove() {
+  if (movesI < movesTotal) {
+    m = moves[movesI]
+    setMovesDisplay(m[action])
+    performMove(m)
+    movesI++
+  }
+  else {
+    endMoves()
+  }
+}
+
+function endMoves() {
+  setStatus('applause')
+}
+
+// Initialises and starts dance
+function startMoves(mvs) {
+  movesI = 0;
+  moves = mvs
+  movesTotal = mvs.length
+  performNextMove()
+}
+
+
+
+// Control //
+
 function createDancer() {
   // Doesn't create a position?
   
@@ -345,7 +411,6 @@ function createDancer() {
 }
 
 
-// Control //
 
 
 //? may want to animate changes in dancer numbers,
@@ -387,24 +452,26 @@ function toStartPositions(desc){
 }
 
 
-function cancelPerformance () {
+function cancelPerformance() {
+  //This causes the performance section to think we
+  //are on the last move
+  //? could be more sophisticated, killing handles and spilling messages
+movesI = movesTotal
+//  setStatus('[audience] bewildered')
 
+ 
 }
 
+
 function perform(dance){
+  setStatus('hush')
 
   updateDancers(dance.dancerCount);
 
   toStartPositions(dance.start);
-  /*
-  var moves = dance.moves
-  i= moves.length-1;
-  while(i >=0) {
-    currentMove = moves[i];
-    performMove()
-    i--;
-  }
-*/
+
+  startMoves(dance.moves);
+
 }
 
 
@@ -416,12 +483,14 @@ var dance1 = {
   dancerCount: 3,
   start: 'hline',
   moves: [
-  'S All 2',
-  'N All 2',
-  'Turn All W',
-  'Turn All S',
-  'S All 2',
-  'N All 2'
+  ['step', '2', 'All', 'S'],
+  ['step', '2', 'All',  'N', 'All'],
+  ['clap', '2', 'All',  'N', 'All'],
+  ['point', '2', 'All',  'W', 'All'],
+  ['point', '2', 'All',  'E', 'All'],
+  ['point', '2', 'All',  'S', 'All'],
+  ['step', '2', 'All', 'S', 'All'],
+  ['step', '2', 'All',  'N', 'All']
   ]
 }
 
@@ -431,7 +500,7 @@ var dance4 = {
   dancerCount: 5,
   start: 'vline',
   moves: [
-  'E All 8'
+  ['step', '8', 'All', 'E']
   ]
 }
 
@@ -441,7 +510,12 @@ var dance5 = {
   dancerCount: 1,
   start: 'hline',
   moves: [
-  'E All 8'
+  ['step', '2', 'All', 'S'],
+  ['step', '2', 'All', 'E'],
+  ['step', '2', 'All', 'S'],
+  ['step', '2', 'All', 'E'],
+  ['step', '2', 'All', 'S'],
+  ['step', '2', 'All', 'S']
   ]
 }
 
@@ -452,6 +526,10 @@ var danceData = [dance1, dance1,  dance1, dance4, dance1, dance5]
 
 function setStatus(msg) {
     document.getElementById("status").textContent = msg;
+}
+
+function setMovesDisplay(msg) {
+    document.getElementById("moves-display").textContent = msg;
 }
 
 //! dynamically build options
@@ -476,5 +554,16 @@ window.onload = function (){
   dance = getDance();
   setStatus('dance: ' + dance.title);
   
-  perform(dance);
+  document.getElementById("stop").addEventListener("click", function () {
+      //alert('stop')
+    cancelPerformance()
+  }, false);
+      
+  document.getElementById("go").addEventListener("click", function () {
+   // protect
+  //       if (frameCount == 0) {
+  //frameCount = 12;
+  
+    perform(dance);
+  }, false);
 }
