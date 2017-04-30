@@ -1,12 +1,67 @@
+*{
+padding: 0;
+margin: 0;
+}
+
 div#svg-container{
 background-color:ivory;
-margin: 16px auto;
+
 }
 
 svg#svg{
+display: block;
+width: 600px;
+height:600px;
 background-color:burlywood;
+margin: 16px auto;
 
 }
 
 div#controls{
+text-align: center;
+}
+
+#nav {
+  list-style-type: none;
+}
+
+#nav li {
+display:inline-block;
+
+}
+
+div.button {
+border : 1px outset #333;
+padding: 8px;
+margin: 2px;
+}
+
+div.red:hover {
+background-color: #ebb;
+}
+
+div.green:hover {
+background-color: #beb;
+}
+
+div.button:active {
+background-color: #bbc;
+}
+
+.red {
+background-color: #eaa;
+}
+
+.green {
+background-color: #aea;
+}
+
+#moves-display {
+font-size: 32pt;
+font-style: italic;
+min-height: 48pt;
+}
+
+#status {
+font-size:10pt;
 }

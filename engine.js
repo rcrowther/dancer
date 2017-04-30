@@ -1,3 +1,10 @@
+
+
+//! simutaneous moves
+//! storing/restoring pointer data for twirl
+//! second twirl in bbreakdance fails?
+// SVG drivers //
+
 const NORTH = 0
 const EAST = 1
 const SOUTH = 2
@@ -34,109 +41,6 @@ function point(dID, dir){
   }
 }
 
-function pointN(p){
-e=p.pointer;
-e.setAttribute("x1", "16");
-e.setAttribute("y1", "0");
-e.setAttribute("x2", "16");
-e.setAttribute("y2", "16");
-}
-
-function pointS(p){
-e=p.pointer;
-e.setAttribute("x1", "16");
-e.setAttribute("y1", "16");
-e.setAttribute("x2", "16");
-e.setAttribute("y2", "24");
-}
-
-function pointE(p){
-e=p.pointer;
-e.setAttribute("x1", "16");
-e.setAttribute("y1", "16");
-e.setAttribute("x2", "32");
-e.setAttribute("y2", "16");
-}
-
-function pointW(p){
-e=p.pointer;
-e.setAttribute("x1", "0");
-e.setAttribute("y1", "16");
-e.setAttribute("x2", "16");
-e.setAttribute("y2", "16");
-}
-
-
-
-function pointAllN(pa){
-var i = pa.length - 1; 
-while(i >= 0) {
-e=pa[i].pointer;
-e.setAttribute("x1", "16");
-e.setAttribute("y1", "0");
-e.setAttribute("x2", "16");
-e.setAttribute("y2", "16");
-i -= 1;
-}
-}
-
-function pointAllE(pa){
-var i = pa.length - 1; 
-while(i >= 0) {
-e=pa[i].pointer;
-e.setAttribute("x1", "16");
-e.setAttribute("y1", "16");
-e.setAttribute("x2", "32");
-e.setAttribute("y2", "16");
-i -= 1;
-}
-}
-
-function pointAllS(pa){
-var i = pa.length - 1; 
-while(i >= 0) {
-e=pa[i].pointer;
-e.setAttribute("x1", "16");
-e.setAttribute("y1", "16");
-e.setAttribute("x2", "16");
-e.setAttribute("y2", "32");
-i -= 1;
-}
-}
-
-
-
-function pointAllW(pa){
-var i = pa.length - 1; 
-while(i >= 0) {
-e=pa[i].pointer;
-e.setAttribute("x1", "0");
-e.setAttribute("y1", "16");
-e.setAttribute("x2", "16");
-e.setAttribute("y2", "16");
-i -= 1;
-}
-}
-
-function moveN(p){
-y=p.svg.y.baseVal;
-y.value=y.value - 8;
-}
-
-function moveE(p){
-x=p.svg.x.baseVal;
-x.value=x.value + 8;
-}
-
-function moveS(p){
-y=p.svg.y.baseVal;
-y.value=y.value + 8;
-}
-
-function moveW(p){
-x=p.svg.x.baseVal;
-x.value=x.value - 8;
-}
 
 // offsets array of [xOff, yOff] +- allowed
 //? wish this didn't change both offsets
@@ -160,40 +64,49 @@ function move(dID, offsets){
   }
 }
 
-function moveAllN(pa){
-var i = pa.length - 1; 
-while(i >= 0) {
-y=pa[i].svg.y.baseVal;
-y.value=y.value - 8;
-i--;
-}
-}
-
-function moveAllE(pa){
-var i = pa.length - 1; 
-while(i >= 0) {
-x=pa[i].svg.x.baseVal;
-x.value=x.value + 8;
-i--;
-}
-}
-
-function moveAllS(pa){
-var i = pa.length - 1; 
-while(i >= 0) {
-y=pa[i].svg.y.baseVal;
-y.value=y.value + 8;
-i--;
-}
+function twirl(dID, dir){
+  // leaves a 1 px dot in the middle :)
+  if (dID != ALL_DANCERS) {
+    let e=pA[dID].pointer;
+    e.setAttribute("x2", 17)
+    e.setAttribute("y2", 17)
+    e=pA[dID].body
+    e.setAttribute("fill-opacity", 0.3)
+  }
+  else {
+    let i = pA.length - 1; 
+    while(i >= 0) {
+      let e=pA[i].pointer
+      e.setAttribute("x2", 17)
+      e.setAttribute("y2", 17)
+      e=pA[i].body
+      e.setAttribute("fill-opacity", 0.3)
+      i--;
+    }
+  }
 }
 
-function moveAllW(pa){
-var i = pa.length - 1; 
-while(i >= 0) {
-x=pa[i].svg.x.baseVal;
-x.value=x.value - 8;
-i--;
-}
+
+function twirlReturn(dID, args){
+  // leaves a 1 px dot in the middle :)
+  if (dID != ALL_DANCERS) {
+    let e=pA[dID].pointer;
+    //e.setAttribute("x2", args[0])
+    //e.setAttribute("y2",args[1])
+    e=pA[dID].body
+    e.setAttribute("fill-opacity", 1)
+  }
+  else {
+    let i = pA.length - 1; 
+    while(i >= 0) {
+      let e=pA[i].pointer
+      //e.setAttribute("x2", 17)
+      //e.setAttribute("y2", 17)
+      e=pA[i].body
+      e.setAttribute("fill-opacity", 1)
+      i--;
+    }
+  }
 }
 
 function setAsHLine(pa, spacing){
@@ -264,58 +177,15 @@ var createPerson=function(svg, x,y){
 
 
 const actionCalls = Object.freeze({
- 'step': move,
- 'point': point
+  'step': move,
+  'point': point,
+  'twirl': twirl,
+  'twirlr': twirlReturn
 })
 
 
 
 /*
-window.onload = function (){
-
-var pCount = 3;
-//milliseconds
-// don't go under 1/60 sec framerate i.e. 17.
-// fix as framerate?
-// 40 - 25f/sec
-var frameRate = 40;
-
-var stepTime = 64;
-
-//var movDist = 96;
-// 96/8 = 12 frames
-// fastest this will be is 3/2 sec (2 * 80 to the bar)
-var callrate = (120/stepTime * 1000)/12
-
-
-
-var currentMove = moveAllE
-
-
-
-
-
-//
-
-
-pointN(pA[0]);
-pointE(pA[0]);
-
-moveE(pA[0]);
-moveS(pA[0]);
-
-// suspendRedraw  requestAnimationFrame 
-var svgPersonDirections = svgContainer.getElementsByClassName("person-direction");
- var svgPaths = svgContainer.getElementsByTagNameNS(ns,"path");
-var svgDoc = svgPersonDirections[0].contentDocument;
-
-var svgPath = svgContainer.getElementsByTagNameNS(ns,"line");
-svgPersons[0].attributes[1].value = "12"
-svgPersons[0].attributes[1].value = "0"
-document.getElementById("svg_image_id").getSVGDocument().get‌​ElementById("circle_‌​id").style.fill="blu‌​e"; 
-
-
-
 function renderLoop(first, action) {
    if (first) {
    frameCount = 12;
@@ -331,20 +201,6 @@ setTimeout(function() {
 }
 
 
-
-
-// document.getElementById("go").addEventListener("click", function () {
- //       if (frameCount == 0) {
-//frameCount = 12;
-
-          renderLoop(true, currentMove);
-
-
-// document.getElementById("stop").addEventListener("click", function () {
-
-          //alert('stop')
-  //    }, false);
-}
 */
 /////////////////////////////////////////////////////////////////////////
 
@@ -399,15 +255,16 @@ var moves = null
 
 
 // Event Loop //
+// used for frame animations
 //Event loop items
 // [call, dancerId, params]
 const EL_CALL = 0;
 const EL_DANCERID = 1;
 const EL_PARAMS = 2;
-let frameAnimationCalls = []
 
+let frameAnimationCalls = []
 let frameCountdown = 0
-//probably exceesive, but we need something
+//probably excesive, but we need something
 let notifyBeatFinshed = doNextBeat
 
 
@@ -418,7 +275,7 @@ function doFrame() {
     // call!
     c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
     i--
-    }
+  }
   
   frameCountdown--
   
@@ -427,6 +284,18 @@ function doFrame() {
   }
   else {
     frameAnimationCalls = []
+    // do return calls
+    let i = returnAnimationCalls.length - 1
+    while (i >= 0) {
+      let c = returnAnimationCalls[i]
+      // call!
+      c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+      i--
+    }
+    // clear
+    returnAnimationCalls = []
+    
+    //send notify
     notifyBeatFinshed.call()
   }
 }
@@ -452,6 +321,7 @@ function startAnimations() {
 // animation handling //
 
 let famesPerBeat = null
+let returnAnimationCalls = []
 
 
 
@@ -484,8 +354,8 @@ function calculateMoveOffsets(direction) {
 function pushFrameCall(m) {
   let action = m[D_ACTION]
   let call = actionCalls[action]
-  let dancerId = m[D_TARGET]
-  let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
+  let id = m[D_TARGET]
+  //let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
   // currently only handling 'step' here, so
   // calculate offsets
   // switch (action) {
@@ -494,6 +364,19 @@ function pushFrameCall(m) {
   frameAnimationCalls.push([call, id, params])
 }
 
+// make a easily callable data for animation
+function pushReturnCall(m) {
+  let action = m[D_ACTION]
+  let call = actionCalls[action + 'r']
+  let id = m[D_TARGET]
+  //let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
+  // currently only handling 'twirl' here, so
+  // calculate offsets
+  // switch (action) {
+  //case 'twirl'
+  let params = null //calculateMoveOffsets(m[D_PARAMS])
+  returnAnimationCalls.push([call, id, params])
+}
 
 // beat based //
 
@@ -518,13 +401,21 @@ function performBeat(m) {
       pushFrameCall(m)
       startAnimations()
       break
+    case AT_RETURNANIMATED:
+      pushReturnCall(m)
+      let id = m[D_TARGET]
+      //let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
+      // call!
+      actionCalls[m[D_ACTION]](id, m[D_PARAMS])
+      setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
+      break
     case AT_ISANIMATED:
       // do it now?
       //! duplication with pushFrameCall 
-      let dancerId = m[D_TARGET]
-      let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
+      let id2 = m[D_TARGET]
+      //let id2 = (dancerId2 == 'All') ? ALL_DANCERS : Number(dancerId2)
       // call!
-      actionCalls[m[D_ACTION]](id, m[D_PARAMS])
+      actionCalls[m[D_ACTION]](id2, m[D_PARAMS])
       // delay, continue
       setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
       break
@@ -561,6 +452,7 @@ function cancelDance() {
 }
 
 function endDance() {
+  setMovesDisplay('')
   setStatus('applause')
 }
 
@@ -602,9 +494,9 @@ function createDancer() {
   
   var d=document.createElementNS(NS,"line");
   d.x1.baseVal.value=16;
-  d.y1.baseVal.value=0;
+  d.y1.baseVal.value=16;
   d.x2.baseVal.value=16;
-  d.y2.baseVal.value=16;
+  d.y2.baseVal.value=32;
   d.style.stroke="#000000";
   d.style.strokeWidth="2";
   is.appendChild(d);
@@ -647,12 +539,14 @@ function toStartPositions(desc){
   switch(desc) {
     case 'vline':
       setAsVLine(pA, 64);
-      pointAllE(pA);
+      //pointAllE(pA);
+      point(ALL_DANCERS, EAST)
     break;
     default:
-       // default is hline
-       setAsHLine(pA, 64);
-       pointAllS(pA);
+      // default is hline
+      setAsHLine(pA, 64);
+      //pointAllS(pA);
+      point(ALL_DANCERS, SOUTH)
   }
 }
 
@@ -681,21 +575,25 @@ function perform(dance){
 
 // Data //
 
-// Also, [isAnimated, isFrameAnimated]
-// isFrameAnimated means 'do we need frame animation or beat'. Here, a 
-// clap is beat-animated, but mvement is frame-animated.
-// this is an anomoly, specific to the engine? A triplet tap may e fully 
-// animated by some engines, but beat-animated in a simple engine
-// (like this)
+// Animation types
+// AT_UNANIMATED is not animated, though the information is prpocessed and
+// here shown in a progressing text display. Clap is currently 
+// unanimated.
+// AT_ISANIMATED is a one-shot this-to-that. Pointer is 
+// animated. 
+// AT_RETURNANIMATED is animated only for the beat.
+// AT_ISFRAMEBASED means 'frame animation'. Step/move is frame-animated.
 // P.S. freeze ought to be faster. In some browsers (Chrome) it 
 // currently is.
 const AT_UNANIMATED = 0
 const AT_ISANIMATED = 1
-const AT_ISFRAMEBASED = 2
+const AT_RETURNANIMATED = 2
+const AT_ISFRAMEBASED = 3
 var moveAnimationType = Object.freeze({
-  'step' : 2,
+  'step' : 3,
   'clap' : 0,
-  'point' : 1
+  'point' : 1,
+  'twirl' : 2
 })
 
 // params may include direction, weight, etc?
@@ -710,36 +608,84 @@ const D_PARAMS = 3;
 
 const dance1 = {
   title: 'Coconutters',
-  tempo: 30,
-  //tempo: 64,
+  //tempo: 30,
+  tempo: 64,
   dancerCount: 3,
   start: 'hline',
   moves: [
-  ['step', 'All', false, SOUTH],
-  ['step', 'All', false, NORTH],
-  ['clap', 'All', false, NORTH],
-  ['point', 'All', false, WEST],
-  ['point', 'All', false, EAST],
-  ['point', 'All', false, SOUTH],
-  ['step', 'All', false, SOUTH],
-  ['step', 'All', false, NORTH]
+  ['step', ALL_DANCERS, false, SOUTH],
+  ['step', ALL_DANCERS, false, NORTH],
+  ['clap', ALL_DANCERS, false, NORTH],
+  ['point', ALL_DANCERS, false, WEST],
+  ['point', ALL_DANCERS, false, EAST],
+  ['point', ALL_DANCERS, false, SOUTH],
+  ['step', ALL_DANCERS, false, SOUTH],
+  ['step', ALL_DANCERS, false, NORTH]
+  ]
+}
+
+const dance2 = {
+  title: 'Breakdance',
+  //tempo: 30,
+  tempo: 64,
+  dancerCount: 3,
+  start: 'hline',
+  moves: [
+    ['point', ALL_DANCERS, false, EAST],
+    ['step', ALL_DANCERS, false, EAST],
+    ['step', ALL_DANCERS, false, EAST],
+    ['point', ALL_DANCERS, false, SOUTH],
+    ['point', 2, false, EAST],
+    ['step', 2, false, EAST],
+    ['point', 2, false, WEST],
+    ['point', 1, false, EAST],
+    ['step', 1, false, EAST],
+    ['point', 1, false, WEST],
+    ['twirl', 0, false, null],
+    ['point', 0, false, EAST],
+    ['step', 0, false, EAST],
+    ['twirl', 1, false, null]
+    ['point', 1, false, NORTH],
+    ['point', 1, false, SOUTH]
+  ]
+}
+
+const dance3 = {
+  title: 'Meeting Human Resources',
+  tempo: 30,
+  dancerCount: 6,
+  start: 'vline',
+  moves: [
+  ['step', ALL_DANCERS, false, EAST],
+  ['step', ALL_DANCERS, false, EAST],
+  ['step', ALL_DANCERS, false, EAST],
+  ['step', ALL_DANCERS, false, EAST]
   ]
 }
 
 const dance4 = {
-  title: 'Meeting Human Resources',
-  tempo: 64,
-  dancerCount: 5,
-  start: 'vline',
+  title: 'War Games',
+  tempo: 80,
+  dancerCount: 2,
+  start: 'hline',
   moves: [
-  ['step', 'All', false, EAST],
-  ['step', 'All', false, EAST],
-  ['step', 'All', false, EAST],
-  ['step', 'All', false, EAST],
-  ['step', 'All', false, EAST],
-  ['step', 'All', false, EAST],
-  ['step', 'All', false, EAST],
-  ['step', 'All', false, EAST]
+  ['point', 0, false, WEST],
+  ['point', 1, false, EAST],
+  ['step', 0, false, WEST],
+  ['step', 1, false, EAST],
+  ['step', 1, false, EAST],
+  ['point', 0, false, EAST],
+  ['point', 1, false, WEST],
+  ['step', 1, false, WEST],
+  ['step', 0, false, EAST],
+  ['point', 0, false, SOUTH],
+  ['step', 0, false, SOUTH],
+  ['point', 1, false, EAST],
+  ['point', 0, false, NORTH],
+  ['step', 0, false, NORTH],
+  ['point', 0, false, SOUTH],
+  ['point', 1, false, WEST],
+  ['point', 1, false, EAST]
   ]
 }
 
@@ -749,16 +695,18 @@ const dance5 = {
   dancerCount: 1,
   start: 'hline',
   moves: [
-  ['step', 'All', false, SOUTH],
-  ['step', 'All', false, EAST],
-  ['step', 'All', false, SOUTH],
-  ['step', 'All', false, EAST],
-  ['step', 'All', false, SOUTH],
-  ['step', 'All', false, SOUTH]
+  ['step', 0, false, SOUTH],
+  ['step', 0, false, EAST],
+  ['step', 0, false, SOUTH],
+  ['twirl', 0, false, null],
+  ['point', 0, false, SOUTH],
+  ['step', 0, false, EAST],
+  ['step', 0, false, SOUTH],
+  ['step', 0, false, SOUTH]
   ]
 }
 
-const danceData = [dance1, dance1,  dance1, dance4, dance1, dance5]
+const danceData = [dance1, dance2,  dance1, dance3, dance4, dance5]
 
 
 // Control/UI //
@@ -795,8 +743,8 @@ window.onload = function (){
   // set the container
   svg = document.getElementById("svg");
   var ns = "http://www.w3.org/2000/svg";
-  svg.style.minWidth="600px";
-  svg.style.minHeight="600px";
+  //svg.style.minWidth="600px";
+  //svg.style.minHeight="600px";
   
 
   

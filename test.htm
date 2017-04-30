@@ -11,12 +11,12 @@
 
   <body>
     <div id="controls">
-      <div id="go">Go</div>
-      <div id="stop">Stop</div>
-      <div id="status">***</div>
-      <div id="moves-display">***</div>
-      
-      <label for="dance" datalabel="dance">Number of dancers</label>    
+      <ul id="nav">
+      <li><div id="go" class="button green">Go</div></li>
+      <li><div id="stop" class="button red">Stop</div></li>
+
+      <li>
+      <label for="dance" datalabel="dance">Choose dance</label>    
       <select id="dance-id" name="dance">
         <option value="0" selected="selected">coconutters</option>
         <option value="1">breakdance</option>
@@ -25,6 +25,10 @@
         <option value="4">war games</option>
         <option value="5">swan lake</option>
       </select>
+      </li>
+      </ul>
+      <div id="moves-display"></div>
+      <div id="status">***</div>
     </div>
   
     <div id="svg-container">
