@@ -1,0 +1,31 @@
+Unlike lillypond, which works ffline, processed files should be in a format which is,
+~ compact
+: so it can be sent down the web, passed baout etc.
+~ organised so an interpreting engine can easily handle it
+: this will mean somme severe modificattions of the input format, which is designed for readability.
+
+==  compact
+I expect a bytecode-like representation. So like Protobuf, dbus, r Java bytecode, for example. 
+
+That said, there may be alternative representations of a fundamental layout, e.g. a JSON representation.
+
+== organised
+Don't know much about this, but some ideas are emerging. They are mainly based round the idea that a steady steam of info is best, even if repetitious. 
+
+== The input code needs expanding
+The use of variables is no help for an engine, so these all need to be preprocessed.
+
+== Filtering
+Some enggines, like the current HTML SVG engine, will have events it cann't handle at all (how to represent ...) and many it can't handle as it is not powerful enough---this engine can only handle basic moves for a few danceers. So filter events for the most important/representable outlines.
+
+== Many-events-in-one-beat still needs to be represented
+
+== beat based events are easier
+i.e break/conglomerate half-time/double-time events into beat-based instructions, so the engine can crank along saying 'load events for a beat', 'run events for a beat', 'move to events on the next beat'.
+
+So a triplet tap must be amalgamated into a beat instruction, 'triplet toe tap'. A four-beat slow swoop must be broken up into 'swoop, first quarter', 'swoop, second quarter','swoop, third quarter', 'swoop, fourth quarter'. 
+
+There should be annotation on instructions to warn of breakup or conglomeration, or alternative text-displays will look wierd. 
+
+=== Beat-based still needs annotation
+e.g. a clap can be a simple trigger, in any engine. A triplet toe tap may be animated in complex engines, but not in simple. Movement will nearly always be animated. 

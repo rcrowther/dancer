@@ -1,3 +1,38 @@
+const NORTH = 0
+const EAST = 1
+const SOUTH = 2
+const WEST = 3
+
+//x now unused
+const compassToEnum = Object.freeze({
+  "N": NORTH,
+  "E": EAST,
+  "S": SOUTH,
+  "W": WEST
+})
+
+const pointerDisp = [[16, 0], [32, 16], [16, 32], [0, 16]]
+
+// dir = compasEnum
+function point(dID, dir){
+  // by N/E/S/W
+  let disp = pointerDisp[dir]
+  
+  if (dID != ALL_DANCERS) {
+    e=pA[dID].pointer;
+    e.setAttribute("x2", disp[0]);
+    e.setAttribute("y2", disp[1]);
+  }
+  else {
+    let i = pA.length - 1; 
+    while(i >= 0) {
+      e=pA[i].pointer
+      e.setAttribute("x2", disp[0]);
+      e.setAttribute("y2", disp[1]);
+      i--;
+    }
+  }
+}
 
 function pointN(p){
 e=p.pointer;
@@ -103,6 +138,27 @@ x=p.svg.x.baseVal;
 x.value=x.value - 8;
 }
 
+// offsets array of [xOff, yOff] +- allowed
+//? wish this didn't change both offsets
+//? pass pA in
+function move(dID, offsets){
+  if (dID != ALL_DANCERS) {
+    x=pA[dID].svg.x.baseVal;
+    x.value=x.value + offsets[0]
+    y=pA[dID].svg.y.baseVal;
+    y.value=y.value + offsets[1]
+  }
+  else {
+    let i = pA.length - 1; 
+    while(i >= 0) {
+      x=pA[i].svg.x.baseVal;
+      x.value=x.value + offsets[0]
+      y=pA[i].svg.y.baseVal;
+      y.value=y.value + offsets[1]
+      i--;
+    }
+  }
+}
 
 function moveAllN(pa){
 var i = pa.length - 1; 
@@ -207,17 +263,10 @@ var createPerson=function(svg, x,y){
 
 
 
-var actionMoves = {
- 'stepN': moveAllN,
- 'stepE' : moveAllE,
- 'stepS': moveAllS,
- 'stepW': moveAllW,
- 'pointN': pointAllN,
- 'pointE': pointAllE,
- 'pointS': pointAllS,
- 'pointW': pointAllW
-
-}
+const actionCalls = Object.freeze({
+ 'step': move,
+ 'point': point
+})
 
 
 
@@ -302,18 +351,30 @@ setTimeout(function() {
 
 
 // global data
-var NS="http://www.w3.org/2000/svg";
+const NS="http://www.w3.org/2000/svg";
 var svg = null;
 // person array
 var pA = [];
 
+// Magic number for 'all dancers'
+const ALL_DANCERS = -1
+
+// enum for a dance move
+//x
+/*
 var action = 0
 var duration = 1
 var target = 2
 var direction = 3
+*/
 
-var callrate = 1300
-
+// 4 frames/sec?
+let frameRate = 4
+// in MS
+//? should be fly/per dance calculated?
+let frameTimeSize = 1000/frameRate
+// In MS. Modified by tempo.
+let beatTimeSize = null
 
 //! Done not showing
 //! applause always showing (needs callback)
@@ -323,9 +384,7 @@ var callrate = 1300
 //! swan lake not working
 //! cancel not working
 //! have to refresh for options
-function performActionMove(actionCallback) {
- a(pA) 
-}
+
 
 
 
@@ -336,45 +395,188 @@ var movesTotal = null
 var movesI = 0
 var moves = null
 
-function performMove(m) {
-  ma = m[action]
-  if (ma=='step' || ma=='point') {
-    //alert('move:' +ma)
-    mId = ma + m[direction]
-    a = actionMoves[mId]
-    performActionMove(a)
-    setTimeout(function() { performNextMove(); }, (callrate));
+
+
+
+// Event Loop //
+//Event loop items
+// [call, dancerId, params]
+const EL_CALL = 0;
+const EL_DANCERID = 1;
+const EL_PARAMS = 2;
+let frameAnimationCalls = []
+
+let frameCountdown = 0
+//probably exceesive, but we need something
+let notifyBeatFinshed = doNextBeat
+
+
+function doFrame() {
+  let i = frameAnimationCalls.length - 1
+  while (i >= 0) {
+    let c = frameAnimationCalls[i]
+    // call!
+    c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+    i--
+    }
+  
+  frameCountdown--
+  
+  if (frameCountdown > 0) {
+      setTimeout(function() { doFrame(); }, (frameTimeSize));
   }
   else {
-    //alert('not action:' +ma)
-    setTimeout(function() { performNextMove(); }, (callrate));
+    frameAnimationCalls = []
+    notifyBeatFinshed.call()
   }
 }
 
-function performNextMove() {
-  if (movesI < movesTotal) {
-    m = moves[movesI]
-    setMovesDisplay(m[action])
-    performMove(m)
-    movesI++
-  }
-  else {
-    endMoves()
+
+function cancelAnimations() {
+  frameCountdown = 0
+}
+
+//? needs defending against multicalls
+function startAnimations() {
+  // if running, don't bother
+  if (!frameCountdown) {
+    frameCountdown = famesPerBeat 
+    setTimeout(function() { doFrame(); }, (frameTimeSize));
   }
 }
 
-function endMoves() {
+
+
+
+
+// animation handling //
+
+let famesPerBeat = null
+
+
+
+function setTiming(tempo) {
+  // time of the animation in ms
+  //? lossy
+  //? ceil upwards, not down
+  //? errors make the dance too long
+  famesPerBeat = Math.ceil(frameRate * (60/tempo))
+  beatTimeSize = 1000 * (60/tempo)
+}
+  
+//? now these are fixed, but if we introduce distance a dancer moves,
+//? they will vary.
+function calculateMoveOffsets(direction) {
+  //! temp for now
+  var distance = 96
+  //? floor = errors go short, not long
+  var moveSize = Math.floor(distance/famesPerBeat)
+  switch (direction) {
+    case NORTH: return [0, -moveSize]
+    case EAST: return [moveSize, 0]
+    case SOUTH: return [0, moveSize]
+    case WEST: return [-moveSize, 0]
+  }
+  alert('d' + direction)
+}
+
+// make a easily callable data for animation
+function pushFrameCall(m) {
+  let action = m[D_ACTION]
+  let call = actionCalls[action]
+  let dancerId = m[D_TARGET]
+  let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
+  // currently only handling 'step' here, so
+  // calculate offsets
+  // switch (action) {
+  //case 'step'
+  let params = calculateMoveOffsets(m[D_PARAMS])
+  frameAnimationCalls.push([call, id, params])
+}
+
+
+// beat based //
+
+let beatI = 0
+let beatMoves = null
+let notifyDanceEnded = endDance
+
+
+//? should this load everything?
+//? i.e. needs to be loop-based for multiple events?
+function performBeat(m) {
+  let ma = m[D_ACTION]
+
+  let mad = moveAnimationType[ma]
+
+  // show most moves
+  //? D_ISMANYBEAT
+  setMovesDisplay(ma)
+  
+  switch (mad) {
+    case AT_ISFRAMEBASED:
+      pushFrameCall(m)
+      startAnimations()
+      break
+    case AT_ISANIMATED:
+      // do it now?
+      //! duplication with pushFrameCall 
+      let dancerId = m[D_TARGET]
+      let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
+      // call!
+      actionCalls[m[D_ACTION]](id, m[D_PARAMS])
+      // delay, continue
+      setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
+      break
+    default:
+      // AT_UNANIMATED this engine - nothing
+      // delay, continue
+      setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
+  }
+}
+
+function doNextBeat(){
+  if (beatI < beatMoves.length) {
+    m = beatMoves[beatI]
+    performBeat(m)
+    beatI++
+  }
+  else notifyDanceEnded.call()
+}
+
+function startBeats(moves) {
+    beatI = 0
+    beatMoves = moves
+    doNextBeat()
+}
+
+/////////////////////////////////////////////
+
+// Dance-based //
+
+function cancelDance() {
+  cancelAnimations()
+  // Scatter dancers? kill dancers?
+  setStatus('bewildered audience')
+}
+
+function endDance() {
   setStatus('applause')
 }
 
-// Initialises and starts dance
-function startMoves(mvs) {
-  movesI = 0;
-  moves = mvs
-  movesTotal = mvs.length
-  performNextMove()
+function startDance(dance) {
+  setTiming(dance.tempo)
+  
+  setStatus('hush')
+
+  updateDancers(dance.dancerCount)
+
+  toStartPositions(dance.start)
+  
+  startBeats(dance.moves)
 }
 
+////////////////////////////////////////////
 
 
 // Control //
@@ -418,23 +620,26 @@ function createDancer() {
 function updateDancers(count) {
 
   // be nice, respect current dancers
-  if (count < pA.length) {
-    var i= r.length;
-    while(i>0) {
-      d = pA.pop(p);
-      svg.removeChild(d.is);
+  l = pA.length
+  if (count < l) {
+    var i = l - 1;
+    while(i >= count) {
+      svg.removeChild(pA[i].svg);
+      d = pA.pop();
+      //? popping seems to affect the dom, too?
       i--;
     }
   }
   else {
-    var i= count - pA.length;
-
-    while(i>0) {
-      var d = createDancer()
-      pA.push(d);
-      svg.appendChild(d.svg);
-      i--;
-    }
+    if (count > l) {
+      var i = count - l;
+  
+      while(i>0) {
+        var d = createDancer()
+        pA.push(d);
+        svg.appendChild(d.svg);
+        i--;
+    }}
   }
 }
 
@@ -471,58 +676,101 @@ function perform(dance){
   toStartPositions(dance.start);
 
   startMoves(dance.moves);
-
 }
-
 
 
 // Data //
-var dance1 = {
+
+// Also, [isAnimated, isFrameAnimated]
+// isFrameAnimated means 'do we need frame animation or beat'. Here, a 
+// clap is beat-animated, but mvement is frame-animated.
+// this is an anomoly, specific to the engine? A triplet tap may e fully 
+// animated by some engines, but beat-animated in a simple engine
+// (like this)
+// P.S. freeze ought to be faster. In some browsers (Chrome) it 
+// currently is.
+const AT_UNANIMATED = 0
+const AT_ISANIMATED = 1
+const AT_ISFRAMEBASED = 2
+var moveAnimationType = Object.freeze({
+  'step' : 2,
+  'clap' : 0,
+  'point' : 1
+})
+
+// params may include direction, weight, etc?
+// simulation of helpful marrkup, so may include enums.
+// format [action, target, isManyBeat,  optional[params]]
+//? are we sticking with this? the only param is direction?
+//! convert 'All'
+const D_ACTION = 0;
+const D_TARGET = 1;
+const D_ISMANYBEAT = 2;
+const D_PARAMS = 3;
+
+const dance1 = {
   title: 'Coconutters',
-  speed: 64,
+  tempo: 30,
+  //tempo: 64,
   dancerCount: 3,
   start: 'hline',
   moves: [
-  ['step', '2', 'All', 'S'],
-  ['step', '2', 'All',  'N', 'All'],
-  ['clap', '2', 'All',  'N', 'All'],
-  ['point', '2', 'All',  'W', 'All'],
-  ['point', '2', 'All',  'E', 'All'],
-  ['point', '2', 'All',  'S', 'All'],
-  ['step', '2', 'All', 'S', 'All'],
-  ['step', '2', 'All',  'N', 'All']
+  ['step', 'All', false, SOUTH],
+  ['step', 'All', false, NORTH],
+  ['clap', 'All', false, NORTH],
+  ['point', 'All', false, WEST],
+  ['point', 'All', false, EAST],
+  ['point', 'All', false, SOUTH],
+  ['step', 'All', false, SOUTH],
+  ['step', 'All', false, NORTH]
   ]
 }
 
-var dance4 = {
+const dance4 = {
   title: 'Meeting Human Resources',
-  speed: 64,
+  tempo: 64,
   dancerCount: 5,
   start: 'vline',
   moves: [
-  ['step', '8', 'All', 'E']
+  ['step', 'All', false, EAST],
+  ['step', 'All', false, EAST],
+  ['step', 'All', false, EAST],
+  ['step', 'All', false, EAST],
+  ['step', 'All', false, EAST],
+  ['step', 'All', false, EAST],
+  ['step', 'All', false, EAST],
+  ['step', 'All', false, EAST]
   ]
 }
 
-var dance5 = {
+const dance5 = {
   title: 'Swan Lake',
-  speed: 64,
+  tempo: 64,
   dancerCount: 1,
   start: 'hline',
   moves: [
-  ['step', '2', 'All', 'S'],
-  ['step', '2', 'All', 'E'],
-  ['step', '2', 'All', 'S'],
-  ['step', '2', 'All', 'E'],
-  ['step', '2', 'All', 'S'],
-  ['step', '2', 'All', 'S']
+  ['step', 'All', false, SOUTH],
+  ['step', 'All', false, EAST],
+  ['step', 'All', false, SOUTH],
+  ['step', 'All', false, EAST],
+  ['step', 'All', false, SOUTH],
+  ['step', 'All', false, SOUTH]
   ]
 }
 
-var danceData = [dance1, dance1,  dance1, dance4, dance1, dance5]
+const danceData = [dance1, dance1,  dance1, dance4, dance1, dance5]
 
 
 // Control/UI //
+
+//! enable
+function validDance(d) {
+  if(d.dancerCount > 6) {
+    setStatus('Too many dancers for your browser. count:' + count)
+    return false
+  }
+  return true
+}
 
 function setStatus(msg) {
     document.getElementById("status").textContent = msg;
@@ -533,7 +781,7 @@ function setMovesDisplay(msg) {
 }
 
 //! dynamically build options
-function getDance(){
+function getDanceFromWidget(){
   var e = document.getElementById("dance-id")
   var o = e.options[e.selectedIndex];
   var danceId = o.value;
@@ -550,20 +798,23 @@ window.onload = function (){
   svg.style.minWidth="600px";
   svg.style.minHeight="600px";
   
-  // get dance
-  dance = getDance();
-  setStatus('dance: ' + dance.title);
+
   
   document.getElementById("stop").addEventListener("click", function () {
       //alert('stop')
-    cancelPerformance()
+    //cancelPerformance()
+    cancelDance()
   }, false);
       
   document.getElementById("go").addEventListener("click", function () {
    // protect
   //       if (frameCount == 0) {
   //frameCount = 12;
+    // get dance
+    dance = getDanceFromWidget();
+    setStatus('dance: ' + dance.title);
   
-    perform(dance);
+    //perform(dance);
+    startDance(dance)
   }, false);
 }
