@@ -253,7 +253,11 @@ let beatTimeSize = null
 var movesTotal = null
 var movesI = 0
 var moves = null
-let cancelled = false
+
+const ES_IDLE = 1
+const ES_DANCING = 2
+const ES_CANCELLED = 3
+let engineStatus = ES_IDLE
 
 
 
@@ -304,11 +308,7 @@ function doFrame() {
 }
 
 
-function cancelAnimations() {
-  frameCountdown = 0
-}
-
-//? needs defending against multicalls
+// needs defending against multicalls
 function startAnimations() {
   // if running, don't bother
   if (!frameCountdown) {
@@ -321,12 +321,15 @@ function startAnimations() {
 
 
 
-// animation handling //
+// Beat-based animation handling //
+
 
 let famesPerBeat = null
 let returnAnimationCalls = []
 
 
+
+// utilities //
 
 function setTiming(tempo) {
   // time of the animation in ms
@@ -355,20 +358,11 @@ function calculateMoveOffsets(direction) {
 }
 
 
-
-// beat based //
-
-let beatI = 0
-let beatMoves = null
-let notifyDanceEnded = endDance
-
-
 // make a easily callable data for animation
 function pushFrameCall(m) {
   let action = m[D_ACTION]
   let call = actionCalls[action]
   let id = m[D_TARGET]
-  //let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
   // currently only handling 'step' here, so
   // calculate offsets
   // switch (action) {
@@ -382,7 +376,6 @@ function pushReturnCall(m) {
   let action = m[D_ACTION]
   let call = actionCalls[action + 'r']
   let id = m[D_TARGET]
-  //let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
   // currently only handling 'twirl' here, so
   // calculate offsets
   // switch (action) {
@@ -392,6 +385,13 @@ function pushReturnCall(m) {
 }
 
 
+
+// beat-based event handling //
+
+
+let beatI = 0
+let beatMoves = null
+let notifyDanceEnded = endDance
 
 //? should this load everything?
 //? i.e. needs to be loop-based for multiple events?
@@ -412,7 +412,6 @@ function performBeat(m) {
     case AT_RETURNANIMATED:
       pushReturnCall(m)
       let id = m[D_TARGET]
-      //let id = (dancerId == 'All') ? ALL_DANCERS : Number(dancerId)
       // call!
       actionCalls[m[D_ACTION]](id, m[D_PARAMS])
       setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
@@ -427,14 +426,16 @@ function performBeat(m) {
       setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
       break
     default:
-      // AT_UNANIMATED this engine - no animate
+      // AT_UNANIMATED this engine
+      // no animate, but is displayed
       // delay, continue
       setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
   }
 }
 
+
 function doNextBeat(){
-  if (beatI < beatMoves.length) {
+  if (beatI < beatMoves.length && engineStatus == ES_DANCING) {
     m = beatMoves[beatI]
     performBeat(m)
     beatI++
@@ -442,9 +443,7 @@ function doNextBeat(){
   else notifyDanceEnded.call()
 }
 
-function cancelBeats(){
-  beatI = beatMoves.length
-}
+
 
 function startBeats(moves) {
     beatI = 0
@@ -457,37 +456,45 @@ function startBeats(moves) {
 // Dance-based //
 
 function cancelDance() {
-  //? currently maxing globals, yuch.
+  //? currently kills beat based. This takes maybe up to a second
+  //? and a half to work, but has huge advantages...
+  //? it allows current frame-animation to run it's course, clean up
+  //? and notify. It is also only one flag point, and puts
+  //? no extra code in frame-animation (both good).
   //? could also kill callback handlers
-  //? for immediacy?
-  cancelled = true
-  cancelBeats()
-  cancelAnimations()
+  if (engineStatus == ES_DANCING)  {
+    engineStatus = ES_CANCELLED
+  }
 }
 
 function endDance() {
   setMovesDisplay('')
-  if (!cancelled) {
+  if (engineStatus != ES_CANCELLED) {
     setStatus('applause')
   }
   else {
     // Scatter dancers? kill dancers?
     setStatus('bewildered audience')
-    // done, so reset
-    cancelled = false
   }
+  // done, so reset
+  engineStatus = ES_IDLE
 }
 
 function startDance(dance) {
-  setTiming(dance.tempo)
+  //validDance
+  if (engineStatus != ES_DANCING) {
+    engineStatus = ES_DANCING
+    
+    setTiming(dance.tempo)
+    
+    setStatus('hush')
   
-  setStatus('hush')
-
-  updateDancers(dance.dancerCount)
-
-  toStartPositions(dance.start)
+    updateDancers(dance.dancerCount)
   
-  startBeats(dance.moves)
+    toStartPositions(dance.start)
+    
+    startBeats(dance.moves)
+  }
 }
 
 ////////////////////////////////////////////
@@ -575,15 +582,6 @@ function toStartPositions(desc){
 }
 
 
-function cancelPerformance() {
-  //This causes the performance section to think we
-  //are on the last move
-  //? could be more sophisticated, killing handles and spilling messages
-movesI = movesTotal
-//  setStatus('[audience] bewildered')
-
- 
-}
 
 
 function perform(dance){
@@ -805,20 +803,17 @@ window.onload = function (){
 
   
   document.getElementById("stop").addEventListener("click", function () {
-      //alert('stop')
-    //cancelPerformance()
     cancelDance()
   }, false);
       
   document.getElementById("go").addEventListener("click", function () {
-   // protect
-  //       if (frameCount == 0) {
-  //frameCount = 12;
     // get dance
-    dance = getDanceFromWidget();
-    setStatus('dance: ' + dance.title);
-  
-    //perform(dance);
+    dance = getDanceFromWidget()
+    
+    //? doing nothing? immediately removed...
+    //setStatus('dance: ' + dance.title);
+    
     startDance(dance)
+
   }, false);
 }
