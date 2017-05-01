@@ -2,10 +2,10 @@
 
 //! simutaneous moves
 //! storing/restoring pointer data for twirl
-//! second twirl in bbreakdance fails?
+//! second twirl in breakdance fails?
 //! opacity not resetting
 //! do circles?
-//! multiople go press?
+//! setAttribute is slow?
 // SVG drivers //
 
 const NORTH = 0
@@ -67,7 +67,8 @@ function move(dID, offsets){
   }
 }
 
-function twirl(dID, dir){
+// args is null
+function twirl(dID, args){
   // leaves a 1 px dot in the middle :)
   if (dID != ALL_DANCERS) {
     let e=pA[dID].pointer;
@@ -89,26 +90,40 @@ function twirl(dID, dir){
   }
 }
 
-
+// args is pair/seq of [x y]
 function twirlReturn(dID, args){
   // leaves a 1 px dot in the middle :)
   if (dID != ALL_DANCERS) {
-    let e=pA[dID].pointer;
-    //e.setAttribute("x2", args[0])
-    //e.setAttribute("y2",args[1])
+    let e=pA[dID].pointer
+    e.setAttribute("x2", args[0])
+    e.setAttribute("y2",args[1])
     e=pA[dID].body
     e.setAttribute("fill-opacity", 1)
   }
   else {
-    let i = pA.length - 1; 
+    //args are unmarked x1 y1 x2 y2 ...
+    let i = pA.length - 1
+    let j = 0
     while(i >= 0) {
       let e=pA[i].pointer
-      //e.setAttribute("x2", 17)
-      //e.setAttribute("y2", 17)
+      e.setAttribute("x2", args[j])
+      j++
+      e.setAttribute("y2", args[j])
+      j++
       e=pA[i].body
       e.setAttribute("fill-opacity", 1)
       i--;
     }
+  }
+}
+
+
+function kick(dID, args){
+  if (dID != ALL_DANCERS) {
+    //will do, not now
+  }
+  else {
+    //will do, not now
   }
 }
 
@@ -182,6 +197,7 @@ var createPerson=function(svg, x,y){
 const actionCalls = Object.freeze({
   'step': move,
   'point': point,
+  'kick': kick,
   'twirl': twirl,
   'twirlr': twirlReturn
 })
@@ -271,6 +287,9 @@ const EL_PARAMS = 2;
 
 let frameAnimationCalls = []
 let frameCountdown = 0
+
+let beatEndCalls = []
+
 //probably excesive, but we need something
 let notifyBeatFinshed = doNextBeat
 
@@ -291,16 +310,7 @@ function doFrame() {
   }
   else {
     frameAnimationCalls = []
-    // do return calls
-    let i = returnAnimationCalls.length - 1
-    while (i >= 0) {
-      let c = returnAnimationCalls[i]
-      // call!
-      c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
-      i--
-    }
-    // clear
-    returnAnimationCalls = []
+
     
     //send notify
     notifyBeatFinshed.call()
@@ -325,7 +335,7 @@ function startAnimations() {
 
 
 let famesPerBeat = null
-let returnAnimationCalls = []
+let beatStartCalls = []
 
 
 
@@ -342,7 +352,8 @@ function setTiming(tempo) {
   
 //? now these are fixed, but if we introduce distance a dancer moves,
 //? they will vary.
-function calculateMoveOffsets(direction) {
+function moveOffsets(m) {
+  let direction = m[D_PARAMS]
   //! temp for now
   var distance = 96
   //? floor = errors go short, not long
@@ -358,6 +369,43 @@ function calculateMoveOffsets(direction) {
 }
 
 
+// 'all' args returned as undifferentiated seq
+function pointerData(m) {
+  if (m[D_TARGET] != ALL_DANCERS) {
+    e = pA[m[D_TARGET]].pointer
+    return [e.getAttribute("x2"), e.getAttribute("y2")]
+  }
+  else {
+    let args = []
+    let i = pA.length - 1
+    while(i >= 0) {
+      e = pA[i].pointer
+      args.push(e.getAttribute("x2"))
+      args.push(e.getAttribute("y2"))
+      i--
+    }
+    return args
+  }
+}
+
+function posDataAsParams(m) {
+  if (m[D_TARGET] != ALL_DANCERS) {
+    e = pA[m[D_TARGET]].svg
+    return [e.x.baseVal, e.y.baseVal]
+  }
+  else {
+    let args = []
+    let i = pA.length - 1
+    while(i >= 0) {
+      e = pA[i].svg
+      args.push(e.x.baseVal)
+      args.push(e.y.baseVal)
+      i--
+    }
+    return args
+  }
+}
+/*
 // make a easily callable data for animation
 function pushFrameCall(m) {
   let action = m[D_ACTION]
@@ -367,12 +415,12 @@ function pushFrameCall(m) {
   // calculate offsets
   // switch (action) {
   //case 'step'
-  let params = calculateMoveOffsets(m[D_PARAMS])
+  let params = moveOffsets(m[D_PARAMS])
   frameAnimationCalls.push([call, id, params])
 }
 
 // make a easily callable data for animation
-function pushReturnCall(m) {
+function pushBeatEndCall(m) {
   let action = m[D_ACTION]
   let call = actionCalls[action + 'r']
   let id = m[D_TARGET]
@@ -380,11 +428,35 @@ function pushReturnCall(m) {
   // calculate offsets
   // switch (action) {
   //case 'twirl'
-  let params = null //calculateMoveOffsets(m[D_PARAMS])
-  returnAnimationCalls.push([call, id, params])
+  let params = pointerData(m)
+  beatEndCalls.push([call, id, params])
 }
 
+function pushBeatStartCall(m) {
+  let action = m[D_ACTION]
+  let call = actionCalls[action]
+  let id = m[D_TARGET]
+  // currently only handling 'twirl' here, so
+  // calculate offsets
+  // switch (action) {
+  //case 'twirlr'
+  let params = pointerData(m)
+  beatStartCalls.push([call, id, params])
+}
+*/
 
+function paramsForCall(m, action) {
+  switch(action) {
+  case 'step': return moveOffsets(m)
+  case 'twirlr': return pointerData(m)
+  case 'point': return m[D_PARAMS]
+  case 'twirl':
+  case 'clap' : 
+  case 'kick': 
+  default:
+  return null
+  }
+}
 
 // beat-based event handling //
 
@@ -395,6 +467,41 @@ let notifyDanceEnded = endDance
 
 //? should this load everything?
 //? i.e. needs to be loop-based for multiple events?
+function loadMove(m) {
+  let a = m[D_ACTION]
+  let call = actionCalls[a]
+  if (!call) alert('unrecognised command:' + a)
+  let id = m[D_TARGET]
+  let params = paramsForCall(m, a)
+
+  let mad = moveAnimationType[a]
+
+
+  switch (mad) {
+    case AT_ISFRAMEBASED:
+      //pushFrameCall(m)
+      frameAnimationCalls.push([call, id, params])
+      break
+    case AT_ISANIMATED:
+      beatStartCalls.push([call, id, params])
+
+      //pushBeatStartCall(m)
+
+      break
+    case AT_RETURNANIMATED:
+      //pushBeatStartCall(m)
+      //pushBeatEndCall(m)
+      beatStartCalls.push([call, id, params])
+      let ar = a + 'r'
+      let callr = actionCalls[ar]
+      let paramsr = paramsForCall(m, ar) 
+      beatEndCalls.push([callr, id, paramsr])
+      break
+    default:
+      // do nothing (may show elsewhere)
+  }
+}
+/*
 function performBeat(m) {
   let ma = m[D_ACTION]
 
@@ -410,11 +517,12 @@ function performBeat(m) {
       startAnimations()
       break
     case AT_RETURNANIMATED:
-      pushReturnCall(m)
+      pushBeatEndCall(m)
       let id = m[D_TARGET]
       // call!
       actionCalls[m[D_ACTION]](id, m[D_PARAMS])
-      setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
+      // this triggers return anim, even if nothing else for now
+      startAnimations()
       break
     case AT_ISANIMATED:
       // do it now?
@@ -432,12 +540,52 @@ function performBeat(m) {
       setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
   }
 }
+*/
 
+function doBeatStartCalls() {
+    // do return calls
+    //? done without timeout isolation/async will slow
+    //? the clock, but is linear synced.
+    let i = beatStartCalls.length - 1
+    while (i >= 0) {
+      let c = beatStartCalls[i]
+      // call!
+      c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+      i--
+    }
+        // clear
+    beatStartCalls = []
+}
+
+function doBeatEndCalls() {
+    // do return calls
+    //? done without timeout isolation will slow
+    //? the clock, but is linear synced.
+    let i = beatEndCalls.length - 1
+    while (i >= 0) {
+      let c = beatEndCalls[i]
+      // call!
+      c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+      i--
+    }
+
+    // clear
+    beatEndCalls = []
+}
 
 function doNextBeat(){
+  doBeatEndCalls()
+
   if (beatI < beatMoves.length && engineStatus == ES_DANCING) {
     m = beatMoves[beatI]
-    performBeat(m)
+    loadMove(m)
+
+    //? TMP show moves
+    //? D_ISMANYBEAT
+    setMovesDisplay( m[D_ACTION])
+    
+    doBeatStartCalls()
+    startAnimations()
     beatI++
   }
   else notifyDanceEnded.call()
@@ -448,6 +596,9 @@ function doNextBeat(){
 function startBeats(moves) {
     beatI = 0
     beatMoves = moves
+    //?
+    beatStartCalls = []
+    beatEndCalls = []
     doNextBeat()
 }
 
@@ -570,13 +721,11 @@ function toStartPositions(desc){
   switch(desc) {
     case 'vline':
       setAsVLine(pA, 64);
-      //pointAllE(pA);
       point(ALL_DANCERS, EAST)
     break;
     default:
       // default is hline
       setAsHLine(pA, 64);
-      //pointAllS(pA);
       point(ALL_DANCERS, SOUTH)
   }
 }
@@ -667,9 +816,8 @@ const dance1 = {
     ['step', 1, false, EAST],
     ['point', 1, false, WEST],
     ['twirl', 0, false, null],
-    ['point', 0, false, EAST],
-    ['step', 0, false, EAST],
-    ['twirl', 1, false, null]
+    ['point', 1, false, SOUTH],
+    ['twirl', 1, false, null],
     ['point', 1, false, NORTH],
     ['point', 1, false, SOUTH]
   ]
