@@ -6,6 +6,11 @@
 //! opacity not resetting
 //! do circles?
 //! setAttribute is slow?
+//! zoom
+//! make those ALL_DANCER rotations somewhere near the call, so not 
+//! repeating every effect call
+//! kick should have direction crossways
+
 // SVG drivers //
 
 const NORTH = 0
@@ -13,7 +18,7 @@ const EAST = 1
 const SOUTH = 2
 const WEST = 3
 
-//x now unused
+
 const compassToEnum = Object.freeze({
   "N": NORTH,
   "E": EAST,
@@ -120,12 +125,97 @@ function twirlReturn(dID, args){
 
 function kick(dID, args){
   if (dID != ALL_DANCERS) {
-    //will do, not now
+    let e=pA[dID].body
+    e.setAttribute("transform", "translate(16 16) scale(0.5 1) translate(-16 -16)")
   }
   else {
-    //will do, not now
+    let i = pA.length - 1
+    while(i >= 0) {
+      e=pA[i].body
+      e.setAttribute("transform", "translate(16 16) scale(0.5 1) translate(-16 -16)")
+      i--
+    }
   }
 }
+
+function kickr(dID, args){
+  if (dID != ALL_DANCERS) {
+    let e=pA[dID].body
+    e.setAttribute("transform", "scale(1 1)")
+  }
+  else {
+    let i = pA.length - 1
+    while(i >= 0) {
+      e=pA[i].body
+      e.setAttribute("transform", "scale(1 1)")
+      i--
+    }
+  }
+}
+
+function jump(dID, args){
+  if (dID != ALL_DANCERS) {
+    //will do, not now
+    let e=pA[dID].body
+    e.r.baseVal.value=10
+  }
+  else {
+    let i = pA.length - 1
+    while(i >= 0) {
+      e=pA[i].body
+      e.r.baseVal.value=10
+      i--
+    }
+  }
+}
+
+function jumpr(dID, args){
+  if (dID != ALL_DANCERS) {
+    //will do, not now
+    let e=pA[dID].body
+    e.r.baseVal.value=16
+  }
+  else {
+    let i = pA.length - 1
+    while(i >= 0) {
+      e=pA[i].body
+      e.r.baseVal.value=16
+      i--
+    }
+  }
+}
+
+function clap(dID, args){
+  if (dID != ALL_DANCERS) {
+    //will do, not now
+    let e=pA[dID].body 
+    e.style.fill="url(#rg)"
+  }
+  else {
+    let i = pA.length - 1
+    while(i >= 0) {
+      e=pA[i].body
+      e.style.fill="url(#rg)"
+      i--
+    }
+  }
+}
+  
+  function clapr(dID, args){
+  if (dID != ALL_DANCERS) {
+    //will do, not now
+    let e=pA[dID].body
+    e.style.fill="#ffeeb8"
+  }
+  else {
+    let i = pA.length - 1
+    while(i >= 0) {
+      e=pA[i].body
+      e.style.fill="#ffeeb8"
+      i--
+    }
+  }
+} 
 
 function setAsHLine(pa, spacing){
   var l = pa.length;
@@ -198,6 +288,11 @@ const actionCalls = Object.freeze({
   'step': move,
   'point': point,
   'kick': kick,
+  'kickr': kickr,
+  'clap': clap,
+  'clapr': clapr,
+  'jump': jump,
+  'jumpr': jumpr,
   'twirl': twirl,
   'twirlr': twirlReturn
 })
@@ -451,8 +546,12 @@ function paramsForCall(m, action) {
   case 'twirlr': return pointerData(m)
   case 'point': return m[D_PARAMS]
   case 'twirl':
-  case 'clap' : 
+  case 'clap' :
+  case 'clapr' : 
   case 'kick': 
+  case 'kickr': 
+  case 'jump': 
+  case 'jumpr': 
   default:
   return null
   }
@@ -470,7 +569,8 @@ let notifyDanceEnded = endDance
 function loadMove(m) {
   let a = m[D_ACTION]
   let call = actionCalls[a]
-  if (!call) alert('unrecognised command:' + a)
+  //! all junk code if non animated command?
+  //if (!call) alert('unrecognised command:' + a)
   let id = m[D_TARGET]
   let params = paramsForCall(m, a)
 
@@ -501,46 +601,7 @@ function loadMove(m) {
       // do nothing (may show elsewhere)
   }
 }
-/*
-function performBeat(m) {
-  let ma = m[D_ACTION]
 
-  let mad = moveAnimationType[ma]
-
-  // show most moves
-  //? D_ISMANYBEAT
-  setMovesDisplay(ma)
-  
-  switch (mad) {
-    case AT_ISFRAMEBASED:
-      pushFrameCall(m)
-      startAnimations()
-      break
-    case AT_RETURNANIMATED:
-      pushBeatEndCall(m)
-      let id = m[D_TARGET]
-      // call!
-      actionCalls[m[D_ACTION]](id, m[D_PARAMS])
-      // this triggers return anim, even if nothing else for now
-      startAnimations()
-      break
-    case AT_ISANIMATED:
-      // do it now?
-      //! duplication with pushFrameCall 
-      let id2 = m[D_TARGET]
-      // call!
-      actionCalls[m[D_ACTION]](id2, m[D_PARAMS])
-      // delay, continue
-      setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
-      break
-    default:
-      // AT_UNANIMATED this engine
-      // no animate, but is displayed
-      // delay, continue
-      setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
-  }
-}
-*/
 
 function doBeatStartCalls() {
     // do return calls
@@ -585,6 +646,7 @@ function doNextBeat(){
     setMovesDisplay( m[D_ACTION])
     
     doBeatStartCalls()
+    //? junk code if no animations?
     startAnimations()
     beatI++
   }
@@ -655,33 +717,94 @@ function startDance(dance) {
 
 function createDancer() {
   // Doesn't create a position?
-  
   var is = document.createElementNS(NS,"svg");
-  is.x.baseVal.value=100;
-  is.y.baseVal.value=100;
   //! script forces size, to ensure dancefllor?
   //? use viewport?
   //is.width.baseVal.value="32px";
   is.setAttribute("width", "32px");
-
   //is.height.baseVal.value="32px";
   is.setAttribute("height", "32px");
   
-  var b=document.createElementNS(NS,"circle");
+  //! Din't use filters. They're expensive, complex,
+  //! don't add helpful effects, and not yet browser agnostic.
+  /*
+  	<defs>
+		<filter id="blur" x="0" y="0">
+			<feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+		</filter>
+	</defs>
+  * filter="url(#blur)"
+  */
+
+/*
+ * in =
+    SourceGraphic
+    SourceAlpha
+    BackgroundImage
+    BackgroundAlpha
+    FillPaint
+    StrokePaint
+ */ 
+  // Only works on the first following element?
+  // Thanks for telling me...
+  //var df=document.createElementNS(NS,"defs")
+  //var f=document.createElementNS(NS,"filter")
+  //f.setAttribute("id", "blur")
+  //f.setAttribute("x", 2)
+  //f.setAttribute("y", 2)
+  //f.setAttribute("width", 28)
+  //f.setAttribute("height", 28)
+  
+  //df.appendChild(f)
+  //var gb=document.createElementNS(NS,"feGaussianBlur")
+  //gb.setAttribute("in", "StrokePaint")
+  //gb.setAttribute("stdDeviation", "1")
+  //f.appendChild(gb)
+  //is.appendChild(df)
+
+/*
+<radialGradient id="g">
+  <stop offset="0" stop-color="white"/>
+  <stop offset="1" stop-color="black"/>
+</radialGradient>
+https://dev.w3.org/SVG/modules/vectoreffects/master/SVGVectorEffectsPrimer.html
+*/
+  // Gradient could be useful for effects, though.
+  //? How expensive is it?
+  var rg=document.createElementNS(NS,"radialGradient")
+  rg.setAttribute("id", "rg")
+  var s1=document.createElementNS(NS,"stop")
+  s1.setAttribute("offset", "0")
+  s1.setAttribute("stop-color", "#ffdd00")
+  rg.appendChild(s1)
+
+  var s2=document.createElementNS(NS,"stop")
+  s2.setAttribute("offset", "1")
+  s2.setAttribute("stop-color", "#ffeeb8")
+  rg.appendChild(s2)
+
+  svg.appendChild(rg)
+
+    
+  let b=document.createElementNS(NS,"circle");
+  //b.setAttribute("filter", "url(#blur)")
+
+
+  //transform='translate(140 105) scale(2 1.5) translate(-140 -105)
   b.cx.baseVal.value=16;
   b.cy.baseVal.value=16;
   b.r.baseVal.value=16;
   b.style.fill="#ffeeb8";
-  is.appendChild(b);
-  
-  var d=document.createElementNS(NS,"line");
-  d.x1.baseVal.value=16;
-  d.y1.baseVal.value=16;
-  d.x2.baseVal.value=16;
-  d.y2.baseVal.value=32;
-  d.style.stroke="#000000";
-  d.style.strokeWidth="2";
-  is.appendChild(d);
+  is.appendChild(b);  
+
+  let d=document.createElementNS(NS,"line")
+  d.x1.baseVal.value=16
+  d.y1.baseVal.value=16
+  d.x2.baseVal.value=16
+  d.y2.baseVal.value=32
+  d.style.stroke="#000000"
+  d.style.strokeWidth="2"
+  is.appendChild(d)
   
   return {svg: is, body: b, pointer: d}
 }
@@ -762,7 +885,9 @@ const AT_RETURNANIMATED = 2
 const AT_ISFRAMEBASED = 3
 var moveAnimationType = Object.freeze({
   'step' : 3,
-  'clap' : 0,
+  'clap' : 2,
+  'kick' : 2,
+  'jump' : 2,
   'point' : 1,
   'twirl' : 2
 })
@@ -771,7 +896,7 @@ var moveAnimationType = Object.freeze({
 // simulation of helpful marrkup, so may include enums.
 // format [action, target, isManyBeat,  optional[params]]
 //? are we sticking with this? the only param is direction?
-//! convert 'All'
+//? include specifics like : moveAnimationType, actionCalls, paramsForCall?
 const D_ACTION = 0;
 const D_TARGET = 1;
 const D_ISMANYBEAT = 2;
@@ -794,7 +919,12 @@ const dance0 = {
   ['point', ALL_DANCERS, false, EAST],
   ['point', ALL_DANCERS, false, SOUTH],
   ['step', ALL_DANCERS, false, SOUTH],
-  ['step', ALL_DANCERS, false, NORTH]
+  ['step', ALL_DANCERS, false, NORTH],
+  ['point', ALL_DANCERS, false, WEST],
+  ['kick', ALL_DANCERS, false, NORTH],
+  ['point', ALL_DANCERS, false, EAST],
+  ['kick', ALL_DANCERS, false, NORTH],
+  ['point', ALL_DANCERS, false, SOUTH]
   ]
 }
 
@@ -860,8 +990,12 @@ const dance3 = {
   moves: [
   ['step', ALL_DANCERS, false, EAST],
   ['step', ALL_DANCERS, false, EAST],
+  
   ['step', ALL_DANCERS, false, EAST],
+    ['kick', ALL_DANCERS, false, EAST],
+
   ['step', ALL_DANCERS, false, EAST]
+
   ]
 }
 
@@ -897,12 +1031,14 @@ const dance5 = {
   dancerCount: 1,
   start: 'hline',
   moves: [
-  ['step', 0, false, SOUTH],
   ['step', 0, false, EAST],
+  ['kick', 0, false, null],
   ['step', 0, false, SOUTH],
+  ['jump', 0, false, null],  
   ['twirl', 0, false, null],
   ['point', 0, false, SOUTH],
   ['step', 0, false, EAST],
+  ['kick', 0, false, null],
   ['step', 0, false, SOUTH],
   ['step', 0, false, SOUTH]
   ]
