@@ -3,6 +3,9 @@
 //! simutaneous moves
 //! storing/restoring pointer data for twirl
 //! second twirl in bbreakdance fails?
+//! opacity not resetting
+//! do circles?
+//! multiople go press?
 // SVG drivers //
 
 const NORTH = 0
@@ -250,7 +253,7 @@ let beatTimeSize = null
 var movesTotal = null
 var movesI = 0
 var moves = null
-
+let cancelled = false
 
 
 
@@ -347,8 +350,18 @@ function calculateMoveOffsets(direction) {
     case SOUTH: return [0, moveSize]
     case WEST: return [-moveSize, 0]
   }
-  alert('d' + direction)
+  // Should never be here
+  //alert('d' + direction)
 }
+
+
+
+// beat based //
+
+let beatI = 0
+let beatMoves = null
+let notifyDanceEnded = endDance
+
 
 // make a easily callable data for animation
 function pushFrameCall(m) {
@@ -378,11 +391,6 @@ function pushReturnCall(m) {
   returnAnimationCalls.push([call, id, params])
 }
 
-// beat based //
-
-let beatI = 0
-let beatMoves = null
-let notifyDanceEnded = endDance
 
 
 //? should this load everything?
@@ -413,14 +421,13 @@ function performBeat(m) {
       // do it now?
       //! duplication with pushFrameCall 
       let id2 = m[D_TARGET]
-      //let id2 = (dancerId2 == 'All') ? ALL_DANCERS : Number(dancerId2)
       // call!
       actionCalls[m[D_ACTION]](id2, m[D_PARAMS])
       // delay, continue
       setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
       break
     default:
-      // AT_UNANIMATED this engine - nothing
+      // AT_UNANIMATED this engine - no animate
       // delay, continue
       setTimeout(function() { notifyBeatFinshed(); }, (beatTimeSize))
   }
@@ -435,6 +442,10 @@ function doNextBeat(){
   else notifyDanceEnded.call()
 }
 
+function cancelBeats(){
+  beatI = beatMoves.length
+}
+
 function startBeats(moves) {
     beatI = 0
     beatMoves = moves
@@ -446,14 +457,25 @@ function startBeats(moves) {
 // Dance-based //
 
 function cancelDance() {
+  //? currently maxing globals, yuch.
+  //? could also kill callback handlers
+  //? for immediacy?
+  cancelled = true
+  cancelBeats()
   cancelAnimations()
-  // Scatter dancers? kill dancers?
-  setStatus('bewildered audience')
 }
 
 function endDance() {
   setMovesDisplay('')
-  setStatus('applause')
+  if (!cancelled) {
+    setStatus('applause')
+  }
+  else {
+    // Scatter dancers? kill dancers?
+    setStatus('bewildered audience')
+    // done, so reset
+    cancelled = false
+  }
 }
 
 function startDance(dance) {
@@ -479,6 +501,8 @@ function createDancer() {
   var is = document.createElementNS(NS,"svg");
   is.x.baseVal.value=100;
   is.y.baseVal.value=100;
+  //! script forces size, to ensure dancefllor?
+  //? use viewport?
   //is.width.baseVal.value="32px";
   is.setAttribute("width", "32px");
 
@@ -606,13 +630,16 @@ const D_TARGET = 1;
 const D_ISMANYBEAT = 2;
 const D_PARAMS = 3;
 
-const dance1 = {
+const dance0 = {
   title: 'Coconutters',
   //tempo: 30,
   tempo: 64,
   dancerCount: 3,
   start: 'hline',
   moves: [
+  ['point', ALL_DANCERS, false, EAST],
+  ['step', ALL_DANCERS, false, EAST],
+  ['point', ALL_DANCERS, false, SOUTH],
   ['step', ALL_DANCERS, false, SOUTH],
   ['step', ALL_DANCERS, false, NORTH],
   ['clap', ALL_DANCERS, false, NORTH],
@@ -624,7 +651,7 @@ const dance1 = {
   ]
 }
 
-const dance2 = {
+const dance1 = {
   title: 'Breakdance',
   //tempo: 30,
   tempo: 64,
@@ -647,6 +674,35 @@ const dance2 = {
     ['twirl', 1, false, null]
     ['point', 1, false, NORTH],
     ['point', 1, false, SOUTH]
+  ]
+}
+
+const dance2 = {
+  title: 'Nightclub Moves',
+  tempo: 90,
+  dancerCount: 6,
+  start: 'hline',
+  moves: [
+  ['point', 0, false, WEST],
+  ['point', 4, false, WEST],
+  ['point', 3, false, EAST],
+  ['point', 0, false, EAST],
+  ['point', 1, false, WEST],
+  ['point', 2, false, EAST],
+  ['point', 1, false, EAST],
+  ['point', 2, false, WEST],
+  ['point', 4, false, WEST],
+  ['point', 5, false, EAST],
+  ['step', 3, false,SOUTH],
+  ['point', 4, false, NORTH],
+  ['point', 5, false, WEST],
+  ['step', 3, false,SOUTH],
+  ['point', 4, false, WEST],
+  ['point', 5, false, EAST],
+  ['step', 3, false, EAST],
+  ['point', 1, false, SOUTH],
+  ['step', 3, false, EAST],
+  ['point', 1, false, EAST]
   ]
 }
 
@@ -706,7 +762,7 @@ const dance5 = {
   ]
 }
 
-const danceData = [dance1, dance2,  dance1, dance3, dance4, dance5]
+const danceData = [dance0, dance1,  dance2, dance3, dance4, dance5]
 
 
 // Control/UI //
