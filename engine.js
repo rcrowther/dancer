@@ -228,7 +228,6 @@ function setAsHLine(pa, spacing){
     pa[i].svg.setAttribute("x", x);
     //pa[i].svg.y.baseVal = y;
     pa[i].svg.setAttribute("y", y);
-
     x += spacing;
     i++;
   }
@@ -298,24 +297,6 @@ const actionCalls = Object.freeze({
 })
 
 
-
-/*
-function renderLoop(first, action) {
-   if (first) {
-   frameCount = 12;
-   } 
-   action(pA);
-   frameCount--;
-   //window.requestAnimationFrame(renderLoop);
-if (frameCount > 0) {
-setTimeout(function() {
-          renderLoop(false, action);
-}, (callrate));
-        }
-}
-
-
-*/
 /////////////////////////////////////////////////////////////////////////
 
 
@@ -329,14 +310,6 @@ var pA = [];
 // Magic number for 'all dancers'
 const ALL_DANCERS = -1
 
-// enum for a dance move
-//x
-/*
-var action = 0
-var duration = 1
-var target = 2
-var direction = 3
-*/
 
 // 4 frames/sec?
 let frameRate = 4
@@ -346,19 +319,12 @@ let frameTimeSize = 1000/frameRate
 // In MS. Modified by tempo.
 let beatTimeSize = null
 
-//! Done not showing
-//! applause always showing (needs callback)
+
+
+
 //! animation not fluid
 //! animation not with duration
-//! hush not showing
-//! swan lake not working
-//! cancel not working
 //! have to refresh for options
-
-
-
-
-
 // Perform/UI //
 
 var movesTotal = null
@@ -374,11 +340,12 @@ let engineStatus = ES_IDLE
 
 // Event Loop //
 // used for frame animations
-//Event loop items
+
+// event loop element format
 // [call, dancerId, params]
-const EL_CALL = 0;
-const EL_DANCERID = 1;
-const EL_PARAMS = 2;
+const EL_CALL = 0
+const EL_DANCERID = 1
+const EL_PARAMS = 2
 
 let frameAnimationCalls = []
 let frameCountdown = 0
@@ -406,14 +373,12 @@ function doFrame() {
   else {
     frameAnimationCalls = []
 
-    
     //send notify
     notifyBeatFinshed.call()
   }
 }
 
 
-// needs defending against multicalls
 function startAnimations() {
   // if running, don't bother
   if (!frameCountdown) {
@@ -428,14 +393,12 @@ function startAnimations() {
 
 // Beat-based animation handling //
 
-
 let famesPerBeat = null
 let beatStartCalls = []
 
 
 
 // utilities //
-
 function setTiming(tempo) {
   // time of the animation in ms
   //? lossy
@@ -500,45 +463,6 @@ function posDataAsParams(m) {
     return args
   }
 }
-/*
-// make a easily callable data for animation
-function pushFrameCall(m) {
-  let action = m[D_ACTION]
-  let call = actionCalls[action]
-  let id = m[D_TARGET]
-  // currently only handling 'step' here, so
-  // calculate offsets
-  // switch (action) {
-  //case 'step'
-  let params = moveOffsets(m[D_PARAMS])
-  frameAnimationCalls.push([call, id, params])
-}
-
-// make a easily callable data for animation
-function pushBeatEndCall(m) {
-  let action = m[D_ACTION]
-  let call = actionCalls[action + 'r']
-  let id = m[D_TARGET]
-  // currently only handling 'twirl' here, so
-  // calculate offsets
-  // switch (action) {
-  //case 'twirl'
-  let params = pointerData(m)
-  beatEndCalls.push([call, id, params])
-}
-
-function pushBeatStartCall(m) {
-  let action = m[D_ACTION]
-  let call = actionCalls[action]
-  let id = m[D_TARGET]
-  // currently only handling 'twirl' here, so
-  // calculate offsets
-  // switch (action) {
-  //case 'twirlr'
-  let params = pointerData(m)
-  beatStartCalls.push([call, id, params])
-}
-*/
 
 function paramsForCall(m, action) {
   switch(action) {
@@ -557,12 +481,14 @@ function paramsForCall(m, action) {
   }
 }
 
-// beat-based event handling //
 
+
+// beat-based event handling //
 
 let beatI = 0
 let beatMoves = null
 let notifyDanceEnded = endDance
+
 
 //? should this load everything?
 //? i.e. needs to be loop-based for multiple events?
@@ -576,21 +502,14 @@ function loadMove(m) {
 
   let mad = moveAnimationType[a]
 
-
   switch (mad) {
     case AT_ISFRAMEBASED:
-      //pushFrameCall(m)
       frameAnimationCalls.push([call, id, params])
       break
     case AT_ISANIMATED:
       beatStartCalls.push([call, id, params])
-
-      //pushBeatStartCall(m)
-
       break
     case AT_RETURNANIMATED:
-      //pushBeatStartCall(m)
-      //pushBeatEndCall(m)
       beatStartCalls.push([call, id, params])
       let ar = a + 'r'
       let callr = actionCalls[ar]
@@ -614,7 +533,8 @@ function doBeatStartCalls() {
       c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
       i--
     }
-        // clear
+    
+    // clear
     beatStartCalls = []
 }
 
@@ -641,7 +561,7 @@ function doNextBeat(){
     m = beatMoves[beatI]
     loadMove(m)
 
-    //? TMP show moves
+    //? TMP: show moves
     //? D_ISMANYBEAT
     setMovesDisplay( m[D_ACTION])
     
@@ -658,9 +578,6 @@ function doNextBeat(){
 function startBeats(moves) {
     beatI = 0
     beatMoves = moves
-    //?
-    beatStartCalls = []
-    beatEndCalls = []
     doNextBeat()
 }
 
@@ -725,50 +642,16 @@ function createDancer() {
   //is.height.baseVal.value="32px";
   is.setAttribute("height", "32px");
   
-  //! Din't use filters. They're expensive, complex,
-  //! don't add helpful effects, and not yet browser agnostic.
+  //! Don't use filters. They're expensive, complex,
+  //! don't add helpful effects, and not yet browser 
+  //! agnostic.
   /*
-  	<defs>
-		<filter id="blur" x="0" y="0">
-			<feGaussianBlur in="SourceGraphic" stdDeviation="5" />
-		</filter>
-	</defs>
-  * filter="url(#blur)"
+  <radialGradient id="g">
+    <stop offset="0" stop-color="white"/>
+    <stop offset="1" stop-color="black"/>
+  </radialGradient>
+  https://dev.w3.org/SVG/modules/vectoreffects/master/SVGVectorEffectsPrimer.html
   */
-
-/*
- * in =
-    SourceGraphic
-    SourceAlpha
-    BackgroundImage
-    BackgroundAlpha
-    FillPaint
-    StrokePaint
- */ 
-  // Only works on the first following element?
-  // Thanks for telling me...
-  //var df=document.createElementNS(NS,"defs")
-  //var f=document.createElementNS(NS,"filter")
-  //f.setAttribute("id", "blur")
-  //f.setAttribute("x", 2)
-  //f.setAttribute("y", 2)
-  //f.setAttribute("width", 28)
-  //f.setAttribute("height", 28)
-  
-  //df.appendChild(f)
-  //var gb=document.createElementNS(NS,"feGaussianBlur")
-  //gb.setAttribute("in", "StrokePaint")
-  //gb.setAttribute("stdDeviation", "1")
-  //f.appendChild(gb)
-  //is.appendChild(df)
-
-/*
-<radialGradient id="g">
-  <stop offset="0" stop-color="white"/>
-  <stop offset="1" stop-color="black"/>
-</radialGradient>
-https://dev.w3.org/SVG/modules/vectoreffects/master/SVGVectorEffectsPrimer.html
-*/
   // Gradient could be useful for effects, though.
   //? How expensive is it?
   var rg=document.createElementNS(NS,"radialGradient")
@@ -786,11 +669,7 @@ https://dev.w3.org/SVG/modules/vectoreffects/master/SVGVectorEffectsPrimer.html
   svg.appendChild(rg)
 
     
-  let b=document.createElementNS(NS,"circle");
-  //b.setAttribute("filter", "url(#blur)")
-
-
-  //transform='translate(140 105) scale(2 1.5) translate(-140 -105)
+  let b=document.createElementNS(NS,"circle")
   b.cx.baseVal.value=16;
   b.cy.baseVal.value=16;
   b.r.baseVal.value=16;
@@ -883,6 +762,7 @@ const AT_UNANIMATED = 0
 const AT_ISANIMATED = 1
 const AT_RETURNANIMATED = 2
 const AT_ISFRAMEBASED = 3
+
 var moveAnimationType = Object.freeze({
   'step' : 3,
   'clap' : 2,
@@ -969,10 +849,10 @@ const dance2 = {
   ['point', 2, false, WEST],
   ['point', 4, false, WEST],
   ['point', 5, false, EAST],
-  ['step', 3, false,SOUTH],
+  ['step', 3, false, SOUTH],
   ['point', 4, false, NORTH],
   ['point', 5, false, WEST],
-  ['step', 3, false,SOUTH],
+  ['step', 3, false, SOUTH],
   ['point', 4, false, WEST],
   ['point', 5, false, EAST],
   ['step', 3, false, EAST],
@@ -989,19 +869,16 @@ const dance3 = {
   start: 'vline',
   moves: [
   ['step', ALL_DANCERS, false, EAST],
+  ['step', ALL_DANCERS, false, EAST],  
   ['step', ALL_DANCERS, false, EAST],
-  
-  ['step', ALL_DANCERS, false, EAST],
-    ['kick', ALL_DANCERS, false, EAST],
-
+  ['kick', ALL_DANCERS, false, EAST],
   ['step', ALL_DANCERS, false, EAST]
-
   ]
 }
 
 const dance4 = {
   title: 'War Games',
-  tempo: 80,
+  tempo: 60,
   dancerCount: 2,
   start: 'hline',
   moves: [
@@ -1068,13 +945,11 @@ function setMovesDisplay(msg) {
 
 //! dynamically build options
 function getDanceFromWidget(){
-  var e = document.getElementById("dance-id")
-  var o = e.options[e.selectedIndex];
-  var danceId = o.value;
-  var danceName = o.text;
-  //! tmp, offer options
-   
-  return danceData[danceId];
+  let e = document.getElementById("dance-id")
+  let o = e.options[e.selectedIndex]
+  let danceId = o.value
+  let danceName = o.text
+  return danceData[danceId]
 }
 
 window.onload = function (){
@@ -1085,7 +960,6 @@ window.onload = function (){
   //svg.style.minHeight="600px";
   
 
-  
   document.getElementById("stop").addEventListener("click", function () {
     cancelDance()
   }, false);
