@@ -27,199 +27,85 @@ const compassToEnum = Object.freeze({
 const pointerDisp = [[16, 0], [32, 16], [16, 32], [0, 16]]
 
 // dir = compasEnum
-function point(dID, dir){
+function point(d, dir){
   // by N/E/S/W
   let disp = pointerDisp[dir]
-  
-  if (dID != ALL_DANCERS) {
-    e=pA[dID].pointer;
-    e.setAttribute("x2", disp[0]);
-    e.setAttribute("y2", disp[1]);
-  }
-  else {
-    let i = pA.length - 1; 
-    while(i >= 0) {
-      e=pA[i].pointer
-      e.setAttribute("x2", disp[0]);
-      e.setAttribute("y2", disp[1]);
-      i--;
-    }
-  }
+  let e=d.pointer
+  e.setAttribute("x2", disp[0])
+  e.setAttribute("y2", disp[1])
 }
 
 
 // offsets array of [xOff, yOff] +- allowed
 //? wish this didn't change both offsets
 //? pass pA in
-function move(dID, offsets){
-  if (dID != ALL_DANCERS) {
-    x=pA[dID].svg.x.baseVal;
-    x.value=x.value + offsets[0]
-    y=pA[dID].svg.y.baseVal;
-    y.value=y.value + offsets[1]
-  }
-  else {
-    let i = pA.length - 1; 
-    while(i >= 0) {
-      x=pA[i].svg.x.baseVal;
-      x.value=x.value + offsets[0]
-      y=pA[i].svg.y.baseVal;
-      y.value=y.value + offsets[1]
-      i--;
-    }
-  }
+function move(d, offsets){
+  let x=d.svg.x.baseVal
+  x.value=x.value + offsets[0]
+  let y=d.svg.y.baseVal
+  y.value=y.value + offsets[1]
 }
 
 // args is null
-function twirl(dID, args){
+function twirl(d, args){
   // leaves a 1 px dot in the middle :)
-  if (dID != ALL_DANCERS) {
-    let e=pA[dID].pointer;
-    e.setAttribute("x2", 17)
-    e.setAttribute("y2", 17)
-    e=pA[dID].body
-    e.setAttribute("fill-opacity", 0.3)
-  }
-  else {
-    let i = pA.length - 1; 
-    while(i >= 0) {
-      let e=pA[i].pointer
-      e.setAttribute("x2", 17)
-      e.setAttribute("y2", 17)
-      e=pA[i].body
-      e.setAttribute("fill-opacity", 0.3)
-      i--;
-    }
-  }
+  let e=d.pointer;
+  e.setAttribute("x2", 17)
+  e.setAttribute("y2", 17)
+  e=d.body
+  e.setAttribute("fill-opacity", 0.2)
 }
 
 // args is pair/seq of [x y]
-function twirlReturn(dID, args){
+function twirlReturn(d, args){
   // leaves a 1 px dot in the middle :)
-  if (dID != ALL_DANCERS) {
-    let e=pA[dID].pointer
-    e.setAttribute("x2", args[0])
-    e.setAttribute("y2",args[1])
-    e=pA[dID].body
-    e.setAttribute("fill-opacity", 1)
-  }
-  else {
-    //args are unmarked x1 y1 x2 y2 ...
-    let i = pA.length - 1
-    let j = 0
-    while(i >= 0) {
-      let e=pA[i].pointer
-      e.setAttribute("x2", args[j])
-      j++
-      e.setAttribute("y2", args[j])
-      j++
-      e=pA[i].body
-      e.setAttribute("fill-opacity", 1)
-      i--;
-    }
-  }
+  let e=d.pointer
+  e.setAttribute("x2", args[0])
+  e.setAttribute("y2",args[1])
+  e=d.body
+  e.setAttribute("fill-opacity", 1)
 }
 
 // args = directionEnum
-function kick(dID, args){
+function kick(d, args){
   // vertical
   let a = "translate(16 16) scale(0.5 1) translate(-16 -16)"
   if (args == NORTH || args == SOUTH) {
      // orientate horizontally
      a = "translate(16 16) scale(1 0.5) translate(-16 -16)"
   }
-  
-  if (dID != ALL_DANCERS) {
-    let e=pA[dID].body
-    e.setAttribute( "transform", a)
-  }
-  else {
-    let i = pA.length - 1
-    while(i >= 0) {
-      e=pA[i].body
-      e.setAttribute( "transform", a)
-      i--
-    }
-  }
+
+  let e=d.body
+  e.setAttribute( "transform", a)
 }
 
-function kickr(dID, args){
-  if (dID != ALL_DANCERS) {
-    let e=pA[dID].body
-    e.setAttribute("transform", "scale(1 1)")
-  }
-  else {
-    let i = pA.length - 1
-    while(i >= 0) {
-      e=pA[i].body
-      e.setAttribute("transform", "scale(1 1)")
-      i--
-    }
-  }
+function kickr(d, args){
+  let e=d.body
+  e.setAttribute("transform", "scale(1 1)")
 }
 
-function jump(dID, args){
-  if (dID != ALL_DANCERS) {
+function jump(d, args){
     //will do, not now
-    let e=pA[dID].body
+    let e=d.body
     e.r.baseVal.value=10
-  }
-  else {
-    let i = pA.length - 1
-    while(i >= 0) {
-      e=pA[i].body
-      e.r.baseVal.value=10
-      i--
-    }
-  }
 }
 
-function jumpr(dID, args){
-  if (dID != ALL_DANCERS) {
+function jumpr(d, args){
     //will do, not now
-    let e=pA[dID].body
+    let e=d.body
     e.r.baseVal.value=16
-  }
-  else {
-    let i = pA.length - 1
-    while(i >= 0) {
-      e=pA[i].body
-      e.r.baseVal.value=16
-      i--
-    }
-  }
 }
 
-function clap(dID, args){
-  if (dID != ALL_DANCERS) {
-    //will do, not now
-    let e=pA[dID].body 
-    e.style.fill="url(#rg)"
-  }
-  else {
-    let i = pA.length - 1
-    while(i >= 0) {
-      e=pA[i].body
-      e.style.fill="url(#rg)"
-      i--
-    }
-  }
+function clap(d, args){
+  //will do, not now
+  let e=d.body 
+  e.style.fill="url(#rg)"
 }
   
-  function clapr(dID, args){
-  if (dID != ALL_DANCERS) {
-    //will do, not now
-    let e=pA[dID].body
-    e.style.fill="#ffeeb8"
-  }
-  else {
-    let i = pA.length - 1
-    while(i >= 0) {
-      e=pA[i].body
-      e.style.fill="#ffeeb8"
-      i--
-    }
-  }
+function clapr(d, args){
+  //will do, not now
+  let e=d.body
+  e.style.fill="#ffeeb8"
 } 
 
 // start pos //
@@ -256,6 +142,22 @@ function setAsVLine(pa, spacing){
   }
 }
 
+/* Move dancers
+ */
+ // This is inlined into the event seq,
+ // but here for one-offs, like startup.
+function mkMove(dID, func, args) {
+    if (dID != ALL_DANCERS) {
+          func(pA[dID], args)
+    }
+    else {
+      let i = pA.length - 1
+      while(i >= 0) {
+        func(pA[i], args) 
+        i--
+      }
+    }
+}
 ////////////////////////////////////////////////////////
 
 var createPerson=function(svg, x,y){
@@ -368,7 +270,18 @@ function doFrame() {
   while (i >= 0) {
     let c = frameAnimationCalls[i]
     // call!
-    c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+    //c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+    let dID = c[EL_DANCERID]
+    if (dID != ALL_DANCERS) {
+          c[EL_CALL](pA[dID], c[EL_PARAMS])
+    }
+    else {
+      let i = pA.length - 1
+      while(i >= 0) {
+        c[EL_CALL](pA[i], c[EL_PARAMS]) 
+        i--
+      }
+    }
     i--
   }
   
@@ -538,8 +451,21 @@ function doBeatStartCalls() {
     let i = beatStartCalls.length - 1
     while (i >= 0) {
       let c = beatStartCalls[i]
-      // call!
-      c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+      
+      // call!      
+      //c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+      let dID = c[EL_DANCERID]
+      if (dID != ALL_DANCERS) {
+            c[EL_CALL](pA[dID], c[EL_PARAMS])
+      }
+      else {
+        let i = pA.length - 1
+        while(i >= 0) {
+          c[EL_CALL](pA[i], c[EL_PARAMS]) 
+          i--
+        }
+      }
+      
       i--
     }
     
@@ -554,8 +480,21 @@ function doBeatEndCalls() {
     let i = beatEndCalls.length - 1
     while (i >= 0) {
       let c = beatEndCalls[i]
+      
       // call!
-      c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+      //c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
+      let dID = c[EL_DANCERID]
+      if (dID != ALL_DANCERS) {
+            c[EL_CALL](pA[dID], c[EL_PARAMS])
+      }
+      else {
+        let i = pA.length - 1
+        while(i >= 0) {
+          c[EL_CALL](pA[i], c[EL_PARAMS]) 
+          i--
+        }
+      }
+      
       i--
     }
 
@@ -732,12 +671,14 @@ function toStartPositions(desc){
   switch(desc) {
     case 'vline':
       setAsVLine(pA, 64);
-      point(ALL_DANCERS, EAST)
+      //point(ALL_DANCERS, EAST)
+      mkMove(ALL_DANCERS, point, EAST) 
     break;
     default:
       // default is hline
       setAsHLine(pA, 64);
-      point(ALL_DANCERS, SOUTH)
+      //point(ALL_DANCERS, SOUTH)
+      mkMove(ALL_DANCERS, point, SOUTH)
   }
 }
 
