@@ -8,7 +8,8 @@
 //! zoom
 //! make those ALL_DANCER rotations somewhere near the call, so not 
 //! repeating every effect call
-
+//! timing will be very off. Maybe use a double event seq, load while
+//!  one is processing, then switch?
 // SVG drivers //
 
 const NORTH = 0
@@ -27,7 +28,8 @@ const compassToEnum = Object.freeze({
 const pointerDisp = [[16, 0], [32, 16], [16, 32], [0, 16]]
 
 // dir = compasEnum
-function point(d, dir){
+function point(dID, dir){
+  let d = pA[dID]
   // by N/E/S/W
   let disp = pointerDisp[dir]
   let e=d.pointer
@@ -39,15 +41,27 @@ function point(d, dir){
 // offsets array of [xOff, yOff] +- allowed
 //? wish this didn't change both offsets
 //? pass pA in
-function move(d, offsets){
+function move(dID, offsets){
+  let d = pA[dID]
   let x=d.svg.x.baseVal
   x.value=x.value + offsets[0]
   let y=d.svg.y.baseVal
   y.value=y.value + offsets[1]
 }
 
+//! must all be different offsets for different dancers?
+function moveAbsolute(dID, args){
+  let d = pA[dID]
+  let i = dID << 1
+  let x=d.svg.x.baseVal
+  x.value=x.value + args[i]
+  let y=d.svg.y.baseVal
+  y.value=y.value + args[i + 1]
+}
+
 // args is null
-function twirl(d, args){
+function twirl(dID, args){
+  let d = pA[dID]
   // leaves a 1 px dot in the middle :)
   let e=d.pointer;
   e.setAttribute("x2", 17)
@@ -57,8 +71,9 @@ function twirl(d, args){
 }
 
 // args is pair/seq of [x y]
-function twirlReturn(d, args){
+function twirlReturn(dID, args){
   // leaves a 1 px dot in the middle :)
+  let d = pA[dID]
   let e=d.pointer
   e.setAttribute("x2", args[0])
   e.setAttribute("y2",args[1])
@@ -67,7 +82,8 @@ function twirlReturn(d, args){
 }
 
 // args = directionEnum
-function kick(d, args){
+function kick(dID, args){
+  let d = pA[dID]
   // vertical
   let a = "translate(16 16) scale(0.5 1) translate(-16 -16)"
   if (args == NORTH || args == SOUTH) {
@@ -79,34 +95,36 @@ function kick(d, args){
   e.setAttribute( "transform", a)
 }
 
-function kickr(d, args){
+function kickr(dID, args){
+  let d = pA[dID]
   let e=d.body
   e.setAttribute("transform", "scale(1 1)")
 }
 
-function jump(d, args){
-    //will do, not now
-    let e=d.body
-    e.r.baseVal.value=10
+function jump(dID, args){
+  let d = pA[dID]
+  let e=d.body
+  e.r.baseVal.value=10
 }
 
-function jumpr(d, args){
-    //will do, not now
-    let e=d.body
-    e.r.baseVal.value=16
+function jumpr(dID, args){
+  let d = pA[dID]
+  let e=d.body
+  e.r.baseVal.value=16
 }
 
-function clap(d, args){
-  //will do, not now
+function clap(dID, args){
+  let d = pA[dID]
   let e=d.body 
   e.style.fill="url(#rg)"
 }
   
-function clapr(d, args){
-  //will do, not now
+function clapr(dID, args){
+  let d = pA[dID]
   let e=d.body
   e.style.fill="#ffeeb8"
 } 
+
 
 // start pos //
 
@@ -143,21 +161,24 @@ function setAsVLine(pa, spacing){
 }
 
 /* Move dancers
+ * Brute runs a move. Will not work for return-animated or 
+ * frame-animated moves, only beat start moves.
  */
  // This is inlined into the event seq,
  // but here for one-offs, like startup.
 function mkMove(dID, func, args) {
     if (dID != ALL_DANCERS) {
-          func(pA[dID], args)
+      func(dID, args)
     }
     else {
       let i = pA.length - 1
       while(i >= 0) {
-        func(pA[i], args) 
+        func(i, args) 
         i--
       }
     }
 }
+
 ////////////////////////////////////////////////////////
 
 var createPerson=function(svg, x,y){
@@ -194,6 +215,7 @@ var createPerson=function(svg, x,y){
 
 const actionCalls = Object.freeze({
   'step': move,
+  'moveAbsolute' : moveAbsolute,
   'point': point,
   'kick': kick,
   'kickr': kickr,
@@ -273,12 +295,12 @@ function doFrame() {
     //c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
     let dID = c[EL_DANCERID]
     if (dID != ALL_DANCERS) {
-          c[EL_CALL](pA[dID], c[EL_PARAMS])
+          c[EL_CALL](dID, c[EL_PARAMS])
     }
     else {
       let i = pA.length - 1
       while(i >= 0) {
-        c[EL_CALL](pA[i], c[EL_PARAMS]) 
+        c[EL_CALL](i, c[EL_PARAMS]) 
         i--
       }
     }
@@ -309,13 +331,10 @@ function startAnimations() {
 
 
 
-
-
 // Beat-based animation handling //
 
 let famesPerBeat = null
 let beatStartCalls = []
-
 
 
 // utilities //
@@ -328,9 +347,38 @@ function setTiming(tempo) {
   beatTimeSize = 1000 * (60/tempo)
 }
   
-//? now these are fixed, but if we introduce distance a dancer moves,
+  
+// Calcuates offsets to an absolute point
+// can make dancers run fast, if they must cover the floor.
+// args [x, y] target
+function moveAbsoluteParams(m) {
+  let targetPos = m[D_PARAMS]
+  let x = targetPos[0]
+  let y = targetPos[1]
+  
+  if (m[D_TARGET] != ALL_DANCERS) {
+    let e = pA[dID].svg
+    return [Math.floor((x - e.x.baseVal)/famesPerBeat),  Math.floor((y - e.y.baseVal)/famesPerBeat)]
+  }
+  else {
+    let args = []
+    let i = 0
+    let l = pA.length
+    while(i < l) {
+      let e = pA[i].svg
+      args.push(Math.floor((x - e.x.baseVal.value)/famesPerBeat))
+      args.push(Math.floor((y - e.y.baseVal.value)/famesPerBeat))
+      i++
+    }
+    return args
+  }
+}
+
+
+//? now these are fixed distance, but if we introduce distance 
+//? a dancer moves,
 //? they will vary.
-function moveOffsets(m) {
+function stepParams(m) {
   let direction = m[D_PARAMS]
   //! temp for now
   var distance = 96
@@ -348,7 +396,7 @@ function moveOffsets(m) {
 
 
 // 'all' args returned as undifferentiated seq
-function pointerData(m) {
+function pointerParams(m) {
   if (m[D_TARGET] != ALL_DANCERS) {
     e = pA[m[D_TARGET]].pointer
     return [e.getAttribute("x2"), e.getAttribute("y2")]
@@ -366,7 +414,7 @@ function pointerData(m) {
   }
 }
 
-function posDataAsParams(m) {
+function posParams(m) {
   if (m[D_TARGET] != ALL_DANCERS) {
     e = pA[m[D_TARGET]].svg
     return [e.x.baseVal, e.y.baseVal]
@@ -386,15 +434,15 @@ function posDataAsParams(m) {
 
 function paramsForCall(m, action) {
   switch(action) {
-  case 'step': return moveOffsets(m)
-  case 'twirlr': return pointerData(m)
+  case 'step': return stepParams(m)
+  case 'twirlr': return pointerParams(m)
   // pass direction
   case 'point': 
   case 'kick': return m[D_PARAMS]
+  case 'moveAbsolute': return moveAbsoluteParams(m)
   case 'twirl':
   case 'clap' :
   case 'clapr' : 
-
   case 'kickr': 
   case 'jump': 
   case 'jumpr': 
@@ -456,12 +504,12 @@ function doBeatStartCalls() {
       //c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
       let dID = c[EL_DANCERID]
       if (dID != ALL_DANCERS) {
-            c[EL_CALL](pA[dID], c[EL_PARAMS])
+            c[EL_CALL](dID, c[EL_PARAMS])
       }
       else {
         let i = pA.length - 1
         while(i >= 0) {
-          c[EL_CALL](pA[i], c[EL_PARAMS]) 
+          c[EL_CALL](i, c[EL_PARAMS]) 
           i--
         }
       }
@@ -485,12 +533,12 @@ function doBeatEndCalls() {
       //c[EL_CALL](c[EL_DANCERID], c[EL_PARAMS])
       let dID = c[EL_DANCERID]
       if (dID != ALL_DANCERS) {
-            c[EL_CALL](pA[dID], c[EL_PARAMS])
+            c[EL_CALL](dID, c[EL_PARAMS])
       }
       else {
         let i = pA.length - 1
         while(i >= 0) {
-          c[EL_CALL](pA[i], c[EL_PARAMS]) 
+          c[EL_CALL](i, c[EL_PARAMS]) 
           i--
         }
       }
@@ -526,6 +574,8 @@ function doNextBeat(){
 function startBeats(moves) {
     beatI = 0
     beatMoves = moves
+    // ensure this, as single beats can reset it.
+    notifyBeatFinshed = doNextBeat
     doNextBeat()
 }
 
@@ -602,15 +652,17 @@ function createDancer() {
   */
   // Gradient could be useful for effects, though.
   //? How expensive is it?
+  // this puts a yellow dot in the middle
   var rg=document.createElementNS(NS,"radialGradient")
   rg.setAttribute("id", "rg")
   var s1=document.createElementNS(NS,"stop")
   s1.setAttribute("offset", "0")
+  // yellow
   s1.setAttribute("stop-color", "#ffdd00")
   rg.appendChild(s1)
 
   var s2=document.createElementNS(NS,"stop")
-  s2.setAttribute("offset", "1")
+  s2.setAttribute("offset", "0.5")
   s2.setAttribute("stop-color", "#ffeeb8")
   rg.appendChild(s2)
 
@@ -715,6 +767,7 @@ const AT_ISFRAMEBASED = 3
 
 var moveAnimationType = Object.freeze({
   'step' : 3,
+  'moveAbsolute' : 3,
   'clap' : 2,
   'kick' : 2,
   'jump' : 2,
@@ -739,6 +792,7 @@ const dance0 = {
   dancerCount: 3,
   start: 'hline',
   moves: [
+ //['moveAbsolute', ALL_DANCERS, false, [400, 50]],  
   ['point', ALL_DANCERS, false, EAST],
   ['step', ALL_DANCERS, false, EAST],
   ['point', ALL_DANCERS, false, SOUTH],
