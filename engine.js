@@ -801,14 +801,18 @@ const dance2 = {
   ['point', 5, false, EAST],
   ['step', 3, false, SOUTH],
   ['point', 4, false, NORTH],
+  ['point', 3, false, SOUTH],
   ['point', 5, false, WEST],
   ['step', 3, false, SOUTH],
   ['point', 4, false, WEST],
   ['point', 5, false, EAST],
+  ['point', 3, false, EAST],
+  ['point', 2, false, NORTH],
   ['step', 3, false, EAST],
   ['point', 1, false, SOUTH],
   ['step', 3, false, EAST],
-  ['point', 1, false, EAST]
+  ['point', 1, false, EAST],
+  ['point', 3, false, WEST]
   ]
 }
 
