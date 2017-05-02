@@ -1,15 +1,13 @@
 
 
 //! simutaneous moves
-//! storing/restoring pointer data for twirl
-//! second twirl in breakdance fails?
-//! opacity not resetting
+//! storing/restoring pointer data for kick
+//! kick should have direction crossways
 //! do circles?
 //! setAttribute is slow?
 //! zoom
 //! make those ALL_DANCER rotations somewhere near the call, so not 
 //! repeating every effect call
-//! kick should have direction crossways
 
 // SVG drivers //
 
@@ -122,17 +120,24 @@ function twirlReturn(dID, args){
   }
 }
 
-
+// args = directionEnum
 function kick(dID, args){
+  // vertical
+  let a = "translate(16 16) scale(0.5 1) translate(-16 -16)"
+  if (args == NORTH || args == SOUTH) {
+     // orientate horizontally
+     a = "translate(16 16) scale(1 0.5) translate(-16 -16)"
+  }
+  
   if (dID != ALL_DANCERS) {
     let e=pA[dID].body
-    e.setAttribute("transform", "translate(16 16) scale(0.5 1) translate(-16 -16)")
+    e.setAttribute( "transform", a)
   }
   else {
     let i = pA.length - 1
     while(i >= 0) {
       e=pA[i].body
-      e.setAttribute("transform", "translate(16 16) scale(0.5 1) translate(-16 -16)")
+      e.setAttribute( "transform", a)
       i--
     }
   }
@@ -216,6 +221,8 @@ function clap(dID, args){
     }
   }
 } 
+
+// start pos //
 
 function setAsHLine(pa, spacing){
   var l = pa.length;
@@ -468,11 +475,13 @@ function paramsForCall(m, action) {
   switch(action) {
   case 'step': return moveOffsets(m)
   case 'twirlr': return pointerData(m)
-  case 'point': return m[D_PARAMS]
+  // pass direction
+  case 'point': 
+  case 'kick': return m[D_PARAMS]
   case 'twirl':
   case 'clap' :
   case 'clapr' : 
-  case 'kick': 
+
   case 'kickr': 
   case 'jump': 
   case 'jumpr': 
@@ -801,9 +810,9 @@ const dance0 = {
   ['step', ALL_DANCERS, false, SOUTH],
   ['step', ALL_DANCERS, false, NORTH],
   ['point', ALL_DANCERS, false, WEST],
-  ['kick', ALL_DANCERS, false, NORTH],
+  ['kick', ALL_DANCERS, false, WEST],
   ['point', ALL_DANCERS, false, EAST],
-  ['kick', ALL_DANCERS, false, NORTH],
+  ['kick', ALL_DANCERS, false, EAST],
   ['point', ALL_DANCERS, false, SOUTH]
   ]
 }
@@ -871,7 +880,7 @@ const dance3 = {
   ['step', ALL_DANCERS, false, EAST],
   ['step', ALL_DANCERS, false, EAST],  
   ['step', ALL_DANCERS, false, EAST],
-  ['kick', ALL_DANCERS, false, EAST],
+  //['kick', ALL_DANCERS, false, EAST],
   ['step', ALL_DANCERS, false, EAST]
   ]
 }
@@ -909,13 +918,14 @@ const dance5 = {
   start: 'hline',
   moves: [
   ['step', 0, false, EAST],
-  ['kick', 0, false, null],
+  ['kick', 0, false, NORTH],
   ['step', 0, false, SOUTH],
   ['jump', 0, false, null],  
   ['twirl', 0, false, null],
+  ['kick', 0, false, WEST],
   ['point', 0, false, SOUTH],
   ['step', 0, false, EAST],
-  ['kick', 0, false, null],
+  ['kick', 0, false, WEST],
   ['step', 0, false, SOUTH],
   ['step', 0, false, SOUTH]
   ]
