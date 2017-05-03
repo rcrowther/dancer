@@ -1,15 +1,50 @@
 
-
-//! simutaneous moves
-//! storing/restoring pointer data for kick
-//! kick should have direction crossways
-//! do circles?
-//! setAttribute is slow?
-//! zoom
-//! make those ALL_DANCER rotations somewhere near the call, so not 
-//! repeating every effect call
+//! = Event shcheduling
+//! While not running events, we need to be doing things like get more 
+//! data(online), or uilding new parameters for queues
 //! timing will be very off. Maybe use a double event seq, load while
 //!  one is processing, then switch?
+//! Control feels backwards? Currently, we load data, then run the
+//! engine.  It controls the stops. But we maybe need the engine running,
+//! then feed it data? And it idles itself?
+//! = Events
+//! simutaneous moves
+//! do circles?
+//! = Data
+//! faster to store the position/display data, update that, then
+//! show, rather than getting data from the DOM?
+//! can always store pointer directions, say, not absolute positions 
+//! (then calculate)
+//! but ms examples use the DOM?
+//! = particulars
+//! f (!svgSupported()) { // Bail if the browser doesn't support HTML5 with inline SVG. alert("Inline SVG in HTML5 is not supported. This document requires a browser that supports HTML5 and inline SVG."); 
+//! setAttribute is slow?
+//! https://msdn.microsoft.com/en-us/library/gg193979(v=vs.85).aspx
+//! mySquare.transform.baseVal.getItem(0).setRotate(mySquare.currentTheta, 0, 0);
+//! yes, direct access can be faster
+//! baseVal.appendItem
+//! zoom
+//! look at setInterval()/clearInterval(),
+//! and requestAnimationFrame/cancelAnimationFrame
+//! - not sure if repaint delay works on svg?
+//! - have to rejig code for variable timing
+//! - doesn't stop when hidden on my Firefox?
+//! - will sync with GPU, though
+//! - look at greensock? Or just do it?
+//! - will have to reqrite for current time...
+//! SIML, XML presentation of multimedia. Nopt interesting.
+/*
+ * 
+var nextTime=0;
+var delay=1000;
+
+function gameLoop(currentTime){
+    if(currentTime<nextTime){requestAnimationFrame(gameLoop); return;}
+    nextTime=currentTime+delay;
+    // do stuff every 1000ms
+    requestAnimationFrame(looper);
+}
+ */
 // SVG drivers //
 
 const NORTH = 0
@@ -25,17 +60,7 @@ const compassToEnum = Object.freeze({
   "W": WEST
 })
 
-const pointerDisp = [[16, 0], [32, 16], [16, 32], [0, 16]]
 
-// dir = compasEnum
-function point(dID, dir){
-  let d = pA[dID]
-  // by N/E/S/W
-  let disp = pointerDisp[dir]
-  let e=d.pointer
-  e.setAttribute("x2", disp[0])
-  e.setAttribute("y2", disp[1])
-}
 
 
 // offsets array of [xOff, yOff] +- allowed
@@ -52,11 +77,36 @@ function move(dID, offsets){
 //! must all be different offsets for different dancers?
 function moveAbsolute(dID, args){
   let d = pA[dID]
-  let i = dID << 1
-  let x=d.svg.x.baseVal
-  x.value=x.value + args[i]
+  let i = 0
+  // All different params, so must detect
+  // wether params is two elements, or seq of pairs 
+  if (dID == ALL_DANCERS) i = dID << 1
+  let x = d.svg.x.baseVal
+  x.value = x.value + args[i]
+  //d.svg.setAttribute("x", x)
   let y=d.svg.y.baseVal
-  y.value=y.value + args[i + 1]
+  y.value = y.value + args[i + 1]
+}
+
+//! must all be different offsets for different dancers?
+function offsetToPos(dID, args){
+  let d = pA[dID]
+  let i = dID << 1
+  d.svg.setAttribute("x", args[i])
+  d.svg.setAttribute("y", args[i + 1])
+}
+
+
+const pointerDisp = [[16, 0], [32, 16], [16, 32], [0, 16]]
+
+// @args compasEnum
+function point(dID, args){
+  let d = pA[dID]
+  // by N/E/S/W
+  let disp = pointerDisp[args]
+  let e=d.pointer
+  e.setAttribute("x2", disp[0])
+  e.setAttribute("y2", disp[1])
 }
 
 // args is null
@@ -127,7 +177,7 @@ function clapr(dID, args){
 
 
 // start pos //
-
+//x
 function setAsHLine(pa, spacing){
   var l = pa.length;
   var i = 0; 
@@ -144,6 +194,7 @@ function setAsHLine(pa, spacing){
   }
 }
 
+//x
 function setAsVLine(pa, spacing){
   var l = pa.length;
   var i = 0; 
@@ -216,6 +267,7 @@ var createPerson=function(svg, x,y){
 const actionCalls = Object.freeze({
   'step': move,
   'moveAbsolute' : moveAbsolute,
+  'huddleAbsolute' : offsetToPos,
   'point': point,
   'kick': kick,
   'kickr': kickr,
@@ -284,7 +336,7 @@ let frameCountdown = 0
 let beatEndCalls = []
 
 //probably excesive, but we need something
-let notifyBeatFinshed = doNextBeat
+const notifyBeatFinshed = doNextBeat
 
 
 function doFrame() {
@@ -348,17 +400,17 @@ function setTiming(tempo) {
 }
   
   
-// Calcuates offsets to an absolute point
+// return offsets to an absolute point
 // can make dancers run fast, if they must cover the floor.
 // args [x, y] target
 function moveAbsoluteParams(m) {
   let targetPos = m[D_PARAMS]
   let x = targetPos[0]
   let y = targetPos[1]
-  
-  if (m[D_TARGET] != ALL_DANCERS) {
+  let dID = m[D_TARGET]
+  if (dID != ALL_DANCERS) {
     let e = pA[dID].svg
-    return [Math.floor((x - e.x.baseVal)/famesPerBeat),  Math.floor((y - e.y.baseVal)/famesPerBeat)]
+    return [Math.floor((x - e.x.baseVal.value)/famesPerBeat),  Math.floor((y - e.y.baseVal.value)/famesPerBeat)]
   }
   else {
     let args = []
@@ -375,6 +427,7 @@ function moveAbsoluteParams(m) {
 }
 
 
+// return fixed step length based on frames
 //? now these are fixed distance, but if we introduce distance 
 //? a dancer moves,
 //? they will vary.
@@ -394,8 +447,40 @@ function stepParams(m) {
   //alert('d' + direction)
 }
 
+// return offset, random within a given area
+// args must be [x,y,width,height] for bounding box
+//! this looks expensive?
+function randomPosParams(m) {
+  let args = m[D_PARAMS]
+  let x = args[0]
+  let y = args[1]
+  let width = args[2]
+  let height = args[3]
+  
+  if (m[D_TARGET] != ALL_DANCERS) {
+    let xr = Math.floor(Math.random()*(width + 1)) + x
+    let yr = Math.floor(Math.random()*(height + 1)) + y
+    return [x, y]
+  }
+  else {
+    let args = []
+    let xa = width + 1
+    let ya = height + 1
+    
+    let i = pA.length - 1
+    while(i >= 0) {
+      let xr = Math.floor(Math.random()*xa) + x
+      let yr = Math.floor(Math.random()*ya) + y
+      args.push(xr)
+      args.push(yr)
+      i--
+    }
+    return args
+  }
+}
 
-// 'all' args returned as undifferentiated seq
+
+// return current pointer positions
 function pointerParams(m) {
   if (m[D_TARGET] != ALL_DANCERS) {
     e = pA[m[D_TARGET]].pointer
@@ -414,6 +499,7 @@ function pointerParams(m) {
   }
 }
 
+// return params for current positions
 function posParams(m) {
   if (m[D_TARGET] != ALL_DANCERS) {
     e = pA[m[D_TARGET]].svg
@@ -435,6 +521,7 @@ function posParams(m) {
 function paramsForCall(m, action) {
   switch(action) {
   case 'step': return stepParams(m)
+  case 'huddleAbsolute': return randomPosParams(m)
   case 'twirlr': return pointerParams(m)
   // pass direction
   case 'point': 
@@ -559,7 +646,7 @@ function doNextBeat(){
 
     //? TMP: show moves
     //? D_ISMANYBEAT
-    setMovesDisplay( m[D_ACTION])
+    setMovesDisplay(m[D_ACTION])
     
     doBeatStartCalls()
     //? junk code if no animations?
@@ -571,11 +658,11 @@ function doNextBeat(){
 
 
 
-function startBeats(moves) {
+function startBeats(moves, endCall) {
     beatI = 0
     beatMoves = moves
     // ensure this, as single beats can reset it.
-    notifyBeatFinshed = doNextBeat
+    notifyDanceEnded = endCall
     doNextBeat()
 }
 
@@ -594,6 +681,21 @@ function cancelDance() {
     engineStatus = ES_CANCELLED
   }
 }
+
+//? aside from messages, repetitive
+function endStartPositioning() {
+  if (engineStatus != ES_CANCELLED) {
+    setStatus('hush')
+  }
+  else {
+    // Scatter dancers? kill dancers?
+    setStatus('what happened?')
+  }
+  // done, so start dance
+  //!? Why does this work?
+  startBeats(dance.moves, endDance)
+}
+
 
 function endDance() {
   setMovesDisplay('')
@@ -614,14 +716,11 @@ function startDance(dance) {
     engineStatus = ES_DANCING
     
     setTiming(dance.tempo)
-    
-    setStatus('hush')
-  
+    setStatus('clink, rustle')
     updateDancers(dance.dancerCount)
   
-    toStartPositions(dance.start)
-    
-    startBeats(dance.moves)
+    toStartPositions(dance)
+   // startBeats(dance.moves, endDance)
   }
 }
 
@@ -719,33 +818,52 @@ function updateDancers(count) {
   }
 }
 
-function toStartPositions(desc){
-  switch(desc) {
+
+//! beter centring of x positions  
+function toStartPositions(dance){
+  let l = pA.length
+  let i = 0 
+  let initMoves = []
+
+  switch(dance.start) {
+    case 'walkToHLine':
+      initMoves.push(['huddleAbsolute', ALL_DANCERS, false, [8, 8, 128, 128]])
+      let x = Math.ceil(300 -((l * 70) >> 1))
+      while(i < l) {
+        initMoves.push(['moveAbsolute', i, false, [x, 128]])
+        initMoves.push(['point', i, false, SOUTH])
+        x += 70
+        i++
+      }
+      break
     case 'vline':
-      setAsVLine(pA, 64);
+      //setAsVLine(pA, 64);
       //point(ALL_DANCERS, EAST)
-      mkMove(ALL_DANCERS, point, EAST) 
-    break;
+      //mkMove(ALL_DANCERS, point, EAST)
+      let y = 128
+      while(i < l) {
+        initMoves.push(['moveAbsolute', i, false, [128, y]])
+        initMoves.push(['point', i, false, EAST])
+        y += 70
+        i++
+      }
+      break
     default:
       // default is hline
-      setAsHLine(pA, 64);
+      //setAsHLine(pA, 64);
       //point(ALL_DANCERS, SOUTH)
-      mkMove(ALL_DANCERS, point, SOUTH)
+      //mkMove(ALL_DANCERS, point, SOUTH)
+      let x1 = Math.ceil(300 -((l * 70) >> 1))
+      while(i < l) {
+        initMoves.push(['moveAbsolute', i, false, [x1, 128]])
+        initMoves.push(['point', i, false, SOUTH])
+        x1 += 70
+        i++
+      }
   }
+  startBeats(initMoves, endStartPositioning)
 }
 
-
-
-
-function perform(dance){
-  setStatus('hush')
-
-  updateDancers(dance.dancerCount);
-
-  toStartPositions(dance.start);
-
-  startMoves(dance.moves);
-}
 
 
 // Data //
@@ -768,6 +886,7 @@ const AT_ISFRAMEBASED = 3
 var moveAnimationType = Object.freeze({
   'step' : 3,
   'moveAbsolute' : 3,
+  'huddleAbsolute': 1,
   'clap' : 2,
   'kick' : 2,
   'jump' : 2,
@@ -784,17 +903,18 @@ const D_ACTION = 0;
 const D_TARGET = 1;
 const D_ISMANYBEAT = 2;
 const D_PARAMS = 3;
+  
 
 const dance0 = {
   title: 'Coconutters',
   //tempo: 30,
   tempo: 64,
   dancerCount: 3,
-  start: 'hline',
+  //start: 'hline',
+  start: 'walkToHLine',
   moves: [
- //['moveAbsolute', ALL_DANCERS, false, [400, 50]],  
   ['point', ALL_DANCERS, false, EAST],
-  ['step', ALL_DANCERS, false, EAST],
+  ['point', ALL_DANCERS, false, WEST],
   ['point', ALL_DANCERS, false, SOUTH],
   ['step', ALL_DANCERS, false, SOUTH],
   ['step', ALL_DANCERS, false, NORTH],
