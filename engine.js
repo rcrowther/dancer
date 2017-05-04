@@ -899,10 +899,10 @@ var moveAnimationType = Object.freeze({
 // format [action, target, isManyBeat,  optional[params]]
 //? are we sticking with this? the only param is direction?
 //? include specifics like : moveAnimationType, actionCalls, paramsForCall?
-const D_ACTION = 0;
-const D_TARGET = 1;
-const D_ISMANYBEAT = 2;
-const D_PARAMS = 3;
+const D_ACTION = 0
+const D_TARGET = 1
+const D_ISMANYBEAT = 2
+const D_PARAMS = 3
   
 
 const dance0 = {

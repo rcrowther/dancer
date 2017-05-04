@@ -1,0 +1,68 @@
+Written in Python, using the ''reportlab' library. Uses a Tex-like format, so templates can be made for different style. The default style is assumed to be fairly modern and neutral.
+
+''reportlab' is a Python to PDF project. It is not a high-profile project, but extensive, and is used for Gnome font handling.
+
+In Debian-based systems, Python will be pre-installed. You also need (not pre-installed),
+
+#cb
+python3-reportlab
+#
+
+== Basics
+Input data is in a special form, a Python/JSON data tree. You can get this by ???running the parser or hand writing???.
+
+Input is by ???file reading???
+
+
+
+= Templates
+== Basics
+These are written as ''reportlab' constructs, overriding the file constants and functions. The general format follows Python rules.
+
+A template frame looks like this,
+
+
+== About templates
+Though not expressible in Python, values are constants. They can be set wherever you like, but for reading, please keep in order.
+
+Functions must be called in given order (see examples). They accumulate variables. This makes life for the writer easy, as you do not need to keep adding offsts---""Am I on line ''+7'?". However, if not called in order, some variables will not be accumulated, and strange things will happen. For example, if it is used, a Title statement should e used at the top of a template. Try putting a 'title' statement further down the document, and you will see the code  allocate the space, but the side effects may push other text to undesired positions.  
+
+
+== Laying out the document 
+
+#cb
+title(dance['title'])
+titleCredits(dance['performers'], dance['transcribed'])
+musicalDirections(dance['tempo'])
+
+movesblock()
+startMoveEnvironment()
+
+endMoveEnvironment()
+#
+
+= Fonts and text
+A little about ''reportlab'.
+
+You have the standard 14 fonts always included with Adobe Reader (for pdfs), and presumably round all pdf handling,
+
+Courier:
+Courier-Bold:
+Courier-BoldOblique:
+Courier-Oblique:
+Helvetica:
+Helvetica-Bold:
+Helvetica-BoldOblique:
+Helvetica-Oblique:
+Symbol:
+Times-Bold:
+Times-BoldItalic:
+Times-Italic:
+Times-Roman:
+ZapfDingbats:
+
+''reportlab' can handle plenty of other fonts. ''reportlab' fonts can be listed by a script called ''stdfonts.py'. In Debian, this is tucked in the documentation package, and needs the usual root access---the usual Debian pain.
+
+For the use of ''dancer', Times is a serif font, Helvetica is a non-serif display font. The fourteen fonts will be enough. If you want more, see the Reportlab manual.
+
+= 
