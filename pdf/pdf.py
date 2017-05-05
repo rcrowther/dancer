@@ -5,6 +5,7 @@
 #! should provide bar counts
 #! how about replacement symbols like arrows for direction?
 #! asserts
+#! titleheight doesn't respect top margin - initialize!
 #print(c.getAvailableFonts())  
 #c.setStrokeColorRGB(1, 0, 0)
 #c.setFillColorRGB(0, 1, 0)
@@ -94,28 +95,35 @@ y = mm * 40
 
 pageHeight = A4[1]
 pageWidth = A4[0]
+# Not raw! From page edge
+_centerPage = pageWidth / 2
 
 leftMargin =  mm * 20
 rightMargin =  mm * 20
 topMargin =  mm * 20
 bottomMargin =  mm * 40
 
-stockWidth = pageWidth - leftMargin - rightMargin
-stockHeight = pageHeight - topMargin - bottomMargin
-rightStock = leftMargin + stockWidth
+
+rightStock = pageWidth - rightMargin
 leftStock = leftMargin
-topStock = bottomMargin + stockHeight
+topStock = pageHeight - topMargin
 bottomStock = bottomMargin
+
+# passed to renderMoveBlock
+stockContext = [topStock, rightStock, leftStock, bottomStock]
 
 ###########################################################
 ## Coordinate functions ##
 # *Raw means a coordinate position on stock. This includes
 # margins (so the stock).
-# *Raw is centred top left, even though reportlab works from bottom
-# left.
+# *Raw is centred top left stock, even though reportlab works from 
+# bottom left.
 # *Raw can be converted to reportlab coordinates using the functions
 # x() and y()
-
+#
+# Mentions of 'top' 'center' etc. refer to reportlab full-page 
+# coordinates. Though widths and heights may be usable for positioning
+# on stock.
 def x(x):
   return leftMargin + x
 
@@ -143,13 +151,26 @@ titleTopSkip = 8
 def title(title):
   global _titleHeightRaw
   c.setFont(titleFontFamily, titleFontSize)
-  c.drawCentredString(A4[0] / 2, y(titleTopSkip), title)
+  c.drawCentredString(_centerPage, y(titleTopSkip), title)
   _titleHeightRaw = titleTopSkip + titleFontSize
 
 
 
 ## Sections ##
+sectionFontFamily = "Times-Roman"
+sectionFontSize = 24
+sectionTopSkip = 8
+
 #! TODO  
+def section(title):
+  # initialize
+  self.c.showPage()
+  _titleHeightRaw = 0
+  
+  # render
+  c.setFont(sectionFontFamily, sectionFontSize)
+  c.drawCentredString(_centerPage, y(sectionTopSkip), title)
+  _titleHeightRaw = sectionTopSkip + sectionFontSize
   
 
 
@@ -249,8 +270,7 @@ def moveLineYRaw(idx):
   return _titleHeightRaw + (movesLineTopSkip * idx)
 
 
-def hline(yRaw):
-  c.line(leftStock, y(yRaw), rightStock, y(yRaw))
+
   
   
 ## Time signature ##
@@ -310,26 +330,84 @@ def endVerticalTextEnvironment():
   c.restoreState()
 
 
+
+# if I don't use a class, Python cant privatise, and we end up with a 
+# lot of publiized specifics. Tex won't privatise either, but for
+# the sake of clarity... This does mean a certain amount of non-DRY
+# reimplementation in the class, but for this critical, large. and 
+# largely self-contained method, probably worth it.
 class MoveBlockRender():
-  def __init__(self, c, barPerLineAim):
+  def __init__(self,
+   c,
+   stockPositions = stockContext,
+   barsInLineAim = barPerLineAim,
+   lineTopSkip = movesLineTopSkip, 
+   topFirstPage = _titleHeightRaw,
+   lineContentIndent = moveLineContentIndent,
+   barlineWidth = barlineWidth,
+   timeSignatureWidth = timeSignatureWidth
+  ):
+    
+
+    # useful methods
+    #def timeSignature(moveLineIdx, xRaw, count):
+    global timeSignature
+
+
+    # outside properties    
+    self.c = c
+            
+    # stockContext = [topStock, rightStock, leftStock, bottomStock]
+    self.topStock = stockContext[0]
+    self.rightStock = stockContext[1]
+    self.leftStock = stockContext[2]
+    self.bottomStock = stockContext[3]
+    
+    
+    self._barsInLineAim = barsInLineAim
+        
+    # first page only, reset to topStock
+    self._lineTopSkip = lineTopSkip    
+    self._blockTop = topFirstPage
+    self._barlineWidth = barlineWidth
+    self._lineContentIndent = lineContentIndent
+    self.timeSignatureWidth = timeSignatureWidth
+
+
+    # Internal
+    
     #? This is plainly a stream queue. However, Python has no standard
-    #? queue and deque is multi-threaded, which I have ojection to(!),
-    #? so using a list, even if slow.
+    #? queue, and deque is multi-threaded, which I have ojection to(!).
+    #? Using a list, even if slow.
     self._moveStore = []
     
-    self.c = c
-    self.barPerLineAim = barPerLineAim
-    
-    # counts lines in block
+    # count lines in block
     self._blockLineI = 0
     
-    # resets per page
+    # count lines per page
     self._pageLineI = 0
 
     # cursor for x positions when rendering
     # absolute page positioned
     self.curseX = 0
 
+
+  ## helpers
+  def y(self, idx):
+    return self._blockTop - (self._lineTopSkip * idx)
+  
+  # Do not use for stock placements, takes account of
+  # line content indent
+  def x(self, XRaw):
+    return self.leftStock + lineContentIndent + XRaw
+    
+        
+  ## renderers
+  def moveLineRender(self, idx):
+    print(idx)
+    self.c.line(self.leftStock, self.y(idx), self.rightStock, self.y(idx))
+  
+  ## calculate
   def renderBeatCountChange(self, e):
     pass
     
@@ -349,7 +427,6 @@ class MoveBlockRender():
     
     
   def renderbar(self, y, glueWidth):
-    global timeSignatureWidth
     global _beatsPerBar
     
     # peek the first element
@@ -360,7 +437,7 @@ class MoveBlockRender():
       e = self._moveStore.pop()
       self.renderBeatCountChange(e)
       _beatsPerBar = e[D_PARAMS]
-      self.curseX += timeSignatureWidth
+      self.curseX += self.timeSignatureWidth
     else:
       #self.renderbarMark()
       self.renderBarmark(y)
@@ -426,13 +503,15 @@ class MoveBlockRender():
   def newPage(self):
     print('newPage')
     self._pageLineI = 0
+    # not first page top, as initialised, but top of stock
+    self._blockTop = self.topStock
+
     self.c.showPage()
 
   def createMoveLine(self):
     global moveLineYRaw
     global bottomStock
     global dance
-    global hline
     global _beatsPerLineAim
     
     # Test we did not reach stock bottom (new page)
@@ -441,7 +520,7 @@ class MoveBlockRender():
       self.newPage()
       
     # render the line
-    hline(lineYRaw)
+    self.moveLineRender(self._pageLineI)
     
     # now work out widths overall
     #???
@@ -451,7 +530,7 @@ class MoveBlockRender():
     #? tmp for now. later, run through and pre-calculate widths. 
     #? the feed beats one-by-one. Later.
     # key value, now have it
-    decidedBarCount = self.barPerLineAim
+    decidedBarCount = self._barsInLineAim
     
     # add remove bars as necessary
     #???
@@ -505,7 +584,8 @@ print(str(_titleHeightRaw))
 moveLineOpeningTimeSignature(dance['beatbar'])
 
 
-mbr = MoveBlockRender(c, barPerLineAim)
+mbr = MoveBlockRender(c)
+  
 i = 0
 m = dance['moves']
 l = len(m)
