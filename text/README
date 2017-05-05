@@ -1,0 +1,75 @@
+Handle the notation of dances
+
+== On notation
+I ought to write an essay on this. In brief, systems exist, like that of Mt. Laban. They become complex. They are hard to understand visually, and are not suited to computers, as they need a lot of rendering and computer power.
+
+So I have devised my own system. It consists of writing commands with parameters, like bytecode e.g. 'step right'. 
+
+'point N' means 'face North'. 'North' hints at an absolute compass on the performance floor. Absolute floor positioning is preferred to relative positionoing like 'turn left 90 degrees'. This decision was arrived after thhe first experiments with the renderer. 
+
+Several decisions have already been made by a combination of theory and guesswork. For example, I have decided to keep floor positioning as a useful component of dance notation. But I abandon full body description in favour of a pluggable system where moves can be included for various kinds of dance. So a tap dance could include a move 'brush forward'. Ballet could unclude 'toPoints'. 
+
+Also, these commands would be helped by classifying. The classifications so far tend to use theory from Mr. Laban. The classifications are often useful to decide what not to include. For example, personal movement has been abandoned entirely for one-shot inctructions. Weight and flexibility, of both personal and floor movement, two classifications by Laban, have been discarded entirely. They could be added later but it is useful, for the sketch of code I have at present, to discard both these areas.
+
+The system as stands has a handful of elements, and implies a few more. There is a lot of discovery and theory yet to build round the instructions.
+
+
+== Input language
+This is for easy text notation of dances. Of course, a GUI would be nice, but a specified text input format will always have use, and a GUI can use the form for saving/loading etc. Same as XML and editors like Inkscape.
+
+I do not use XML. I use a format close to LillyPond, the music notation system. This has the advantage of already worked out systems for representation of parallel events (LillyPond---chords, Dancer---group moves), adittion of meta information, etc. 
+
+This has already diverged from LillyPond in some ways, and I expect it to diverge further. But, if you need to know how to do something, look to the LillyPond format first.
+
+A custom format has disadvantages. As it is not like Lillypond, it shares the overall form with no other file, so no tools are available. But it is already a lot easier to read and use than XML.
+
+Currently, the  inpu format is only a skeleton of implementation. For more info, see the text file.
+
+== Parser
+The info files will need a parser. The main job here is to expand the macro-language comments in the input language.
+
+After that, the program which contains the parser coulkd have several modules added. Or they could be made seperately and plugged in. These might include a JSON buildr and a speced bytecode format (drr mrcy section). It may also include filter e.g. 'filter out the moves of one dancer from a troupe'.
+
+At the time of writing, I do not havea parser, only a basic sketch in Python.
+
+== Intermediate formats
+I've mentioned bytecode and JSON already.
+
+It would be good to have intermediate forms which were more efficient for data transfer and rendering. It would be good if some/all of the forms were made to be advantageous to live rendering. Unlike LillyPond, people will want to see dance moves live. Even LillyPond compiles down to another '.ly' file (about which I know nothing?). Perhaps the situation is more like Sebilus (backwards), which is essentially a music performer, but can write out notation?
+
+Anyway, there are more decisions to make here, and they are about form too, not only representation. So far, it seems advanatgeous to me to work on a beat basis, which means not only expanding the data in the input file, but interpreting a little. If the input file says 'step North * 4', then this needs to be expanded to beat-based instructions, 'step N', 'step N', 'step N', 'step N'. If the input says, '' 
+
+A steady stream of time-ticked events would seem to be helpful for live rendering. There may be other form changes too. For example, it has become clear that tempo markings and time changes, which in the input file can be overall, should be placed in the steam as instructions, not as global. then renderers can change tempo and time changes on the fly, through the performance.
+
+And it is clear that any intermediate JSON should have the text data turned into the most immediate data type. A number like "4" should become '4' the number, not a string.
+
+The forms have only been decided ad-hoc based on the tools being built. They need work to standardise.
+
+== Rendering
+I have sketches for two renderers, so far.
+
+=== PDF
+A renderer of PDFs describing a dance. Written in Python.
+
+This is in the most advanced state of any of the code. However, it will only work from it's own custom format, which the parser can not make. And it only works for one dancer.
+
+=== HTML animation
+Renders a dancer as SVG blobs on the screen.
+
+This is the most worked part of the code. SVG has been decided for the graphics (not a HTML 'canvas'). Graphcs are working, but the handmade engine is poorly organised and probably not good performance.
+
+=== Symbols
+Both the above renderes need symbols to represent dance moves. 
+
+The PDFs use a written version, organised in a structure modified from musical staves. The may well start to use shorthand, like little arrows for step moves?
+
+The HTML renderer uses top-down buttons for representation. I'm happy with top-down, but maybe the buttons could be smaller?
+
+Some sort of unification between the representation of moves may be helpful. For example, a 'clap' is always represented as... a yellow cross? Though different renderers should be free to set their own systems for now, as we explore the possibilities.
+
+== Finale
+Mostly, this is a sketch of how it could be done. Nothing much is so far usable, or should have data committed to it.
+
+The system flow and representations are the most important work (though the PDFs are advancing). Also a start are the symbolic representations (top-down buttons, musical staves, etc.). The other useful thing is the decisions about technologies, and the steps forward in implementing them. They are a huge mass. Inline HTML SVG representation, Javascript animation timing, Python PDF writing, text-based macro parsing, are the main areas so far.
+
+The data structures themselves are fluid and should, for now, be regarded as unreliable.

@@ -4,6 +4,11 @@
 
 #! should provide bar counts
 #! how about replacement symbols like arrows for direction?
+#! asserts
+#print(c.getAvailableFonts())  
+#c.setStrokeColorRGB(1, 0, 0)
+#c.setFillColorRGB(0, 1, 0)
+
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen.canvas import Canvas
@@ -231,6 +236,12 @@ movesBlockTopSkip = 0
 movesLineTopSkip = 96
 
 
+# Opens a movesblock
+def movesblock():
+  global _titleHeightRaw
+  _titleHeightRaw += movesBlockTopSkip 
+
+
 ## Utils ##
 def moveLineYRaw(idx):
   # positioning for each line 
@@ -253,7 +264,6 @@ def timeSignature(moveLineIdx, xRaw, count):
   c.setFont(timeSignatureFontFamily, timeSignatureFontSize)
   c.drawString(x(xRaw), y(moveLineYRaw(moveLineIdx) + timeSignatureSkipDown), str(count))
 
-#! must be capable of being written mid-block, too
 def moveLineOpeningTimeSignature(count):
   # note that the indent is the same as musicalDirections
   xRaw = moveblockFirstLineIndent + moveLineContentIndent
@@ -261,79 +271,10 @@ def moveLineOpeningTimeSignature(count):
 
 
 
-## moves ##
+## moveLines ##
 
-# Opens a movesblock
-def movesblock():
-  global _titleHeightRaw
-  _titleHeightRaw += movesBlockTopSkip 
-
-
-
-  
-####################################################################
-#! asserts
-
-## helpers ##
-print(c.getAvailableFonts())
- 
-
-
-
-
-#def lineYRaw(idx):
-  #return bottomForewordRaw + (lineHeightRaw * idx)
-  #return _titleHeightRaw + (lineHeightRaw * idx)
-
-#def dotPosRawY(idx):
-#    return lineYRaw(idx) + 8
-    
-#def dotPosRawX(idx):
-#    return leftStock + (dotSpacing * idx)    
-
-#def textPosRawX(idx):
-    # in coords, for y
-#    return leftStock + (dotSpacing * idx) 
-    
-#def textPosRawY(idx):
-    # in coods, for x
-    #return bottomForewordRaw + (lineHeightRaw * idx) 
-#    return _titleHeightRaw + (lineHeightRaw * idx) 
-
-def dot(xd, yd):  
-  c.circle(x(xd), y(yd), 4, False, True)
-
-def startMoveEnvironment():
-  c.setFont("Times-Roman", 12)
-  #c.setFont("Times-Roman", 10)
-  c.saveState()
-  # scale then translate
-  c.rotate(270)
-  #c.rotate(315)
-  #print('ttrns at:' + str(-pageHeight) + ' ' + str(-pageWidth))
-  c.translate(-pageHeight, 0)
-
-def endMoveEnvironment():
-  c.restoreState()
-
-
-#def text(xp, yp, txt):
-  # x, y inverted
-  #print('clap at:' + str(lineYRaw(yp)) + ' ' + str(textPosRawX(xp)))
-  #c.drawString(173, 89, txt)
-  #c.drawString(lineYRaw(yp), dotPosRawX(xp), txt)
-
-
-# specialist helpers #
-
-
-  
-#c.setStrokeColorRGB(1, 0, 0)
-#c.setFillColorRGB(0, 1, 0)
-
-#########################################################
 # Express an interest in how many bars to a line
-# In many circumstances, may not be honoured. But used for open
+# In many circumstances, will not be honoured. But used for open
 # bar rendering, so will stretch bars to fit the page width.
 #! what about sheet width, etc.?
 barPerLineAim = 4
@@ -349,6 +290,24 @@ _beatsPerLineAim = barPerLineAim * dance['beatbar']
 # keeps track of current value for rendering
 _beatsPerBar = dance['beatbar']
 
+
+## utils ##
+
+#def dot(xd, yd):  
+#  c.circle(x(xd), y(yd), 4, False, True)
+
+def startVerticalTextEnvironment():
+  c.setFont("Times-Roman", 12)
+  #c.setFont("Times-Roman", 10)
+  c.saveState()
+  # scale then translate
+  c.rotate(270)
+  #c.rotate(315)
+  #print('ttrns at:' + str(-pageHeight) + ' ' + str(-pageWidth))
+  c.translate(-pageHeight, 0)
+
+def endVerticalTextEnvironment():
+  c.restoreState()
 
 
 class MoveBlockRender():
@@ -381,12 +340,12 @@ class MoveBlockRender():
   def renderMove(self, yd, m):
     global x
     global y
-    startMoveEnvironment()
+    startVerticalTextEnvironment()
     #text(self.curseX, y, m[D_ACTION])
     #print(topStock)
     #print(yd)
     self.c.drawString(yd + topMargin + 8, self.curseX, m[D_ACTION])
-    endMoveEnvironment()
+    endVerticalTextEnvironment()
     
     
   def renderbar(self, y, glueWidth):
