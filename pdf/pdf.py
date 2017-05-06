@@ -243,7 +243,12 @@ moveLineContentIndent = 4
 # NOT IMPLEMENTED
 #moveblockFirstLineIndent = 0
 
-
+# The last line in any block may not have the right number of bars.
+# The simplistic solution here, if the line is within this number of
+# bars then it will stretched to full width, otherwise the line is
+# rendered as stopping short. To always stretch, make this a relativly
+# large number e.g. 12. 0 will never stretch.
+lastMovelineGlueMax = 2
 
 
 
@@ -330,26 +335,20 @@ barmarkWidth = 24
 # The minimum glue allowed before bars are spilled to the next line
 minMoveGlueWidth = 14
 
+moveLineContentFontFamily = "Times-Roman"
+moveLineContentFontSize = 12
+
 # space down from the moveline to the move marks
 moveLineContentSkipDown = 8
-
-# internal
-
 
 
 ## utils ##
 
-#def dot(xd, yd):  
-#  c.circle(rawToAbsX(xd), rawToAbsY(yd), 4, False, True)
-
 def startVerticalTextEnvironment():
-  c.setFont("Times-Roman", 12)
-  #c.setFont("Times-Roman", 10)
+  c.setFont(moveLineContentFontFamily, moveLineContentFontSize)
   c.saveState()
   # scale then translate
   c.rotate(270)
-  #c.rotate(315)
-  #print('ttrns at:' + str(-_pageHeight) + ' ' + str(-_pageWidth))
   c.translate(-_pageHeight, 0)
 
 def endVerticalTextEnvironment():
@@ -374,6 +373,7 @@ class MoveBlockRender():
    barlineGlue = barlineGlue,
    timeMarkWidth = timeMarkWidth,
    minMoveGlueWidth = minMoveGlueWidth,
+   lastMovelineGlueMax = lastMovelineGlueMax,
    moveLineContentSkipDown = moveLineContentSkipDown,
    timeMarkContext = timeMarkContext
   ):
@@ -422,6 +422,7 @@ class MoveBlockRender():
 
     self.minMoveGlueWidth = minMoveGlueWidth
     self.moveLineContentSkipDown = moveLineContentSkipDown
+    self.lastMovelineGlueMax = lastMovelineGlueMax
     
     self.timeMarkFontFamily = timeMarkContext[0]
     self.timeMarkFontSize = timeMarkContext[1]
@@ -596,17 +597,18 @@ class MoveBlockRender():
       i += 1
     endVerticalTextEnvironment()
 
-  def calculateGlue(self, lineWidth):
+  #! this assumes full length of movestore?
+  #! should count bars
+  def calculateGlue(self, toBarcount, lineWidth):
     i = 0
-    l = len(self._moveStore)
     barcount = 0
     fixedSize = 0
     gluedEventCount = 0
-    while(i < l):
+    while(barcount < toBarcount):
       if (not self._moveStore[i][D_ISMOVE]):
         action = self._moveStore[i][D_ACTION]
         if (self.isBar(action)):
-          gluedEventCount +=  self._barlineGlue
+          gluedEventCount += self._barlineGlue
           barcount += 1
         #if (action == 'tempo'):
         #  fixedSize += 
@@ -630,7 +632,6 @@ class MoveBlockRender():
     # may benefit from shortened space, not larger).
     gluedEventCount -= self._barlineGlue
     
-    #3
     return (lineWidth - fixedSize)/gluedEventCount
           
   def isBar(self, action):
@@ -643,7 +644,7 @@ class MoveBlockRender():
       
   def finaliseMovesBlock(self):
     # need to fix last line with remaining moves
-    print('moves remaining:{0}'.format(len(self._moveStore)))
+    #print('moves remaining:{0}'.format(len(self._moveStore)))
 
     # render remains
     # get the absY position of the line
@@ -680,20 +681,20 @@ class MoveBlockRender():
       info('bar count at end at end of block is short: requested: {0}: num of bars:{1}'.format(self._barsInLineAim, barcount))
 
 
-    if (barcount < self._barsInLineAim - 2):
+    if (barcount < self._barsInLineAim - self.lastMovelineGlueMax):
       warning('Stubbing the last line')
       #To work this out we,
       # - restrict ourselves to a width ratio of bars found to intended 
       # - calculateGlue
       # - shorten the line render
       # this will render short, but should look ok. For now.
-      newWidth = lineWidth * barcount/self._barsInLineAim
-      glueWidth = self.calculateGlue(newWidth)      
+      newWidth = lineWidth * (barcount/self._barsInLineAim)
+      glueWidth = self.calculateGlue(barcount, newWidth)      
       # render the line itself
       self.moveLineRender(self.leftStockAbs + newWidth, absY)
     else:
       info('Expanding the last line')
-      glueWidth = self.calculateGlue(lineWidth)
+      glueWidth = self.calculateGlue(barcount, lineWidth)
       # render the line itself
       self.moveLineRender(self.rightStockAbs, absY)
         
@@ -737,62 +738,22 @@ class MoveBlockRender():
 
     # Now render contents   
     
-    # simple heuristic, 
-    # - work out fixed widths
-    # - work out line fixed space
+    # simple heuristic,
     # - calculate glue width
     # - if too narrow, drop a bar
-    # work out widths overall
-    #! remove to seperate method, check for multiple bar drops, etc.
-       
+    
     #1
-    # Currently assumes _moveStore contains _barsInLineAim 
-    i = 0
-    l = len(self._moveStore)
-    barcount = 0
-    fixedSize = 0
-    gluedEventCount = 0
-    while(i < l):
-      if (not self._moveStore[i][D_ISMOVE]):
-        action = self._moveStore[i][D_ACTION]
-        if (self.isBar(action)):
-          gluedEventCount +=  self._barlineGlue
-          barcount += 1
-        #if (action == 'tempo'):
-        #  fixedSize += 
-        if (action == 'timeMark'):
-          fixedSize += self.timeMarkWidth
-      else:
-        gluedEventCount += 1
-      i += 1
-    #print('gluedEventCount: ' + str(gluedEventCount))
-    # We have a problem at line ends.
-    # Everything is aligned to the left.
-    # Thats nice, because following space can reflect
-    # the symbol contents.
-    # but at line ends, the barline goes to the left,
-    # leaving a 'T' shape,
-    #  --------
-    #       |
-    # so I remove one barline of glue. Neater than
-    # trying to faff with the loop (and study of 
-    # musical scores suggests the final bar in a line
-    # may benefit from shortened space, not larger).
-    gluedEventCount -= self._barlineGlue
-    
-    #2
     absX = self.rawToAbsX(0)
-    lineWidth = self.rightStockAbs - absX 
-    
-    #3
-    glueWidth = (lineWidth - fixedSize)/gluedEventCount
-    
-    #4
+    lineWidth = self.rightStockAbs - absX     
+    glueWidth = self.calculateGlue(self._barsInLineAim, lineWidth)      
+
+    #2
     decidedBarCount = self._barsInLineAim
     if (glueWidth < self.minMoveGlueWidth):
       #! if you do this, the glue width needs revising.
       decidedBarCount -= 1
-      #???
+      glueWidth = self.calculateGlue(decidedBarCount, lineWidth)       
+
     
     #print('fixedSize: '+ str(fixedSize))
     #print('glueWidth:' + str(glueWidth))
