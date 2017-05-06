@@ -57,13 +57,13 @@ dance = {
   ['point', True, 0, False, EAST],
   ['point', True, 1, False, WEST],
   ['step', True, 1, False, WEST],
-  ['bar', False, 0, False, 70],
+  ['repeatOpenBar', False, 0, False, 70],
 
   ['step', True, 0, False, EAST],
   ['point', True, 0, False, SOUTH],
   ['step', True, 0, False, SOUTH],
   ['point', True, 1, False, EAST],
-  ['bar', False, 0, False, 70],
+  ['repeatCloseBar', False, 0, False, 70],
 
   ['point', True, 0, False, NORTH],
   ['step', True, 0, False, NORTH],
@@ -93,12 +93,18 @@ dance = {
   ['step', True, 0, False, NORTH],
   ['point', True, 0, False, SOUTH],
   ['point', True, 1, False, WEST],
-  ['closeBar', False, True, 0, False, 70],
-  ['EOD', ALL_DANCERS, False, None]
+  ['closeBar', False, 0, False, 70],
+  ['EOD', False, ALL_DANCERS, False, None]
   ]
 }
 
-
+#################################################################
+def info(msg):
+   print('[info] ' + msg)
+  
+def warning(msg):
+   print('[warning] '+ msg)
+   
 ##################################################################
 # *Abs. means a coordinate position according to reportlab. These are 
 # full-page, centred bottom left.
@@ -459,8 +465,8 @@ class MoveBlockRender():
 
   ## renderers
   #! pass absY arround in preference
-  def moveLineRender(self, absY):
-    self.c.line(self.leftStockAbs, absY, self.rightStockAbs, absY)
+  def moveLineRender(self, toX, absY):
+    self.c.line(self.leftStockAbs, absY, toX, absY)
   
   ## calculate
   def renderTimeMark(self, absX, absY, event):
@@ -487,22 +493,22 @@ class MoveBlockRender():
     #self.c.line(self.curseX, absY, self.curseX, absY - 12)
     self.c.line(absX, absY, absX, absY - 12)
 
-  # oriented round the line
+  # oriented round the box
   def renderCloseBarmark(self, absX, absY):
     # width = 6?
-    self.c.line(absX - 4, absY, absX, absY - 10)
-    self.c.rect(absX,  absY - 12, 2, 12, fill=1)
+    self.c.line(absX - 8, absY, absX - 8, absY - 12)
+    self.c.rect(absX - 4,  absY - 12, 4, 12, fill=1)
 
-  # oriented round the line
+  # oriented round the box
   def renderRepeatCloseBarmark(self, absX, absY):
-    self.c.circle(absX - 6, absY - 6, 1, fill=1)
-    self.c.line(absX, absY, absX, absY - 10)
-    self.c.rect(absX + 4,  absY - 12, 2, 12, fill=1)
+    self.c.circle(absX - 10, absY - 6, 1, fill=1)
+    self.c.line(absX - 4, absY, absX - 4, absY - 12)
+    self.c.rect(absX,  absY - 12, 2, 12, fill=1)
 
   # oriented round the line
   def renderRepeatOpenBarmark(self, absX, absY):
     self.c.rect(absX - 6,  absY - 12, 2, 12, fill=1)
-    self.c.line(absX, absY, absX, absY - 10)
+    self.c.line(absX, absY, absX, absY - 12)
     self.c.circle(absX + 6, absY - 6, 1, fill=1)
 
 
@@ -535,8 +541,9 @@ class MoveBlockRender():
     ii = 0
     barGlueWidth = glueWidth * self._barlineGlue
     while (ii < numberOfBarsToRender):
-      #print('ii ' + str(ii))
       event = self._moveStore.pop(0)
+      print('render: ' + event[D_ACTION])
+
       if (event[D_ISMOVE]):
         moveStash.append([curseX, event])
         curseX += glueWidth
@@ -546,6 +553,24 @@ class MoveBlockRender():
           self.renderBarmark(curseX , absY)
           curseX += barGlueWidth
           #print('rend bar' + str(ii))
+          ii += 1
+        elif (event[D_ACTION] == 'closeBar'):
+          # could happen, if bars match space exactly
+          self.renderCloseBarmark(curseX , absY)
+          # irrelevant. To well-formed input...
+          curseX += barGlueWidth
+          ii += 1
+        elif (event[D_ACTION] == 'repeatOpenBar'):
+          # could happen, if bars match space exactly
+          self.renderRepeatOpenBarmark(curseX , absY)
+          # irrelevant. To well-formed input...
+          curseX += barGlueWidth
+          ii += 1
+        elif (event[D_ACTION] == 'repeatCloseBar'):
+          # could happen, if bars match space exactly
+          self.renderRepeatCloseBarmark(curseX , absY)
+          # irrelevant. To well-formed input...
+          curseX += barGlueWidth
           ii += 1
         elif (event[D_ACTION] == 'timeMark'):
           self.renderTimeMark(curseX, absY, event)
@@ -570,15 +595,117 @@ class MoveBlockRender():
       self.c.drawString(rAbsX, e[0], e[1][D_ACTION])
       i += 1
     endVerticalTextEnvironment()
+
+  def calculateGlue(self, lineWidth):
+    i = 0
+    l = len(self._moveStore)
+    barcount = 0
+    fixedSize = 0
+    gluedEventCount = 0
+    while(i < l):
+      if (not self._moveStore[i][D_ISMOVE]):
+        action = self._moveStore[i][D_ACTION]
+        if (self.isBar(action)):
+          gluedEventCount +=  self._barlineGlue
+          barcount += 1
+        #if (action == 'tempo'):
+        #  fixedSize += 
+        if (action == 'timeMark'):
+          fixedSize += self.timeMarkWidth
+      else:
+        gluedEventCount += 1
+      i += 1
+    #print('gluedEventCount: ' + str(gluedEventCount))
+    # We have a problem at line ends.
+    # Everything is aligned to the left.
+    # Thats nice, because following space can reflect
+    # the symbol contents.
+    # but at line ends, the barline goes to the left,
+    # leaving a 'T' shape,
+    #  --------
+    #       |
+    # so I remove one barline of glue. Neater than
+    # trying to faff with the loop (and study of 
+    # musical scores suggests the final bar in a line
+    # may benefit from shortened space, not larger).
+    gluedEventCount -= self._barlineGlue
+    
+    #3
+    return (lineWidth - fixedSize)/gluedEventCount
+          
+  def isBar(self, action):
+    return (
+      action == 'bar' or
+      action == 'closeBar' or
+      action == 'repeatOpenBar' or
+      action == 'repeatCloseBar'
+      )
       
   def finaliseMovesBlock(self):
     # need to fix last line with remaining moves
     print('moves remaining:{0}'.format(len(self._moveStore)))
 
     # render remains
-    #???
-    #self.renderCloseBarmark(absX, absY)
+    # get the absY position of the line
+    # to be used throughout rendering
+    absY = self.rawToAbsY(self._pageLineI)
+    #print('absY: '+ str(absY))
 
+    # Test we did not reach stock bottom.
+    # if we did, before rendering, trigger new page
+    if (absY < self.bottomStockAbs):
+      self.newPage()
+    
+    # decide stretch, or stub?
+    
+    # for sure we have less bars than we want, otherwise we'd trigger a new 
+    # line. But how many?
+    # Could be done with a glueAssessment, but would be untidy.
+    i = 0
+    l = len(self._moveStore)
+    barcount = 0
+    while(i < l):
+      action = self._moveStore[i][D_ACTION]
+      if (self.isBar(action)):
+        barcount += 1
+      i += 1
+    print('remaining bars: ' + str(barcount))
+
+    # need the width, whatever 
+    absX = self.rawToAbsX(0)
+    lineWidth = self.rightStockAbs - absX
+    
+    decidedBarCount = self._barsInLineAim
+    if (barcount < self._barsInLineAim):
+      info('bar count at end at end of block is short: requested: {0}: num of bars:{1}'.format(self._barsInLineAim, barcount))
+
+
+    if (barcount < self._barsInLineAim - 2):
+      warning('Stubbing the last line')
+      #To work this out we,
+      # - restrict ourselves to a width ratio of bars found to intended 
+      # - calculateGlue
+      # - shorten the line render
+      # this will render short, but should look ok. For now.
+      newWidth = lineWidth * barcount/self._barsInLineAim
+      glueWidth = self.calculateGlue(newWidth)      
+      # render the line itself
+      self.moveLineRender(self.leftStockAbs + newWidth, absY)
+    else:
+      info('Expanding the last line')
+      glueWidth = self.calculateGlue(lineWidth)
+      # render the line itself
+      self.moveLineRender(self.rightStockAbs, absY)
+        
+    decidedBarCount = barcount
+          
+    #self.renderCloseBarmark(absX, absY)
+    self.renderLineContents(
+      absX,
+      absY, 
+      glueWidth,  
+      decidedBarCount
+    )
     #report
     print('done')
 
@@ -588,7 +715,6 @@ class MoveBlockRender():
     # not first page top, as initialised, but top of stock
     self._blockTopAbs = self.topStockAbs
     self._rotatedBlockLeftAbs = self.topMargin
-
     self.c.showPage()
 
 
@@ -607,7 +733,7 @@ class MoveBlockRender():
       self.newPage()
       
     # render the line itself
-    self.moveLineRender(absY)
+    self.moveLineRender(self.rightStockAbs, absY)
 
     # Now render contents   
     
@@ -629,7 +755,7 @@ class MoveBlockRender():
     while(i < l):
       if (not self._moveStore[i][D_ISMOVE]):
         action = self._moveStore[i][D_ACTION]
-        if (action == 'bar'):
+        if (self.isBar(action)):
           gluedEventCount +=  self._barlineGlue
           barcount += 1
         #if (action == 'tempo'):
@@ -692,7 +818,7 @@ class MoveBlockRender():
       nonMoveEvent = m[D_ACTION]
       if (nonMoveEvent == 'EOD'):
         self.finaliseMovesBlock()
-      elif (nonMoveEvent == 'bar'):
+      elif (self.isBar(nonMoveEvent)):
         self._barI = self._barI + 1
         if(self._barI >= self._barsInLineAim):
           self.createMoveLine()
@@ -723,7 +849,6 @@ i = 0
 m = dance['moves']
 l = len(m)
 while(i < l):
-  #text(i, 1, m[i][0])
   mbr.addInstruction(m[i])
   i += 1
 
