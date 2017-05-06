@@ -1,6 +1,6 @@
-Written in Python, using the ''reportlab' library. Uses a Tex-like format, so templates can be made for different style. The default style is assumed to be fairly modern and neutral.
+Written in Python, using the ''reportlab' library. Uses a Tex-like format, so templates can be made for different style. The default style is assumed to be neutral traditional-modern.
 
-''reportlab' is a Python to PDF project. It is not a high-profile project, but extensive, and is used for Gnome font handling.
+''reportlab' is a Python to PDF project. It is not a high-profile project, but extensive, and used by Gnome font handling.
 
 In Debian-based systems, Python will be pre-installed. You also need (not pre-installed),
 
@@ -25,7 +25,7 @@ A template frame looks like this,
 == About templates
 Though not expressible in Python, values are constants. They can be set wherever you like, but for reading, please keep in order.
 
-Functions must be called in given order (see examples). They accumulate variables. This makes life for the writer easy, as you do not need to keep adding offsts---""Am I on line ''+7'?". However, if not called in order, some variables will not be accumulated, and strange things will happen. For example, if it is used, a Title statement should e used at the top of a template. Try putting a 'title' statement further down the document, and you will see the code  allocate the space, but the side effects may push other text to undesired positions.  
+Functions must be called in given order (see examples). They accumulate variables. This makes life for the writer easy, as you do not need to keep adding offsts---""Am I on line ''+7'?". However, if not called in order, some variables will not be accumulated, and strange things will happen. For example, if it is used, a Title statement should be used at the top of a template. Try putting a 'title' statement further down the document, and you will see the code allocate the space, but the side effects may push other text to undesired positions.  
 
 
 == Laying out the document 
@@ -35,10 +35,8 @@ title(dance['title'])
 titleCredits(dance['performers'], dance['transcribed'])
 musicalDirections(dance['tempo'])
 
-movesblock()
-startMoveEnvironment()
+moveBlockRenderer()
 
-endMoveEnvironment()
 #
 
 = Fonts and text
@@ -61,8 +59,72 @@ Times-Italic:
 Times-Roman:
 ZapfDingbats:
 
-''reportlab' can handle plenty of other fonts. ''reportlab' fonts can be listed by a script called ''stdfonts.py'. In Debian, this is tucked in the documentation package, and needs the usual root access---the usual Debian pain.
+''reportlab' can handle plenty of other fonts. ''reportlab' fonts can be listed by a script called ''stdfonts.py'. In Debian, this is tucked in the documentation package, and needs the usual root access---the usual Debian pain. Another way is the code,
+
+#cb
+print(c.getAvailableFonts())
+#
+
+Though this will report the Adobe 14, not the range Reportlab can use.
 
 For the use of ''dancer', Times is a serif font, Helvetica is a non-serif display font. The fourteen fonts will be enough. If you want more, see the Reportlab manual.
 
-= 
+= Available variables
+
+
+== MoveBlocks
+These are the lines of instructions. The rendering is fully automated.
+
+
+# Space above the block.
+# Rarely used?
+movesBlockTopSkip = 0
+
+# gap between lines. Don't make too small.
+movesLineTopSkip = 96
+
+# Fixed allocation for a barline.
+# Also used to calculate a start indent on every line before constent.
+# There would see to be purpose in this (though this is a new art).
+# should only be a handful of points.
+barlineWidth = 24
+moveLineContentIndent = barlineWidth >> 1
+
+# Reserve space for time signatures.
+# This is currently sets with at line starts, and works as a minimum 
+# width on inline time signature changes (usually, the code will try to
+# tuck in after a barline, but if the width is not enough, this may be used).
+# This variable can not be calculated (possible width of oversize font).
+# If the time signature font size is changed, alter by hand.
+timeSignatureWidth = 24
+
+
+
+=== For the width of a line,
+
+<- stockLeft -><- moveline -><- stockRight ->
+
+=== For a line
+
+
+
+
+# Express an interest in how many bars to a line
+# In many circumstances, will not be honoured. But used for open
+# bar rendering, so will stretch bars to fit the page width.
+#! what about sheet width, etc.?
+barPerLineAim = 4
+
+# fixed width for barmarks to occupy
+barmarkWidth = 24
+
+# The minimum glue allowed before bars are spilled to the next line
+minMoveGlueWidth = 14
+
+# space down from the moveline to the move marks
+moveLineContentSkipDown = 8
+
+First line format,
+#cb
+<- moveLineContentIndent -> <- timeSignatureWidth -> some moves <- barlineWidth -> some moves <- barlineWidth ->  some moves... <- barlineWidth -> 
+#

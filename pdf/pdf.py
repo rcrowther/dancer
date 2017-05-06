@@ -44,8 +44,8 @@ dance = {
   'dancerCount': 2,
   'start': 'hline',
   'moves': [
-  ['timeSignature', False, 0, False, 4],
-  ['tempo', False, 0, False, 70],
+  ['timeMark', False, 0, False, 4],
+  ['tempoMark', False, 0, False, 70],
   
   ['kick', True, 0, False, WEST],
   ['kick', True, 1, False, EAST],
@@ -93,27 +93,36 @@ dance = {
   ['step', True, 0, False, NORTH],
   ['point', True, 0, False, SOUTH],
   ['point', True, 1, False, WEST],
-  ['bar', False, True, 0, False, 70],
-
+  ['closeBar', False, True, 0, False, 70],
   ['EOD', ALL_DANCERS, False, None]
   ]
 }
 
 
 ##################################################################
+# *Abs. means a coordinate position according to reportlab. These are 
+# full-page, centred bottom left.
+# *Raw means a coordinate position on stock. This includes
+# margins (so the stock).
+# *Raw is centred top left stock, even though reportlab works from 
+# bottom left.
+# *Raw can be converted to reportlab coordinates using the functions
+# rawToAbsX() and rawToAbsY()
+#
+
 ## Page setup ##
 c = Canvas("test.pdf", pagesize=A4)
 
 ## Stock ##
 #! should we map onto this? 
 # (bottom left corner) x, y, width, height 
-x = mm * 20
-y = mm * 40
+#x = mm * 20
+#y = mm * 40
 
-pageHeight = A4[1]
-pageWidth = A4[0]
+_pageHeight = A4[1]
+_pageWidth = A4[0]
 # Not raw! From page edge
-_centerPage = pageWidth / 2
+_centerPage = _pageWidth / 2
 
 leftMargin =  mm * 20
 rightMargin =  mm * 20
@@ -121,31 +130,25 @@ topMargin =  mm * 20
 bottomMargin =  mm * 40
 
 
-rightStock = pageWidth - rightMargin
-leftStock = leftMargin
-topStock = pageHeight - topMargin
-bottomStock = bottomMargin
+rightStockAbs = _pageWidth - rightMargin
+leftStockAbs = leftMargin
+topStockAbs = _pageHeight - topMargin
+bottomStockAbs = bottomMargin
 
 # passed to renderMoveBlock
-stockContext = [topStock, rightStock, leftStock, bottomStock, topMargin]
+stockContext = [topStockAbs, rightStockAbs, leftStockAbs, bottomStockAbs, topMargin]
 
 ###########################################################
 ## Coordinate functions ##
-# *Raw means a coordinate position on stock. This includes
-# margins (so the stock).
-# *Raw is centred top left stock, even though reportlab works from 
-# bottom left.
-# *Raw can be converted to reportlab coordinates using the functions
-# x() and y()
+# rawToAbsX() and rawToAbsY() convert *Raw positions to *Abs
 #
-# Mentions of 'top' 'center' etc. refer to reportlab full-page 
-# coordinates. Though widths and heights may be usable for positioning
-# on stock.
-def x(x):
+
+#? unused 
+def rawToAbsX(x):
   return leftMargin + x
 
-def y(y):
-  return topStock - y
+def rawToAbsY(y):
+  return topStockAbs - y
  
  
 ###########################################################
@@ -168,7 +171,7 @@ titleTopSkip = 8
 def title(title):
   global _titleHeightRaw
   c.setFont(titleFontFamily, titleFontSize)
-  c.drawCentredString(_centerPage, y(titleTopSkip), title)
+  c.drawCentredString(_centerPage, rawToAbsY(titleTopSkip), title)
   _titleHeightRaw = titleTopSkip + titleFontSize
 
 
@@ -186,7 +189,7 @@ def section(title):
   
   # render
   c.setFont(sectionFontFamily, sectionFontSize)
-  c.drawCentredString(_centerPage, y(sectionTopSkip), title)
+  c.drawCentredString(_centerPage, rawToAbsY(sectionTopSkip), title)
   _titleHeightRaw = sectionTopSkip + sectionFontSize
   
 
@@ -208,10 +211,10 @@ def titleCredits(performers, transcribedBy):
   global _titleHeightRaw
   c.setFont(creditsFontFamily, creditsFontSize)
   #48
-  c.drawRightString(rightStock, y(_titleHeightRaw + creditsTopSkip), performers)
+  c.drawRightString(rightStockAbs, rawToAbsY(_titleHeightRaw + creditsTopSkip), performers)
   _titleHeightRaw += creditsTopSkip + creditsFontSize
   #68
-  c.drawRightString(rightStock, y(_titleHeightRaw + creditLineTopSkip), "Trns: " + transcribedBy)
+  c.drawRightString(rightStockAbs, rawToAbsY(_titleHeightRaw + creditLineTopSkip), "Trns: " + transcribedBy)
 
 
   
@@ -219,26 +222,22 @@ def titleCredits(performers, transcribedBy):
 # Declared early because musical directions need to be aligned with the
 # opening time signature.
 
-# Fixed allocation for a barline.
-# Also used to calculate a start indent on every line before constent.
-# There would see to be purpose in this (though this is a new art).
-# should only be a handful of points.
-barlineWidth = 24
-moveLineContentIndent = barlineWidth >> 1
+# Fixed allocation for indenting the content at start of lines.
+# Used to push the initial data, like time signature, from the start 
+# barline. For music scores, there would be a lot of data, like stave 
+# marks and key signatures. Not here. Should only be a handful of points.
+barlineGlue = 0.5
+moveLineContentIndent = 4
+#moveLineContentIndent = 0
 
 # Many music scores adopt an indent. Not often applicable here, so will 
 # usually be zero. If you have any material starting a move line, use it.
 # This variable can not be calculated (font width of time signature, 
 # and other material).
-moveblockFirstLineIndent = 0
+# NOT IMPLEMENTED
+#moveblockFirstLineIndent = 0
 
-# Reserve space for time signatures.
-# This is currently sets with at line starts, and works as a minimum 
-# width on inline time signature changes (usually, the code will try to
-# tuck in after a barline, but if the width is not enough, this may be used).
-# This variable can not be calculated (possible width of oversize font).
-# If the time signature font size is changed, alter by hand.
-timeSignatureWidth = 24
+
 
 
 
@@ -255,8 +254,9 @@ def musicalDirections(tempo):
   '''
   global _titleHeightRaw
   c.setFont(musicalDirectionFontFamily, musicalDirectionFontSize)
-  XRaw = moveblockFirstLineIndent + moveLineContentIndent
-  c.drawString(x(XRaw), y(_titleHeightRaw + musicalDirectionTopSkip), 'tempo = ' + str(tempo))
+  #XRaw = moveblockFirstLineIndent + moveLineContentIndent
+  XRaw = moveLineContentIndent
+  c.drawString(rawToAbsX(XRaw), rawToAbsY(_titleHeightRaw + musicalDirectionTopSkip), 'tempo = ' + str(tempo))
   _titleHeightRaw += musicalDirectionTopSkip + musicalDirectionFontSize
 
 
@@ -292,20 +292,21 @@ def moveLineYRaw(idx):
   
   
 ## Time signature ##
-timeSignatureFontFamily = "Times-Roman"
-timeSignatureFontSize = 24
+timeMarkFontFamily = "Times-Roman"
+timeMarkFontSize = 16
+
+# Reserve space for time signatures.
+# For marks at line starts and inline.
+# This variable can not be calculated (possible width of oversize font).
+# If the time signature font size is changed, alter by hand.
+# Should be, say, 3/2 of the width of the fonts as written as glyphs.
+timeMarkWidth = 24
+
 # How far down from the line to drop a time signature
-timeSignatureSkipDown = 32
+timeMarkSkipDown = 24
 
+timeMarkContext = [timeMarkFontFamily, timeMarkFontSize, timeMarkWidth, timeMarkSkipDown]
 
-def timeSignature(moveLineIdx, xRaw, count):
-  c.setFont(timeSignatureFontFamily, timeSignatureFontSize)
-  c.drawString(x(xRaw), y(moveLineYRaw(moveLineIdx) + timeSignatureSkipDown), str(count))
-
-def moveLineOpeningTimeSignature(count):
-  # note that the indent is the same as musicalDirections
-  xRaw = moveblockFirstLineIndent + moveLineContentIndent
-  timeSignature(0, xRaw, count)
 
 
 
@@ -315,7 +316,7 @@ def moveLineOpeningTimeSignature(count):
 # In many circumstances, will not be honoured. But used for open
 # bar rendering, so will stretch bars to fit the page width.
 #! what about sheet width, etc.?
-barPerLineAim = 4
+barPerLineAim = 5
 
 # fixed width for barmarks to occupy
 barmarkWidth = 24
@@ -327,15 +328,13 @@ minMoveGlueWidth = 14
 moveLineContentSkipDown = 8
 
 # internal
-#x?
-# keeps track of current value for rendering
-_beatsPerBar = dance['beatbar']
+
 
 
 ## utils ##
 
 #def dot(xd, yd):  
-#  c.circle(x(xd), y(yd), 4, False, True)
+#  c.circle(rawToAbsX(xd), rawToAbsY(yd), 4, False, True)
 
 def startVerticalTextEnvironment():
   c.setFont("Times-Roman", 12)
@@ -344,8 +343,8 @@ def startVerticalTextEnvironment():
   # scale then translate
   c.rotate(270)
   #c.rotate(315)
-  #print('ttrns at:' + str(-pageHeight) + ' ' + str(-pageWidth))
-  c.translate(-pageHeight, 0)
+  #print('ttrns at:' + str(-_pageHeight) + ' ' + str(-_pageWidth))
+  c.translate(-_pageHeight, 0)
 
 def endVerticalTextEnvironment():
   c.restoreState()
@@ -364,60 +363,70 @@ class MoveBlockRender():
    barsInLineAim = barPerLineAim,
    lineTopSkip = movesLineTopSkip, 
    firstPageTopSkip = _titleHeightRaw,
+   #moveblockFirstLineIndent = moveblockFirstLineIndent,
    lineContentIndent = moveLineContentIndent,
-   barlineWidth = barlineWidth,
-   timeSignatureWidth = timeSignatureWidth,
+   barlineGlue = barlineGlue,
+   timeMarkWidth = timeMarkWidth,
    minMoveGlueWidth = minMoveGlueWidth,
-   moveLineContentSkipDown = moveLineContentSkipDown
+   moveLineContentSkipDown = moveLineContentSkipDown,
+   timeMarkContext = timeMarkContext
   ):
     
 
     # useful methods
-    #def timeSignature(moveLineIdx, xRaw, count):
+    #def timeMark(moveLineIdx, xRaw, count):
     #! should be moved in here
     #! tempo markngs should be moved in here 
-    global timeSignature
+
 
 
     # outside properties    
     self.c = c
             
-    # stockContext = [topStock, rightStock, leftStock, bottomStock]
-    self.topStock = stockContext[0]
-    self.rightStock = stockContext[1]
-    self.leftStock = stockContext[2]
-    self.bottomStock = stockContext[3]
+    # stockContext = [topStockAbs, rightStockAbs, leftStockAbs, bottomStockAbs]
+    self.topStockAbs = stockContext[0]
+    self.rightStockAbs = stockContext[1]
+    self.leftStockAbs = stockContext[2]
+    self.bottomStockAbs = stockContext[3]
     self.topMargin = stockContext[4]
-    print('bottomStock: '+ str(self.bottomStock))
+    print('bottomStockAbs: '+ str(self.bottomStockAbs))
     
     
     self._barsInLineAim = barsInLineAim
     print('_barsInLineAim: '+ str(self._barsInLineAim))
         
-    # first page only, reset to topStock
+    # first page only, reset to topStockAbs
     self._lineTopSkip = lineTopSkip    
     print('lineTopSkip: '+ str(lineTopSkip))
 
 
-    # absolute
-    self._blockTop = self.topStock - firstPageTopSkip
-    
-    # Rotated environment inverts the y direction (for X positioning)
-    self._rotatedBlockLeft = self.topMargin + firstPageTopSkip
+    # calculate the top block absolutely
+    self._blockTopAbs = self.topStockAbs - firstPageTopSkip
+
+    # ...rotated environment inverts the y direction (for X positioning)
+    self._rotatedBlockLeftAbs = self.topMargin + firstPageTopSkip
     print('firstPageTopSkip: '+ str(firstPageTopSkip))
 
-    self._barlineWidth = barlineWidth
-    self._lineContentIndent = lineContentIndent
-    print('lineContentIndent: '+ str(lineContentIndent))
+    #self.moveblockFirstLineIndent = moveblockFirstLineIndent
 
-    self.timeSignatureWidth = timeSignatureWidth
+
+    self._barlineGlue = barlineGlue
+    self.lineContentIndent = lineContentIndent
+    print('lineContentIndent: '+ str(self.lineContentIndent))
+
     self.minMoveGlueWidth = minMoveGlueWidth
     self.moveLineContentSkipDown = moveLineContentSkipDown
+    
+    self.timeMarkFontFamily = timeMarkContext[0]
+    self.timeMarkFontSize = timeMarkContext[1]
+    self.timeMarkWidth = timeMarkContext[2]
+    self.timeMarkSkipDown = timeMarkContext[3]
+
     
     # Internal
     
     #? This is plainly a stream queue. However, Python has no standard
-    #? queue, and deque is multi-threaded, which I have ojection to(!).
+    #? queue, and deque is multi-threaded, which I have ojection to(?!).
     #? Using a list, even if slow.
     self._moveStore = []
     
@@ -437,31 +446,66 @@ class MoveBlockRender():
 
   ## helpers
   #! pass absY around in preference
-  def y(self, idx):
-    #print('_blockTop: '+ str(self._blockTop))
-    return self._blockTop - (self._lineTopSkip * idx)
+  def rawToAbsY(self, idx):
+    #print('_blockTopAbs: '+ str(self._blockTopAbs))
+    return self._blockTopAbs - (self._lineTopSkip * idx)
   
   # Do not use for stock placements, takes account of
   # line content indent
-  def x(self, XRaw):
-    return self.leftStock + lineContentIndent + XRaw
+  def rawToAbsX(self, XRaw):
+    return self.leftStockAbs + self.lineContentIndent + XRaw
     
+
 
   ## renderers
-  #! pass YAbs arround in preference
+  #! pass absY arround in preference
   def moveLineRender(self, absY):
-    self.c.line(self.leftStock, absY, self.rightStock, absY)
+    self.c.line(self.leftStockAbs, absY, self.rightStockAbs, absY)
   
   ## calculate
+  def renderTimeMark(self, absX, absY, event):
+    s = str(event[D_PARAMS])
+    #print('count: '+ s)
+    self.c.setFont(self.timeMarkFontFamily, self.timeMarkFontSize)
+    self.c.drawString(absX, absY - self.timeMarkSkipDown, s)
+
   def renderBeatCountChange(self, e):
     pass
-    
-  def renderBarmark(self, absX, absY):
-    #print('_blockTop: '+ str(self.curseX))
-    #print('_blockTop: '+ str(self._blockTop))
 
+    # Current strategy for barmarks:
+    # 1
+    # They take a glue place
+    # ...but add a small visual disruption.
+    # Probably 1/3 of glue.    
+    # They are placed at 2/3 of the resulting glue space
+  # Initial barmarks take no space, are placed in the fixed  moveLineContentIndent
+      
+  # oriented round the line
+  def renderBarmark(self, absX, absY):
+    #print('_blockTopAbs: '+ str(self.curseX))
+    #print('_blockTopAbs: '+ str(self._blockTopAbs))
     #self.c.line(self.curseX, absY, self.curseX, absY - 12)
     self.c.line(absX, absY, absX, absY - 12)
+
+  # oriented round the line
+  def renderCloseBarmark(self, absX, absY):
+    # width = 6?
+    self.c.line(absX - 4, absY, absX, absY - 10)
+    self.c.rect(absX,  absY - 12, 2, 12, fill=1)
+
+  # oriented round the line
+  def renderRepeatCloseBarmark(self, absX, absY):
+    self.c.circle(absX - 6, absY - 6, 1, fill=1)
+    self.c.line(absX, absY, absX, absY - 10)
+    self.c.rect(absX + 4,  absY - 12, 2, 12, fill=1)
+
+  # oriented round the line
+  def renderRepeatOpenBarmark(self, absX, absY):
+    self.c.rect(absX - 6,  absY - 12, 2, 12, fill=1)
+    self.c.line(absX, absY, absX, absY - 10)
+    self.c.circle(absX + 6, absY - 6, 1, fill=1)
+
+
 
     
   def renderLineContents(self,
@@ -482,13 +526,14 @@ class MoveBlockRender():
     moveStash = []
 
 
-    #! render start barmark
-    self.renderBarmark(absX, absY)
-    curseX += self._barlineWidth
-     
-    print('store size: ' + str(len(self._moveStore)))
+    # render start barmark
+    #self.renderBarmark(self.leftStockAbs + moveLineContentIndent, absY)
+    self.renderBarmark(self.leftStockAbs, absY)
+    
+    #print('store size: ' + str(len(self._moveStore)))
    
     ii = 0
+    barGlueWidth = glueWidth * self._barlineGlue
     while (ii < numberOfBarsToRender):
       #print('ii ' + str(ii))
       event = self._moveStore.pop(0)
@@ -499,14 +544,15 @@ class MoveBlockRender():
       else:
         if (event[D_ACTION] == 'bar'):
           self.renderBarmark(curseX , absY)
+          curseX += barGlueWidth
           #print('rend bar' + str(ii))
-          curseX += self._barlineWidth
-          ii = ii + 1
-        else:
-          #self.renderSignature(event, curseX , absY)
-          # now a signature
-          curseX += self.timeSignatureWidth
-
+          ii += 1
+        elif (event[D_ACTION] == 'timeMark'):
+          self.renderTimeMark(curseX, absY, event)
+          curseX += self.timeMarkWidth
+        elif (event[D_ACTION] == 'tempo'):
+          pass
+          
     # now get back to those marks
     i = 0
     l = len(moveStash)
@@ -515,9 +561,9 @@ class MoveBlockRender():
     # absY will not work in the rotated envirionment, I measures in
     # reportlab style fro the bottom, rotated 3/4, it must work from
     # the page top.
-    rAbsX = self._rotatedBlockLeft + (self._lineTopSkip * self._pageLineI) + self.moveLineContentSkipDown
-    print('rAbsX :' + str(rAbsX))
-    print('self._pageLineI :' + str(self._pageLineI))
+    rAbsX = self._rotatedBlockLeftAbs + (self._lineTopSkip * self._pageLineI) + self.moveLineContentSkipDown
+    #print('rAbsX :' + str(rAbsX))
+    #print('self._pageLineI :' + str(self._pageLineI))
 
     while (i < l):
       e = moveStash[i]
@@ -531,6 +577,8 @@ class MoveBlockRender():
 
     # render remains
     #???
+    #self.renderCloseBarmark(absX, absY)
+
     #report
     print('done')
 
@@ -538,8 +586,8 @@ class MoveBlockRender():
     print('newPage')
     self._pageLineI = 0
     # not first page top, as initialised, but top of stock
-    self._blockTop = self.topStock
-    self._rotatedBlockLeft = self.topMargin
+    self._blockTopAbs = self.topStockAbs
+    self._rotatedBlockLeftAbs = self.topMargin
 
     self.c.showPage()
 
@@ -550,12 +598,12 @@ class MoveBlockRender():
     
     # get the absY position of the line
     # to be used throughout rendering
-    absY = self.y(self._pageLineI)
+    absY = self.rawToAbsY(self._pageLineI)
     #print('absY: '+ str(absY))
 
     # Test we did not reach stock bottom.
     # if we did, before rendering, trigger new page
-    if (absY < self.bottomStock):
+    if (absY < self.bottomStockAbs):
       self.newPage()
       
     # render the line itself
@@ -582,19 +630,33 @@ class MoveBlockRender():
       if (not self._moveStore[i][D_ISMOVE]):
         action = self._moveStore[i][D_ACTION]
         if (action == 'bar'):
-          fixedSize += self._barlineWidth
+          gluedEventCount +=  self._barlineGlue
           barcount += 1
         #if (action == 'tempo'):
         #  fixedSize += 
-        if (action == 'timeSignature'):
-          fixedSize += self.timeSignatureWidth
+        if (action == 'timeMark'):
+          fixedSize += self.timeMarkWidth
       else:
         gluedEventCount += 1
       i += 1
-
+    #print('gluedEventCount: ' + str(gluedEventCount))
+    # We have a problem at line ends.
+    # Everything is aligned to the left.
+    # Thats nice, because following space can reflect
+    # the symbol contents.
+    # but at line ends, the barline goes to the left,
+    # leaving a 'T' shape,
+    #  --------
+    #       |
+    # so I remove one barline of glue. Neater than
+    # trying to faff with the loop (and study of 
+    # musical scores suggests the final bar in a line
+    # may benefit from shortened space, not larger).
+    gluedEventCount -= self._barlineGlue
+    
     #2
-    absX = x(0)
-    lineWidth = self.rightStock - absX 
+    absX = self.rawToAbsX(0)
+    lineWidth = self.rightStockAbs - absX 
     
     #3
     glueWidth = (lineWidth - fixedSize)/gluedEventCount
@@ -604,14 +666,11 @@ class MoveBlockRender():
     if (glueWidth < self.minMoveGlueWidth):
       #! if you do this, the glue width needs revising.
       decidedBarCount -= 1
-
+      #???
     
     #print('fixedSize: '+ str(fixedSize))
     #print('glueWidth:' + str(glueWidth))
     #print('decidedBarCount:' + str(decidedBarCount))
-    
-      
-    decidedBarCount = self._barsInLineAim
 
     
     self.renderLineContents(
@@ -621,8 +680,8 @@ class MoveBlockRender():
       decidedBarCount
     )
     
+    # update accumulators
     self._barI -= decidedBarCount
-    
     self._blockLineI += 1 
     self._pageLineI += 1
     
@@ -654,7 +713,7 @@ movesblock()
 
 
 ## body ##
-moveLineOpeningTimeSignature(dance['beatbar'])
+#moveLineOpeningtimeMark(dance['beatbar'])
 
 print('_titleHeightRaw: ' + str(_titleHeightRaw))
 
