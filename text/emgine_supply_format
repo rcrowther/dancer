@@ -1,13 +1,13 @@
-Unlike lillypond, which works ffline, processed files should be in a format which is,
+Unlike lillypond, which works fline, processed files should be in a format which is,
 ~ compact
 : so it can be sent down the web, passed baout etc.
 ~ organised so an interpreting engine can easily handle it
-: this will mean somme severe modificattions of the input format, which is designed for readability.
+: this will mean some severe modificattions of the input format, which is designed for readability.
 
 ==  compact
 I expect a bytecode-like representation. So like Protobuf, dbus, r Java bytecode, for example. 
 
-That said, there may be alternative representations of a fundamental layout, e.g. a JSON representation.
+That said, there may be alternative representations of a fundamental layout, e.g. a JSON representation, Python scructures (XML? no thanks).
 
 == organised
 Don't know much about this, but some ideas are emerging. They are mainly based round the idea that a steady steam of info is best, even if repetitious. 
@@ -16,7 +16,7 @@ Don't know much about this, but some ideas are emerging. They are mainly based r
 The use of variables is no help for an engine, so these all need to be preprocessed.
 
 == Filtering
-Some enggines, like the current HTML SVG engine, will have events it cann't handle at all (how to represent ...) and many it can't handle as it is not powerful enough---this engine can only handle basic moves for a few danceers. So filter events for the most important/representable outlines.
+Some engines, like the current HTML SVG engine, will have events it cann't handle at all (how to represent ...) and many it can't handle as it is not powerful enough---this engine can only handle basic moves for a few danceers. So filter events for the most important/representable outlines.
 
 == Many-events-in-one-beat still needs to be represented
 
@@ -29,3 +29,16 @@ There should be annotation on instructions to warn of breakup or conglomeration,
 
 === Beat-based still needs annotation
 e.g. a clap can be a simple trigger, in any engine. A triplet toe tap may be animated in complex engines, but not in simple. Movement will nearly always be animated. 
+
+=== Time-based non-move instructions need to be inserted and marked
+These include
+
+tempo (and changes)
+beatRate (and changes)
+bars
+EOD (End Of Dance)
+
+and maybe extras like annotation marks?
+
+These should be marked with a Boolean so they can be quickly asessed then diverted to other code.
+

@@ -16,21 +16,24 @@ from reportlab.pdfgen.canvas import Canvas
 #A4 is default
 #from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import cm, mm, inch, pica
-
+import math
 
 ALL_DANCERS = -1
 
 D_ACTION = 0
-D_TARGET = 1
-D_ISMANYBEAT = 2
-D_PARAMS = 3
+D_ISMOVE = 1
+D_TARGET = 2
+D_ISMANYBEAT = 3
+D_PARAMS = 4
 
 NORTH = 0
 EAST = 1
 SOUTH = 2
 WEST = 3
 
-
+# bar lines do or do not need to be stated near signatures?
+# barlines are trailing. Not at start. Must be one at the end.
+# For internal time signatures, must still be a bar.
 dance = {
   'title': 'War Games',
   'performers': 'EastWest',
@@ -41,43 +44,57 @@ dance = {
   'dancerCount': 2,
   'start': 'hline',
   'moves': [
-  ['beatsInBar', 0, False, 4],
-  ['tempo', 0, False, 70],
-  ['kick', 0, False, WEST],
-  ['kick', 1, False, EAST],
-  ['clap', 0, False, WEST],
-  ['step', 1, False, EAST],
-  ['step', 1, False, EAST],
-  ['point', 0, False, EAST],
-  ['point', 1, False, WEST],
-  ['step', 1, False, WEST],
-  ['step', 0, False, EAST],
-  ['point', 0, False, SOUTH],
-  ['step', 0, False, SOUTH],
-  ['point', 1, False, EAST],
-  ['point', 0, False, NORTH],
-  ['step', 0, False, NORTH],
-  ['point', 0, False, SOUTH],
-  ['point', 1, False, WEST],
-  ['point', 1, False, EAST],
+  ['timeSignature', False, 0, False, 4],
+  ['tempo', False, 0, False, 70],
+  
+  ['kick', True, 0, False, WEST],
+  ['kick', True, 1, False, EAST],
+  ['clap', True, 0, False, WEST],
+  ['step', True, 1, False, EAST],
+  ['bar', 0, False, 70],
+
+  ['step', True, 1, False, EAST],
+  ['point', True, 0, False, EAST],
+  ['point', True, 1, False, WEST],
+  ['step', True, 1, False, WEST],
+  ['bar', False, 0, False, 70],
+
+  ['step', True, 0, False, EAST],
+  ['point', True, 0, False, SOUTH],
+  ['step', True, 0, False, SOUTH],
+  ['point', True, 1, False, EAST],
+  ['bar', False, 0, False, 70],
+
+  ['point', True, 0, False, NORTH],
+  ['step', True, 0, False, NORTH],
+  ['point', True, 0, False, SOUTH],
+  ['point', True, 1, False, WEST],
+  ['bar', False, 0, False, 70],
   ##
-  ['point', 0, False, WEST],
-  ['point', 1, False, EAST],
-  ['clap', 0, False, WEST],
-  ['step', 1, False, EAST],
-  ['step', 1, False, EAST],
-  ['point', 0, False, EAST],
-  ['point', 1, False, WEST],
-  ['step', 1, False, WEST],
-  ['step', 0, False, EAST],
-  ['point', 0, False, SOUTH],
-  ['step', 0, False, SOUTH],
-  ['point', 1, False, EAST],
-  ['point', 0, False, NORTH],
-  ['step', 0, False, NORTH],
-  ['point', 0, False, SOUTH],
-  ['point', 1, False, WEST],
-  ['point', 1, False, EAST],
+  ['point', True, 0, False, WEST],
+  ['point', True, 1, False, EAST],
+  ['clap', True, 0, False, WEST],
+  ['step', True, 1, False, EAST],
+  ['bar', False, 0, False, 70],
+
+  ['step', True, 1, False, EAST],
+  ['point', True, 0, False, EAST],
+  ['point', True, 1, False, WEST],
+  ['step', True, 1, False, WEST],
+  ['bar', False, 0, False, 70],
+
+  ['step', True, 0, False, EAST],
+  ['point', True, 0, False, SOUTH],
+  ['step', True, 0, False, SOUTH],
+  ['point', True, 1, False, EAST],
+  ['bar', False, 0, False, 70],
+
+  ['point', True, 0, False, NORTH],
+  ['step', True, 0, False, NORTH],
+  ['point', True, 0, False, SOUTH],
+  ['point', True, 1, False, WEST],
+  ['bar', False, True, 0, False, 70],
+
   ['EOD', ALL_DANCERS, False, None]
   ]
 }
@@ -110,7 +127,7 @@ topStock = pageHeight - topMargin
 bottomStock = bottomMargin
 
 # passed to renderMoveBlock
-stockContext = [topStock, rightStock, leftStock, bottomStock]
+stockContext = [topStock, rightStock, leftStock, bottomStock, topMargin]
 
 ###########################################################
 ## Coordinate functions ##
@@ -206,7 +223,7 @@ def titleCredits(performers, transcribedBy):
 # Also used to calculate a start indent on every line before constent.
 # There would see to be purpose in this (though this is a new art).
 # should only be a handful of points.
-barlineWidth = 4
+barlineWidth = 24
 moveLineContentIndent = barlineWidth >> 1
 
 # Many music scores adopt an indent. Not often applicable here, so will 
@@ -264,6 +281,7 @@ def movesblock():
 
 
 ## Utils ##
+#x deprecated, when we get times and tempo in the block class
 def moveLineYRaw(idx):
   # positioning for each line 
   global _titleHeightRaw
@@ -302,11 +320,14 @@ barPerLineAim = 4
 # fixed width for barmarks to occupy
 barmarkWidth = 24
 
-# internal
-# 'beatbar' should come by move instruction, but we have not enabled 
-# this yet, so rig in for now
-_beatsPerLineAim = barPerLineAim * dance['beatbar']
+# The minimum glue allowed before bars are spilled to the next line
+minMoveGlueWidth = 14
 
+# space down from the moveline to the move marks
+moveLineContentSkipDown = 8
+
+# internal
+#x?
 # keeps track of current value for rendering
 _beatsPerBar = dance['beatbar']
 
@@ -342,15 +363,19 @@ class MoveBlockRender():
    stockPositions = stockContext,
    barsInLineAim = barPerLineAim,
    lineTopSkip = movesLineTopSkip, 
-   topFirstPage = _titleHeightRaw,
+   firstPageTopSkip = _titleHeightRaw,
    lineContentIndent = moveLineContentIndent,
    barlineWidth = barlineWidth,
-   timeSignatureWidth = timeSignatureWidth
+   timeSignatureWidth = timeSignatureWidth,
+   minMoveGlueWidth = minMoveGlueWidth,
+   moveLineContentSkipDown = moveLineContentSkipDown
   ):
     
 
     # useful methods
     #def timeSignature(moveLineIdx, xRaw, count):
+    #! should be moved in here
+    #! tempo markngs should be moved in here 
     global timeSignature
 
 
@@ -362,18 +387,33 @@ class MoveBlockRender():
     self.rightStock = stockContext[1]
     self.leftStock = stockContext[2]
     self.bottomStock = stockContext[3]
+    self.topMargin = stockContext[4]
+    print('bottomStock: '+ str(self.bottomStock))
     
     
     self._barsInLineAim = barsInLineAim
+    print('_barsInLineAim: '+ str(self._barsInLineAim))
         
     # first page only, reset to topStock
     self._lineTopSkip = lineTopSkip    
-    self._blockTop = topFirstPage
+    print('lineTopSkip: '+ str(lineTopSkip))
+
+
+    # absolute
+    self._blockTop = self.topStock - firstPageTopSkip
+    
+    # Rotated environment inverts the y direction (for X positioning)
+    self._rotatedBlockLeft = self.topMargin + firstPageTopSkip
+    print('firstPageTopSkip: '+ str(firstPageTopSkip))
+
     self._barlineWidth = barlineWidth
     self._lineContentIndent = lineContentIndent
+    print('lineContentIndent: '+ str(lineContentIndent))
+
     self.timeSignatureWidth = timeSignatureWidth
-
-
+    self.minMoveGlueWidth = minMoveGlueWidth
+    self.moveLineContentSkipDown = moveLineContentSkipDown
+    
     # Internal
     
     #? This is plainly a stream queue. However, Python has no standard
@@ -387,13 +427,18 @@ class MoveBlockRender():
     # count lines per page
     self._pageLineI = 0
 
+    # count bars loaded
+    self._barI = 0
+    
     # cursor for x positions when rendering
     # absolute page positioned
     self.curseX = 0
 
 
   ## helpers
+  #! pass absY around in preference
   def y(self, idx):
+    #print('_blockTop: '+ str(self._blockTop))
     return self._blockTop - (self._lineTopSkip * idx)
   
   # Do not use for stock placements, takes account of
@@ -401,95 +446,84 @@ class MoveBlockRender():
   def x(self, XRaw):
     return self.leftStock + lineContentIndent + XRaw
     
-        
+
   ## renderers
-  def moveLineRender(self, idx):
-    print(idx)
-    self.c.line(self.leftStock, self.y(idx), self.rightStock, self.y(idx))
+  #! pass YAbs arround in preference
+  def moveLineRender(self, absY):
+    self.c.line(self.leftStock, absY, self.rightStock, absY)
   
   ## calculate
   def renderBeatCountChange(self, e):
     pass
     
-  def renderBarmark(self, yd):
-    self.c.line(self.curseX, y(yd), self.curseX, y(yd + 12))
-    pass
+  def renderBarmark(self, absX, absY):
+    #print('_blockTop: '+ str(self.curseX))
+    #print('_blockTop: '+ str(self._blockTop))
 
-  def renderMove(self, yd, m):
-    global x
-    global y
-    startVerticalTextEnvironment()
-    #text(self.curseX, y, m[D_ACTION])
-    #print(topStock)
-    #print(yd)
-    self.c.drawString(yd + topMargin + 8, self.curseX, m[D_ACTION])
-    endVerticalTextEnvironment()
-    
-    
-  def renderbar(self, y, glueWidth):
-    global _beatsPerBar
-    
-    # peek the first element
-    first = self._moveStore[0]
-    firstIns = first[D_ACTION]
+    #self.c.line(self.curseX, absY, self.curseX, absY - 12)
+    self.c.line(absX, absY, absX, absY - 12)
 
-    if (firstIns == 'beatsPerbar'):
-      e = self._moveStore.pop()
-      self.renderBeatCountChange(e)
-      _beatsPerBar = e[D_PARAMS]
-      self.curseX += self.timeSignatureWidth
-    else:
-      #self.renderbarMark()
-      self.renderBarmark(y)
-      self.curseX += barmarkWidth
-
-    i = 0      
-    while(i < _beatsPerBar):
-      e = self._moveStore.pop()
-      #print(e)
-      #ins = e[D_ACTION]
-      #! for now, until we get other marks in there
-      self.renderMove(y, e)
-      self.curseX += glueWidth
-      i += 1        
-      
-      
     
   def renderLineContents(self,
-      x,
-      y,
-      width,
-      numberOfBarsToRender,
-      numberOfInstructionsToRender
+      absX,
+      absY,
+      glueWidth,
+      numberOfBarsToRender
     ):
-    global barmarkWidth
-    #renderBarticks(self._pageLineI)
+    print('absX: '+ str(absX))
+    print('absY: '+ str(absY))
+    print('glueWidth: '+ str(glueWidth))
+    print('numberOfBarsToRender: '+ str(numberOfBarsToRender))
+
+    # accumulate X progress. Start at absX.
+    curseX = absX
     
-    # ok, bar marks are fixed with space
-    #! need to add tempo marks here too.
-    #! bars will be replacable by tempo marks, not direct calculated
-    #? includes two half barwidth for each end 
-    fixedWidthTotal = numberOfBarsToRender * barmarkWidth
-    gluedWidthCount = 0
-    l = numberOfInstructionsToRender
+    # We'll stash movemarks to do all at once?
+    moveStash = []
+
+
+    #! render start barmark
+    self.renderBarmark(absX, absY)
+    curseX += self._barlineWidth
+     
+    print('store size: ' + str(len(self._moveStore)))
+   
+    ii = 0
+    while (ii < numberOfBarsToRender):
+      #print('ii ' + str(ii))
+      event = self._moveStore.pop(0)
+      if (event[D_ISMOVE]):
+        moveStash.append([curseX, event])
+        curseX += glueWidth
+        #print('curseX' + str(curseX))
+      else:
+        if (event[D_ACTION] == 'bar'):
+          self.renderBarmark(curseX , absY)
+          #print('rend bar' + str(ii))
+          curseX += self._barlineWidth
+          ii = ii + 1
+        else:
+          #self.renderSignature(event, curseX , absY)
+          # now a signature
+          curseX += self.timeSignatureWidth
+
+    # now get back to those marks
     i = 0
-    while(i < l):
-      #      print(e
-      #! for now, until we get other marks in there
-      gluedWidthCount += 1
-      i += 1
-      
-    # key value now found
-    glueWidth = (width - fixedWidthTotal)/gluedWidthCount
+    l = len(moveStash)
     
-    i = numberOfBarsToRender
-    self.curseX = x
-    while(i > 0):
-      self.renderbar(y, glueWidth)
-      i -= 1
-      
-    # render closing barmark
-    self.renderBarmark(y)
+    startVerticalTextEnvironment()
+    # absY will not work in the rotated envirionment, I measures in
+    # reportlab style fro the bottom, rotated 3/4, it must work from
+    # the page top.
+    rAbsX = self._rotatedBlockLeft + (self._lineTopSkip * self._pageLineI) + self.moveLineContentSkipDown
+    print('rAbsX :' + str(rAbsX))
+    print('self._pageLineI :' + str(self._pageLineI))
+
+    while (i < l):
+      e = moveStash[i]
+      self.c.drawString(rAbsX, e[0], e[1][D_ACTION])
+      i += 1
+    endVerticalTextEnvironment()
       
   def finaliseMovesBlock(self):
     # need to fix last line with remaining moves
@@ -505,65 +539,105 @@ class MoveBlockRender():
     self._pageLineI = 0
     # not first page top, as initialised, but top of stock
     self._blockTop = self.topStock
+    self._rotatedBlockLeft = self.topMargin
 
     self.c.showPage()
 
+
   def createMoveLine(self):
-    global moveLineYRaw
-    global bottomStock
-    global dance
-    global _beatsPerLineAim
+    print('mLine: '+ str(self._pageLineI))    
+    #print('store size: ' + str(len(self._moveStore)))
     
-    # Test we did not reach stock bottom (new page)
-    lineYRaw = moveLineYRaw(self._pageLineI)
-    if (lineYRaw < bottomStock):
+    # get the absY position of the line
+    # to be used throughout rendering
+    absY = self.y(self._pageLineI)
+    #print('absY: '+ str(absY))
+
+    # Test we did not reach stock bottom.
+    # if we did, before rendering, trigger new page
+    if (absY < self.bottomStock):
       self.newPage()
       
-    # render the line
-    self.moveLineRender(self._pageLineI)
-    
-    # now work out widths overall
-    #???
+    # render the line itself
+    self.moveLineRender(absY)
 
-          
-    # make a decision, how many bars?
-    #? tmp for now. later, run through and pre-calculate widths. 
-    #? the feed beats one-by-one. Later.
-    # key value, now have it
-    decidedBarCount = self._barsInLineAim
+    # Now render contents   
     
-    # add remove bars as necessary
-    #???
+    # simple heuristic, 
+    # - work out fixed widths
+    # - work out line fixed space
+    # - calculate glue width
+    # - if too narrow, drop a bar
+    # work out widths overall
+    #! remove to seperate method, check for multiple bar drops, etc.
+       
+    #1
+    # Currently assumes _moveStore contains _barsInLineAim 
+    i = 0
+    l = len(self._moveStore)
+    barcount = 0
+    fixedSize = 0
+    gluedEventCount = 0
+    while(i < l):
+      if (not self._moveStore[i][D_ISMOVE]):
+        action = self._moveStore[i][D_ACTION]
+        if (action == 'bar'):
+          fixedSize += self._barlineWidth
+          barcount += 1
+        #if (action == 'tempo'):
+        #  fixedSize += 
+        if (action == 'timeSignature'):
+          fixedSize += self.timeSignatureWidth
+      else:
+        gluedEventCount += 1
+      i += 1
+
+    #2
+    absX = x(0)
+    lineWidth = self.rightStock - absX 
+    
+    #3
+    glueWidth = (lineWidth - fixedSize)/gluedEventCount
+    
+    #4
+    decidedBarCount = self._barsInLineAim
+    if (glueWidth < self.minMoveGlueWidth):
+      #! if you do this, the glue width needs revising.
+      decidedBarCount -= 1
+
+    
+    #print('fixedSize: '+ str(fixedSize))
+    #print('glueWidth:' + str(glueWidth))
+    #print('decidedBarCount:' + str(decidedBarCount))
+    
+      
+    decidedBarCount = self._barsInLineAim
+
     
     self.renderLineContents(
-      leftStock, 
-      lineYRaw, 
-      rightStock - leftStock,  
-      decidedBarCount,
-      decidedBarCount * dance['beatbar']
+      absX,
+      absY, 
+      glueWidth,  
+      decidedBarCount
     )
     
+    self._barI -= decidedBarCount
     
     self._blockLineI += 1 
     self._pageLineI += 1
-    # remove used moves
-    #_moveStore = 
+    
       
-  def addMove(self, m):
-    global _beatsPerLineAim
-    #print('ho' + m[D_ACTION])
-    if (m[D_ACTION] != 'EOD'):
-      self._moveStore.append(m)
-      
-      # pick a point for assessment, usually 5 bars. We aim at
-      # four bars a line
-      #! what about sheet width, etc.?
-      #print('ho' +str(_beatsPerLineAim))
-      if(len(self._moveStore) > _beatsPerLineAim):
-        # Should have enough to make a line
-        self.createMoveLine()
-    else:
-      self.finaliseMovesBlock()
+  def addInstruction(self, m):
+    self._moveStore.append(m)
+    if (not m[D_ISMOVE]):
+      nonMoveEvent = m[D_ACTION]
+      if (nonMoveEvent == 'EOD'):
+        self.finaliseMovesBlock()
+      elif (nonMoveEvent == 'bar'):
+        self._barI = self._barI + 1
+        if(self._barI >= self._barsInLineAim):
+          self.createMoveLine()
+
       
     
 #########################################################
@@ -577,21 +651,21 @@ musicalDirections(dance['tempo'])
 
 movesblock()
 
-print(str(_titleHeightRaw))
 
 
 ## body ##
 moveLineOpeningTimeSignature(dance['beatbar'])
 
+print('_titleHeightRaw: ' + str(_titleHeightRaw))
 
-mbr = MoveBlockRender(c)
+mbr = MoveBlockRender(c, firstPageTopSkip = _titleHeightRaw)
   
 i = 0
 m = dance['moves']
 l = len(m)
 while(i < l):
   #text(i, 1, m[i][0])
-  mbr.addMove(m[i])
+  mbr.addInstruction(m[i])
   i += 1
 
 
