@@ -31,19 +31,11 @@
 //! - doesn't stop when hidden on my Firefox?
 //! - will sync with GPU, though
 //! - look at greensock? Or just do it?
-//! - will have to reqrite for current time...
-//! SIML, XML presentation of multimedia. Nopt interesting.
+//! - will have to rewrite for current time...
+//! SIML, XML presentation of multimedia. Not interesting.
 /*
  * 
-var nextTime=0;
-var delay=1000;
 
-function gameLoop(currentTime){
-    if(currentTime<nextTime){requestAnimationFrame(gameLoop); return;}
-    nextTime=currentTime+delay;
-    // do stuff every 1000ms
-    requestAnimationFrame(looper);
-}
  */
 // SVG drivers //
 
