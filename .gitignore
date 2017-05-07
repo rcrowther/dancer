@@ -26,5 +26,6 @@ en-lanc_1-bi.parDix
 # ignore all files ending with jar
 *.jar
 
-
+# ignore pycache
+*__pycache__
 

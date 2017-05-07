@@ -18,335 +18,12 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.units import cm, mm, inch, pica
 import math
 
-ALL_DANCERS = -1
 
 D_ACTION = 0
 D_ISMOVE = 1
 D_TARGET = 2
 D_ISMANYBEAT = 3
 D_PARAMS = 4
-
-NORTH = 0
-EAST = 1
-SOUTH = 2
-WEST = 3
-
-# bar lines do or do not need to be stated near signatures?
-# barlines are trailing. Not at start. Must be one at the end.
-# For internal time signatures, must still be a bar.
-# tempo must come before time mark
-# repeats should not be expanded if notation is intended
-dance = {
-  'title': 'War Games',
-  'performers': 'EastWest',
-  'description': "Originating in Bacup, the Coconutters have been described as the Most original dance in England. Nobody else would dare.",
-  'transcribed': 'Robert Crowther',
-  'tempo': 60,
-  'beatbar' : 4,
-  'dancerCount': 2,
-  'start': 'hline',
-  'moves': [
-  ['tempoMark', False, 0, False, 70],
-  ['timeMark', False, 0, False, 4],
-  
-  ['kick', True, 0, False, WEST],
-  ['kick', True, 1, False, EAST],
-  ['clap', True, 0, False, WEST],
-  ['step', True, 1, False, EAST],
-  ['bar', 0, False, 70],
-
-  ['step', True, 1, False, EAST],
-  ['point', True, 0, False, EAST],
-  ['point', True, 1, False, WEST],
-  ['step', True, 1, False, WEST],
-  ['repeatOpenBar', False, 0, False, 70],
-
-  ['step', True, 0, False, EAST],
-  ['point', True, 0, False, SOUTH],
-  ['step', True, 0, False, SOUTH],
-  ['point', True, 1, False, EAST],
-  ['repeatCloseBar', False, 0, False, 70],
-
-  ['point', True, 0, False, NORTH],
-  ['step', True, 0, False, NORTH],
-  ['point', True, 0, False, SOUTH],
-  ['point', True, 1, False, WEST],
-  ['bar', False, 0, False, 70],
-  ##
-  ['point', True, 0, False, WEST],
-  ['point', True, 1, False, EAST],
-  ['clap', True, 0, False, WEST],
-  ['step', True, 1, False, EAST],
-  ['bar', False, 0, False, 70],
-
-  ['step', True, 1, False, EAST],
-  ['point', True, 0, False, EAST],
-  ['point', True, 1, False, WEST],
-  ['step', True, 1, False, WEST],
-  ['bar', False, 0, False, 70],
-
-  ['step', True, 0, False, EAST],
-  ['point', True, 0, False, SOUTH],
-  ['step', True, 0, False, SOUTH],
-  ['point', True, 1, False, EAST],
-  ['bar', False, 0, False, 70],
-
-  ['point', True, 0, False, NORTH],
-  ['step', True, 0, False, NORTH],
-  ['point', True, 0, False, SOUTH],
-  ['point', True, 1, False, WEST],
-  
-  ['closeBar', False, 0, False, 70],
-  ['EOD', False, ALL_DANCERS, False, None]
-  ]
-}
-
-#################################################################
-def info(msg):
-   print('[info] ' + msg)
-  
-def warning(msg):
-   print('[warning] '+ msg)
-   
-##################################################################
-# *Abs. means a coordinate position according to reportlab. These are 
-# full-page, centred bottom left.
-# *Raw means a coordinate position on stock. This includes
-# margins (so the stock).
-# *Raw is centred top left stock, even though reportlab works from 
-# bottom left.
-# *Raw can be converted to reportlab coordinates using the functions
-# rawToAbsX() and rawToAbsY()
-#
-
-## Page setup ##
-c = Canvas("test.pdf", pagesize=A4)
-
-## Stock ##
-#! should we map onto this? 
-# (bottom left corner) x, y, width, height 
-#x = mm * 20
-#y = mm * 40
-
-_pageHeight = A4[1]
-_pageWidth = A4[0]
-# Not raw! From page edge
-_centerPage = _pageWidth / 2
-
-leftMargin =  mm * 20
-rightMargin =  mm * 20
-topMargin =  mm * 20
-bottomMargin =  mm * 40
-
-
-rightStockAbs = _pageWidth - rightMargin
-leftStockAbs = leftMargin
-topStockAbs = _pageHeight - topMargin
-bottomStockAbs = bottomMargin
-
-# passed to renderMoveBlock
-stockContext = [topStockAbs, rightStockAbs, leftStockAbs, bottomStockAbs, topMargin]
-
-###########################################################
-## Coordinate functions ##
-# rawToAbsX() and rawToAbsY() convert *Raw positions to *Abs
-#
-
-#? unused 
-def rawToAbsX(x):
-  return leftMargin + x
-
-def rawToAbsY(y):
-  return topStockAbs - y
- 
- 
-###########################################################
-## Page ##
-# Internal
-# tracks the start height of the moves block
-# allowing space for main or section titles 
-_titleHeightRaw = 0
-# currently 114, should be 95
-
-
-
-## Title ##
-# carries space if necessary (when sections start)
-titleFontFamily = "Times-Roman"
-titleFontSize = 24
-titleTopSkip = 8
-
-
-def title(title):
-  global _titleHeightRaw
-  c.setFont(titleFontFamily, titleFontSize)
-  c.drawCentredString(_centerPage, rawToAbsY(titleTopSkip), title)
-  _titleHeightRaw = titleTopSkip + titleFontSize
-
-
-
-## Sections ##
-sectionFontFamily = "Times-Roman"
-sectionFontSize = 24
-sectionTopSkip = 8
-
-#! TODO  
-def section(title):
-  # initialize
-  self.c.showPage()
-  _titleHeightRaw = 0
-  
-  # render
-  c.setFont(sectionFontFamily, sectionFontSize)
-  c.drawCentredString(_centerPage, rawToAbsY(sectionTopSkip), title)
-  _titleHeightRaw = sectionTopSkip + sectionFontSize
-  
-
-
-## Credits ##
-# If used, credits are aligned under the title. However, they do not
-# contribute to the overall space above the 
-# musicalDirections. This is to give maximum flexibility in overriding 
-# (for example, they could be in a column to the right of musical 
-# directions). To make space for them, increase musicalDirectionsTopSkip.
-creditsFontFamily = "Times-Roman"
-creditsFontSize = 14
-# above first credit
-creditsTopSkip = 0
-# above each credit
-creditLineTopSkip = 4
-
-def titleCredits(performers, transcribedBy):
-  global _titleHeightRaw
-  c.setFont(creditsFontFamily, creditsFontSize)
-  #48
-  c.drawRightString(rightStockAbs, rawToAbsY(_titleHeightRaw + creditsTopSkip), performers)
-  _titleHeightRaw += creditsTopSkip + creditsFontSize
-  #68
-  c.drawRightString(rightStockAbs, rawToAbsY(_titleHeightRaw + creditLineTopSkip), "Trns: " + transcribedBy)
-
-
-  
-## Move block essentials ##
-# Declared early because musical directions need to be aligned with the
-# opening time signature.
-
-# Fixed allocation for indenting the content at start of lines.
-# Used to push the initial data, like time signature, from the start 
-# barline. For music scores, there would be a lot of data, like stave 
-# marks and key signatures. Not here. Should only be a handful of points.
-barlineGlue = 0.5
-moveLineContentIndent = 4
-#moveLineContentIndent = 0
-
-# Many music scores adopt an indent. Not often applicable here, so will 
-# usually be zero. If you have any material starting a move line, use it.
-# This variable can not be calculated (font width of time signature, 
-# and other material).
-# NOT IMPLEMENTED
-#moveblockFirstLineIndent = 0
-
-# The last line in any block may not have the right number of bars.
-# The simplistic solution here, if the line is within this number of
-# bars then it will stretched to full width, otherwise the line is
-# rendered as stopping short. To always stretch, make this a relativly
-# large number e.g. 12. 0 will never stretch.
-lastMovelineGlueMax = 2
-
-
-
-## MusicalDirections ##
-musicalDirectionFontFamily = "Times-Bold"
-musicalDirectionFontSize = 14
-musicalDirectionBottomSkip = 12
-
-_musicalDirectionContext = [musicalDirectionFontFamily, musicalDirectionFontSize, musicalDirectionBottomSkip]
-
-
-
-
-#######################################################################
-## The move block ##
-# The move block is almost all automatic layout. This has it's 
-# diadvantages, but we will see....
-
-# Space above the block.
-# Used to add space for the top line of tewmpo marks, clearing the
-# freely placed credits.
-movesBlockTopSkip = 24
-
-# gap between lines. Don't make too small.
-movesLineTopSkip = 96
-
-
-# Opens a movesblock
-def movesblock():
-  global _titleHeightRaw
-  _titleHeightRaw += movesBlockTopSkip 
-
-
-## Utils ##
-#x deprecated, when we get times and tempo in the block class
-def moveLineYRaw(idx):
-  # positioning for each line 
-  global _titleHeightRaw
-  return _titleHeightRaw + (movesLineTopSkip * idx)
-
-
-
-  
-  
-## Time signature ##
-timeMarkFontFamily = "Times-Roman"
-timeMarkFontSize = 16
-
-# Reserve space for time signatures.
-# For marks at line starts and inline.
-# This variable can not be calculated (possible width of oversize font).
-# If the time signature font size is changed, alter by hand.
-# Should be, say, 3/2 of the width of the fonts as written as glyphs.
-timeMarkWidth = 24
-
-# How far down from the line to drop a time signature
-timeMarkSkipDown = 24
-
-_timeMarkContext = [timeMarkFontFamily, timeMarkFontSize, timeMarkWidth, timeMarkSkipDown]
-
-
-
-
-## moveLines ##
-
-# Express an interest in how many bars to a line
-# In many circumstances, will not be honoured. But used for open
-# bar rendering, so will stretch bars to fit the page width.
-#! what about sheet width, etc.?
-barPerLineAim = 5
-
-# fixed width for barmarks to occupy
-barmarkWidth = 24
-
-# The minimum glue allowed before bars are spilled to the next line
-minMoveGlueWidth = 14
-
-moveLineContentFontFamily = "Times-Roman"
-moveLineContentFontSize = 12
-
-# space down from the moveline to the move marks
-moveLineContentSkipDown = 8
-
-
-## utils ##
-
-def startVerticalTextEnvironment():
-  c.setFont(moveLineContentFontFamily, moveLineContentFontSize)
-  c.saveState()
-  # scale then translate
-  c.rotate(270)
-  c.translate(-_pageHeight, 0)
-
-def endVerticalTextEnvironment():
-  c.restoreState()
 
 
 
@@ -358,38 +35,37 @@ def endVerticalTextEnvironment():
 class MoveBlockRender():
   def __init__(self,
    c,
-   stockPositions = stockContext,
-   barsInLineAim = barPerLineAim,
-   lineTopSkip = movesLineTopSkip, 
-   firstPageTopSkip = _titleHeightRaw,
-   #moveblockFirstLineIndent = moveblockFirstLineIndent,
-   lineContentIndent = moveLineContentIndent,
-   barlineGlue = barlineGlue,
-   timeMarkWidth = timeMarkWidth,
-   minMoveGlueWidth = minMoveGlueWidth,
-   lastMovelineGlueMax = lastMovelineGlueMax,
-   moveLineContentSkipDown = moveLineContentSkipDown,
-   musicalDirectionContext = _musicalDirectionContext,
-   timeMarkContext = _timeMarkContext
+   reporter,
+   stockContext,
+   barsInLineAim,
+   lineTopSkip, 
+   firstPageTopSkip,
+   #moveblockFirstLineIndent,
+   lineContentIndent,
+   barlineGlue,
+   timeMarkWidth,
+   minMoveGlueWidth,
+   lastMovelineGlueMax,
+   musicalDirectionContext,
+   timeMarkContext,
+   moveLineContentContext
   ):
     
 
     # useful methods
-    #def timeMark(moveLineIdx, xRaw, count):
-    #! should be moved in here
-    #! tempo markngs should be moved in here 
-
-
 
     # outside properties    
     self.c = c
-            
+    self.reporter = reporter
+    
     # stockContext = [topStockAbs, rightStockAbs, leftStockAbs, bottomStockAbs]
-    self.topStockAbs = stockContext[0]
-    self.rightStockAbs = stockContext[1]
-    self.leftStockAbs = stockContext[2]
-    self.bottomStockAbs = stockContext[3]
-    self.topMargin = stockContext[4]
+    self.pageHeight = stockContext[0]
+    self.pageWidth = stockContext[1]
+    self.topStockAbs = stockContext[2]
+    self.rightStockAbs = stockContext[3]
+    self.leftStockAbs = stockContext[4]
+    self.bottomStockAbs = stockContext[5]
+    self.topMargin = stockContext[6]
     print('bottomStockAbs: '+ str(self.bottomStockAbs))
     
     
@@ -413,21 +89,24 @@ class MoveBlockRender():
 
     self._barlineGlue = barlineGlue
     self.lineContentIndent = lineContentIndent
+    print('lineContentIndent: '+ str(lineContentIndent))
 
     self.minMoveGlueWidth = minMoveGlueWidth
-    self.moveLineContentSkipDown = moveLineContentSkipDown
     self.lastMovelineGlueMax = lastMovelineGlueMax
 
     self.musicalDirectionFontFamily = musicalDirectionContext[0]
     self.musicalDirectionFontSize = musicalDirectionContext[1]
     self.musicalDirectionBottomSkip = musicalDirectionContext[2]
-    print('musicalDirectionFontSize: '+ str(self.musicalDirectionFontSize))
+    #print('musicalDirectionFontSize: '+ str(self.musicalDirectionFontSize))
 
     self.timeMarkFontFamily = timeMarkContext[0]
     self.timeMarkFontSize = timeMarkContext[1]
     self.timeMarkWidth = timeMarkContext[2]
     self.timeMarkSkipDown = timeMarkContext[3]
 
+    self.moveLineContentFontFamily = moveLineContentContext[0]
+    self.moveLineContentFontSize = moveLineContentContext[1]
+    self.moveLineContentSkipDown = moveLineContentContext[2]
     
     # Internal
     
@@ -461,6 +140,17 @@ class MoveBlockRender():
   def rawToAbsX(self, XRaw):
     return self.leftStockAbs + self.lineContentIndent + XRaw
     
+  ## utils ##
+  
+  def startVerticalTextEnvironment(self):
+    self.c.setFont(self.moveLineContentFontFamily, self.moveLineContentFontSize)
+    self.c.saveState()
+    # scale then translate
+    self.c.rotate(270)
+    self.c.translate(-self.pageHeight, 0)
+  
+  def endVerticalTextEnvironment(self):
+    self.c.restoreState()
 
 
   ## renderers
@@ -473,8 +163,8 @@ class MoveBlockRender():
     '''
     such as tempo.
     '''
-    c.setFont(self.musicalDirectionFontFamily, self.musicalDirectionFontSize)
-    c.drawString(absX, absY + self.musicalDirectionBottomSkip, 'tempo = ' + str(tempo))
+    self.c.setFont(self.musicalDirectionFontFamily, self.musicalDirectionFontSize)
+    self.c.drawString(absX, absY + self.musicalDirectionBottomSkip, 'tempo = ' + str(tempo))
 
 
   def renderTimeMark(self, absX, absY, event):
@@ -587,7 +277,7 @@ class MoveBlockRender():
     i = 0
     l = len(moveStash)
     
-    startVerticalTextEnvironment()
+    self.startVerticalTextEnvironment()
     # absY will not work in the rotated environment, It measures in
     # reportlab style from the bottom, rotated 3/4, so must work from
     # the page top.
@@ -598,7 +288,7 @@ class MoveBlockRender():
       e = moveStash[i]
       self.c.drawString(rAbsX, e[0], e[1][D_ACTION])
       i += 1
-    endVerticalTextEnvironment()
+    self.endVerticalTextEnvironment()
 
   #! this assumes full length of movestore?
   #! should count bars
@@ -680,11 +370,11 @@ class MoveBlockRender():
     
     decidedBarCount = self._barsInLineAim
     if (barcount < self._barsInLineAim):
-      info('bar count at end at end of block is short: requested:{0} : num of bars:{1}'.format(self._barsInLineAim, barcount))
+      self.reporter.info('bar count at end at end of block is short: requested:{0} : num of bars:{1}'.format(self._barsInLineAim, barcount))
 
 
     if (barcount < self._barsInLineAim - self.lastMovelineGlueMax):
-      warning('Stubbing the last line (to change this, change lastMovelineGlueMax)')
+      self.reporter.warning('Stubbing the last line (to change this, change lastMovelineGlueMax)')
       #To work this out we,
       # - restrict ourselves to a width ratio of bars found to intended 
       # - calculateGlue
@@ -695,7 +385,7 @@ class MoveBlockRender():
       # render the line itself
       self.moveLineRender(self.leftStockAbs + newWidth, absY)
     else:
-      info('Expanding the last line')
+      self.reporter.info('Expanding the last line')
       glueWidth = self.calculateGlue(barcount, lineWidth)
       # render the line itself
       self.moveLineRender(self.rightStockAbs, absY)
@@ -786,40 +476,294 @@ class MoveBlockRender():
         if(self._barI >= self._barsInLineAim):
           self.createMoveLine()
 
-      
+
+######################################################################
+class Reporter():
+  def info(self, msg):
+     print('[info] ' + msg)
     
-#########################################################
-## Demo ##
-
-## Titles ##
-
-title(dance['title'])
-titleCredits(dance['performers'], dance['transcribed'])
-
-
-movesblock()
+  def warning(self, msg):
+     print('[warning] '+ msg)
 
 
 
-## body ##
 
-mbr = MoveBlockRender(c, firstPageTopSkip = _titleHeightRaw)
+
+
+
+
+
+################################################
+class DancerPDF():
+
+  def __init__(self):
+    self.reporter = Reporter()
+
+    ##################################################################
+    # *Abs. means a coordinate position according to reportlab. These are 
+    # full-page, centred bottom left.
+    # *Raw means a coordinate position on stock. This includes
+    # margins (so the stock).
+    # *Raw is centred top left stock, even though reportlab works from 
+    # bottom left.
+    # *Raw can be converted to reportlab coordinates using the functions
+    # rawToAbsX() and rawToAbsY()
+    #
   
-i = 0
-m = dance['moves']
-l = len(m)
-while(i < l):
-  mbr.addInstruction(m[i])
-  i += 1
+    ## Page size ##
+    self.pageStock = A4
+    
+      
+    ## reportlab canvas ##
+    #! as instance?
+    self.c = Canvas("test.pdf", pagesize=self.pageStock)
+    
+    
+    ## Stock ##
+    #! no, 'typeblock'
+    
+    self._pageHeight = self.pageStock[1]
+    self._pageWidth = self.pageStock[0]
+    self._centerPage = self._pageWidth / 2
+    
+    self.leftMargin =  mm * 20
+    self.rightMargin =  mm * 20
+    self.topMargin =  mm * 20
+    self.bottomMargin =  mm * 40
+    
+    
+    self.rightStockAbs = self._pageWidth - self.rightMargin
+    self.leftStockAbs = self.leftMargin
+    self.topStockAbs = self._pageHeight - self.topMargin
+    self.bottomStockAbs = self.bottomMargin
+    
+    # passed to renderMoveBlock
+    self.stockContext = [self._pageHeight, self._pageWidth, self.topStockAbs, self.rightStockAbs, self.leftStockAbs, self.bottomStockAbs, self.topMargin]
+   
+     
+    ###########################################################
+    ## Page ##
+  
+    
+    
+    
+    ## Title ##
+    # carries space if necessary (when sections start)
+    self.titleFontFamily = "Times-Roman"
+    self.titleFontSize = 24
+    self.titleTopSkip = 8
+    
+         
+    # Internal
+    # tracks the start height of the moves block
+    # allowing space for main or section titles 
+    self._titleHeightRaw = 0
+    # currently 114, should be 95
+        
+  
+    ## Sections ##
+    self.sectionFontFamily = "Times-Roman"
+    self.sectionFontSize = 24
+    self.sectionTopSkip = 8
+      
 
+    
+    
+    ## Credits ##
+    # If used, credits are aligned under the title. However, they do not
+    # contribute to the overall space above the 
+    # musicalDirections. This is to give maximum flexibility in overriding 
+    # (for example, they could be in a column to the right of musical 
+    # directions). To make space for them, increase musicalDirectionsTopSkip.
+    self.creditsFontFamily = "Times-Roman"
+    self.creditsFontSize = 14
+    # above first credit
+    self.creditsTopSkip = 0
+    # above each credit
+    self.creditLineTopSkip = 4
+      
+    ## Move block essentials ##
+    # Declared early because musical directions need to be aligned with the
+    # opening time signature.
+    
+    # Fixed allocation for indenting the content at start of lines.
+    # Used to push the initial data, like time signature, from the start 
+    # barline. 
+    # Should only be a handful of points.
+    #! while this is necessary and good, more is needed. A pre-music 
+    # indent to go after time signatures and before lines without time 
+    # marks would be helpful.
+    self.moveLineContentIndent = 4
+    #moveLineContentIndent = 0
+    
+    # Many music scores adopt an indent. Not often applicable here, so will 
+    # usually be zero. If you have any material starting a move line, use it.
+    # This variable can not be calculated (font width of time signature, 
+    # and other material).
+    # NOT IMPLEMENTED
+    #moveblockFirstLineIndent = 0
+    
+    # Amount of glue for a barline (apears after the barline), by our
+    # current calculation. Works best round 0.5.
+    self.barlineGlue = 0.5
+      
+    # The last line in any block may not have the right number of bars.
+    # The simplistic solution here, if the line is within this number of
+    # bars then it will stretched to full width, otherwise the line is
+    # rendered as stopping short. To always stretch, make this a relativly
+    # large number e.g. 12. 0 will never stretch.
+    self.lastMovelineGlueMax = 2
+    
+    
+    
+    ## MusicalDirections ##
+    self.musicalDirectionFontFamily = "Times-Bold"
+    self.musicalDirectionFontSize = 14
+    self.musicalDirectionBottomSkip = 12
+    
+    self._musicalDirectionContext = [self.musicalDirectionFontFamily, self.musicalDirectionFontSize, self.musicalDirectionBottomSkip]
+    
+    #######################################################################
+    ## The move block ##
+    # The move block is almost all automatic layout. This has it's 
+    # diadvantages, but we will see....
+    
+    # Space above the block.
+    # Used to add space for the top line of tewmpo marks, clearing the
+    # freely placed credits.
+    self.movesBlockTopSkip = 24
+    
+    # gap between lines. Don't make too small.
+    self.movesLineTopSkip = 96
+    
+      
+    ## Time signature ##
+    self.timeMarkFontFamily = "Times-Roman"
+    self.timeMarkFontSize = 16
+    
+    # Reserve space for time signatures.
+    # For marks at line starts and inline.
+    # This variable can not be calculated (possible width of oversize font).
+    # If the time signature font size is changed, alter by hand.
+    # Should be, say, 3/2 of the width of the fonts as written as glyphs.
+    self.timeMarkWidth = 24
+    
+    # How far down from the line to drop a time signature
+    self.timeMarkSkipDown = 24
+    
+    self._timeMarkContext = [self.timeMarkFontFamily, self.timeMarkFontSize, self.timeMarkWidth, self.timeMarkSkipDown]
+    
+    
+    
+    
+    ## moveLines ##
+    
+    # Express an interest in how many bars to a line
+    # In many circumstances, will not be honoured. But used for open
+    # bar rendering, so will stretch bars to fit the page width.
+    #! what about sheet width, etc.?
+    self.barPerLineAim = 5
+    
+    # fixed width for barmarks to occupy
+    self.barmarkWidth = 24
+    
+    # The minimum glue allowed before bars are spilled to the next line
+    self.minMoveGlueWidth = 14
+    
+    self.moveLineContentFontFamily = "Times-Roman"
+    self.moveLineContentFontSize = 12
+    
+    # space down from the moveline to the move marks
+    self.moveLineContentSkipDown = 8
+    
+    self.moveLineContentContext = [self.moveLineContentFontFamily, self.moveLineContentFontSize, self.moveLineContentSkipDown]
+  
+    
+              
+  def addInstruction(self, m):
+    self.mbr.addInstruction(m)
 
-#path = c.beginPath()
-#path.moveTo(inch * 4, inch * 4)
-#path.lineTo(inch * 3, inch * 4)
-#path.lineTo(inch * 3.5, inch * 5)
-#path.lineTo(inch * 4, inch * 4)
+  def save(self):
+    self.c.save()
+    
+  #################################################################
 
-# stroke/fill
-#c.drawPath(path, True, True)
+     
 
-c.save()
+  ###########################################################
+  ## Coordinate functions ##
+  # rawToAbsX() and rawToAbsY() convert *Raw positions to *Abs
+  #
+  
+  #? unused 
+  def rawToAbsX(self, x):
+    return self.leftMargin + x
+  
+  def rawToAbsY(self, y):
+    return self.topStockAbs - y
+   
+   
+  def title(self, title):
+    self.c.setFont(self.titleFontFamily, self.titleFontSize)
+    self.c.drawCentredString(self._centerPage, self.rawToAbsY(self.titleTopSkip), title)
+    self._titleHeightRaw = self.titleTopSkip + self.titleFontSize
+  
+  
+  
+  #! TODO  
+  def section(self, title):
+    # initialize
+    self.c.showPage()
+    self._titleHeightRaw = 0
+    
+    # render
+    self.c.setFont(self.sectionFontFamily, self.sectionFontSize)
+    self.c.drawCentredString(self._centerPage, self.rawToAbsY(self.sectionTopSkip), title)
+    self._titleHeightRaw = self.sectionTopSkip + self.sectionFontSize
+    
+
+  def titleCredits(self, performers, transcribedBy):
+    self.c.setFont(self.creditsFontFamily, self.creditsFontSize)
+    #48
+    self.c.drawRightString(self.rightStockAbs, self.rawToAbsY(self._titleHeightRaw + self.creditsTopSkip), performers)
+    self._titleHeightRaw += self.creditsTopSkip + self.creditsFontSize
+    #68
+    self.c.drawRightString(self.rightStockAbs, self.rawToAbsY(self._titleHeightRaw + self.creditLineTopSkip), "Trns: " + transcribedBy)
+  
+  
+
+  
+  
+
+  
+  # Opens a movesblock
+  def movesblock(self):
+    self._titleHeightRaw += self.movesBlockTopSkip 
+    return MoveBlockRender(
+     self.c,
+     self.reporter,
+     stockContext = self.stockContext,
+     barsInLineAim = self.barPerLineAim,
+     lineTopSkip = self.movesLineTopSkip, 
+     firstPageTopSkip = self._titleHeightRaw,
+     #moveblockFirstLineIndent = moveblockFirstLineIndent,
+     lineContentIndent = self.moveLineContentIndent,
+     barlineGlue = self.barlineGlue,
+     timeMarkWidth = self.timeMarkWidth,
+     minMoveGlueWidth = self.minMoveGlueWidth,
+     lastMovelineGlueMax = self.lastMovelineGlueMax,
+     musicalDirectionContext = self._musicalDirectionContext,
+     timeMarkContext = self._timeMarkContext,
+     moveLineContentContext = self.moveLineContentContext
+    )
+  
+  ## Utils ##
+  #x deprecated, when we get times and tempo in the block class
+  def moveLineYRaw(self, idx):
+    # positioning for each line 
+    return self._titleHeightRaw + (self.movesLineTopSkip * idx)
+  
+  
+  
+    
+    
