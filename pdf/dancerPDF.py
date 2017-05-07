@@ -274,7 +274,8 @@ class MoveBlockRender():
           self.renderTimeMark(curseX, absY, event)
           curseX += self.timeMarkWidth
         elif (event[D_ACTION] == 'tempoMark'):
-          self.renderMusicalDirectionMarks(curseX, absY, event[D_PARAMS])
+          # NB adding leftskip is a cheat, but should mostly work.
+          self.renderMusicalDirectionMarks(curseX + self.timeMarkLeftSkip, absY, event[D_PARAMS])
           
     # now get back to those marks
     i = 0
@@ -623,7 +624,7 @@ class DancerPDF():
     
     ## MusicalDirections ##
     self.musicalDirectionFontFamily = "Times-Bold"
-    self.musicalDirectionFontSize = 14
+    self.musicalDirectionFontSize = 9
     self.musicalDirectionBottomSkip = 12
     
     self._musicalDirectionContext = [self.musicalDirectionFontFamily, self.musicalDirectionFontSize, self.musicalDirectionBottomSkip]
@@ -635,7 +636,7 @@ class DancerPDF():
     # diadvantages, but we will see....
     
     # Space above the block.
-    # Used to add space for the top line of tewmpo marks, clearing the
+    # Used to add space for the top line of tempo marks, clearing the
     # freely placed credits.
     self.movesBlockTopSkip = 24
     
