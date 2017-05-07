@@ -21,6 +21,13 @@ class Modern(DancerPDF):
     self.movesBlockTopSkip = 64
 
 
-#def titleCredits(performers, transcribedBy):
+#! mod to capitalize credit names?
 
-#c.drawRightString(rightStock, y(_titleHeightRaw + creditLineTopSkip), "Trns: " + transcribedBy.upper())
+  def titleCredits(self, performers, transcribedBy):
+    self.c.setFont(self.creditsFontFamily, self.creditsFontSize)
+    #48
+    self.c.drawRightString(self.rightStockAbs, self.rawToAbsY(self._titleHeightRaw + self.creditsTopSkip), performers)
+    self._titleHeightRaw += self.creditsTopSkip + self.creditsFontSize
+    #68
+    self.c.drawRightString(self.rightStockAbs, self.rawToAbsY(self._titleHeightRaw + self.creditLineTopSkip), "Trns: " + transcribedBy.upper())
+  

@@ -5,7 +5,11 @@
 #! should provide bar counts
 #! how about replacement symbols like arrows for direction?
 #! asserts
-#! titleheight doesn't respect top margin - initialize!
+#! are all variables reacting?
+#! tidying still to do in MoveBlockRender
+#! more messages to 'reporter'
+#! where established, remove 'print'
+
 #print(c.getAvailableFonts())  
 #c.setStrokeColorRGB(1, 0, 0)
 #c.setFillColorRGB(0, 1, 0)

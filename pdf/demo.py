@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-import dancerPDF
-#import modern
+#import dancerPDF
+import modern
 
 ALL_DANCERS = -1
 
@@ -92,8 +92,8 @@ dance = {
 #########################################################
 ## Demo ##
 
-g = dancerPDF.DancerPDF()
-#g = modern.Modern()
+#g = dancerPDF.DancerPDF()
+g = modern.Modern()
 
 ## Titles ##
 
