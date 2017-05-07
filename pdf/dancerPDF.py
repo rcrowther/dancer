@@ -41,9 +41,7 @@ class MoveBlockRender():
    lineTopSkip, 
    firstPageTopSkip,
    #moveblockFirstLineIndent,
-   lineContentIndent,
    barlineGlue,
-   timeMarkWidth,
    minMoveGlueWidth,
    lastMovelineGlueMax,
    musicalDirectionContext,
@@ -66,6 +64,7 @@ class MoveBlockRender():
     self.leftStockAbs = stockContext[4]
     self.bottomStockAbs = stockContext[5]
     self.topMargin = stockContext[6]
+    self.typeBlockWidth = self.rightStockAbs - self.leftStockAbs
     print('bottomStockAbs: '+ str(self.bottomStockAbs))
     
     
@@ -88,8 +87,7 @@ class MoveBlockRender():
 
 
     self._barlineGlue = barlineGlue
-    self.lineContentIndent = lineContentIndent
-    print('lineContentIndent: '+ str(lineContentIndent))
+
 
     self.minMoveGlueWidth = minMoveGlueWidth
     self.lastMovelineGlueMax = lastMovelineGlueMax
@@ -103,10 +101,13 @@ class MoveBlockRender():
     self.timeMarkFontSize = timeMarkContext[1]
     self.timeMarkWidth = timeMarkContext[2]
     self.timeMarkSkipDown = timeMarkContext[3]
-
+    self.timeMarkLeftSkip = timeMarkContext[4]
+    print('timeMarkLeftSkip: '+ str(self.timeMarkLeftSkip))
+    
     self.moveLineContentFontFamily = moveLineContentContext[0]
     self.moveLineContentFontSize = moveLineContentContext[1]
     self.moveLineContentSkipDown = moveLineContentContext[2]
+    self.moveLineMusicOnlyLeftSkip = moveLineContentContext[3]
     
     # Internal
     
@@ -135,11 +136,7 @@ class MoveBlockRender():
     #print('_blockTopAbs: '+ str(self._blockTopAbs))
     return self._blockTopAbs - (self._lineTopSkip * idx)
   
-  # Do not use for stock placements, takes account of
-  # line content indent
-  def rawToAbsX(self, XRaw):
-    return self.leftStockAbs + self.lineContentIndent + XRaw
-    
+
   ## utils ##
   
   def startVerticalTextEnvironment(self):
@@ -221,20 +218,25 @@ class MoveBlockRender():
     #print('numberOfBarsToRender: '+ str(numberOfBarsToRender))
 
     # accumulate X progress. Start at absX.
+    #? Nearly always left typeBlock. but if we introduce a 
+    #? firstLineLeftIndent 
     curseX = absX
     
+    if (self._moveStore[0][D_ISMOVE]):
+      curseX += self.moveLineMusicOnlyLeftSkip
+
     # We'll stash movemarks to do all at once?
     moveStash = []
 
 
     # render start barmark
-    #self.renderBarmark(self.leftStockAbs + moveLineContentIndent, absY)
     self.renderBarmark(self.leftStockAbs, absY)
     
     #print('store size: ' + str(len(self._moveStore)))
    
     ii = 0
     barGlueWidth = glueWidth * self._barlineGlue
+          
     while (ii < numberOfBarsToRender):
       event = self._moveStore.pop(0)
       #print('render: ' + event[D_ACTION])
@@ -268,6 +270,7 @@ class MoveBlockRender():
           curseX += barGlueWidth
           ii += 1
         elif (event[D_ACTION] == 'timeMark'):
+          curseX += self.timeMarkLeftSkip
           self.renderTimeMark(curseX, absY, event)
           curseX += self.timeMarkWidth
         elif (event[D_ACTION] == 'tempoMark'):
@@ -290,12 +293,14 @@ class MoveBlockRender():
       i += 1
     self.endVerticalTextEnvironment()
 
-  #! this assumes full length of movestore?
-  #! should count bars
+
+
   def calculateGlue(self, toBarcount, lineWidth):
     i = 0
     barcount = 0
     fixedSize = 0
+    if (self._moveStore[0][D_ISMOVE]):
+      fixedSize = self.moveLineMusicOnlyLeftSkip
     gluedEventCount = 0
     while(barcount < toBarcount):
       if (not self._moveStore[i][D_ISMOVE]):
@@ -307,6 +312,7 @@ class MoveBlockRender():
         # no effect on glue
         if (action == 'timeMark'):
           fixedSize += self.timeMarkWidth
+          fixedSize += self.timeMarkLeftSkip
       else:
         gluedEventCount += 1
       i += 1
@@ -326,6 +332,7 @@ class MoveBlockRender():
     gluedEventCount -= self._barlineGlue
     
     return (lineWidth - fixedSize)/gluedEventCount
+    
           
   def isBar(self, action):
     return (
@@ -364,9 +371,8 @@ class MoveBlockRender():
       i += 1
     #print('remaining bars: ' + str(barcount))
 
-    # need the width, whatever 
-    absX = self.rawToAbsX(0)
-    lineWidth = self.rightStockAbs - absX
+    # need the width, whatever
+    lineWidth = self.typeBlockWidth
     
     decidedBarCount = self._barsInLineAim
     if (barcount < self._barsInLineAim):
@@ -394,9 +400,9 @@ class MoveBlockRender():
           
     #self.renderCloseBarmark(absX, absY)
     self.renderLineContents(
-      absX,
-      absY, 
-      glueWidth,  
+      self.leftStockAbs,
+      absY,
+      glueWidth,
       decidedBarCount
     )
     #report
@@ -435,16 +441,15 @@ class MoveBlockRender():
     # - if too narrow, drop a bar
     
     #1
-    absX = self.rawToAbsX(0)
-    lineWidth = self.rightStockAbs - absX     
-    glueWidth = self.calculateGlue(self._barsInLineAim, lineWidth)      
+    glueWidth = self.calculateGlue(self._barsInLineAim, self.typeBlockWidth)      
 
     #2
     decidedBarCount = self._barsInLineAim
     if (glueWidth < self.minMoveGlueWidth):
+      self.reporter.warning('bar spilled because moves are too compressed :line {0}'.format(self._pageLineI + 1))
       #! if you do this, the glue width needs revising.
       decidedBarCount -= 1
-      glueWidth = self.calculateGlue(decidedBarCount, lineWidth)       
+      glueWidth = self.calculateGlue(decidedBarCount, self.typeBlockWidth)       
 
     
     #print('fixedSize: '+ str(fixedSize))
@@ -453,7 +458,7 @@ class MoveBlockRender():
 
     
     self.renderLineContents(
-      absX,
+      self.leftStockAbs,
       absY, 
       glueWidth,  
       decidedBarCount
@@ -586,15 +591,15 @@ class DancerPDF():
     # Declared early because musical directions need to be aligned with the
     # opening time signature.
     
-    # Fixed allocation for indenting the content at start of lines.
-    # Used to push the initial data, like time signature, from the start 
-    # barline. 
-    # Should only be a handful of points.
-    #! while this is necessary and good, more is needed. A pre-music 
-    # indent to go after time signatures and before lines without time 
-    # marks would be helpful.
-    self.moveLineContentIndent = 4
-    #moveLineContentIndent = 0
+
+    
+    # fixed space to go before music.
+    # This is inserted at the beginning of lines which
+    # contain only music.
+    # This needs to be something, or the first move will sit on the
+    # first barline. About a quarter of the overall glue/note spacing
+    # is ok.
+    self.moveLineMusicOnlyLeftSkip = 14
     
     # Many music scores adopt an indent. Not often applicable here, so will 
     # usually be zero. If you have any material starting a move line, use it.
@@ -623,7 +628,8 @@ class DancerPDF():
     
     self._musicalDirectionContext = [self.musicalDirectionFontFamily, self.musicalDirectionFontSize, self.musicalDirectionBottomSkip]
     
-    #######################################################################
+    
+    ####################################################################
     ## The move block ##
     # The move block is almost all automatic layout. This has it's 
     # diadvantages, but we will see....
@@ -636,7 +642,9 @@ class DancerPDF():
     # gap between lines. Don't make too small.
     self.movesLineTopSkip = 96
     
-      
+    
+    
+    ####################################################################
     ## Time signature ##
     self.timeMarkFontFamily = "Times-Roman"
     self.timeMarkFontSize = 16
@@ -650,8 +658,18 @@ class DancerPDF():
     
     # How far down from the line to drop a time signature
     self.timeMarkSkipDown = 24
-    
-    self._timeMarkContext = [self.timeMarkFontFamily, self.timeMarkFontSize, self.timeMarkWidth, self.timeMarkSkipDown]
+
+    # Fixed allocation for indenting a time mark.
+    # The time mark sits at the beginning of it's allocation. this is 
+    # used to push from barlines (and other preceeding content?). 
+    # Should only be a handful of points.
+    #! while this is necessary and good, more is needed. A pre-music 
+    # indent to go after time signatures and before lines without time 
+    # marks would be helpful.
+    self.timeMarkLeftSkip = 4
+    #timeMarkLeftSkip = 0
+        
+    self._timeMarkContext = [self.timeMarkFontFamily, self.timeMarkFontSize, self.timeMarkWidth, self.timeMarkSkipDown, self.timeMarkLeftSkip]
     
     
     
@@ -676,7 +694,7 @@ class DancerPDF():
     # space down from the moveline to the move marks
     self.moveLineContentSkipDown = 8
     
-    self.moveLineContentContext = [self.moveLineContentFontFamily, self.moveLineContentFontSize, self.moveLineContentSkipDown]
+    self.moveLineContentContext = [self.moveLineContentFontFamily, self.moveLineContentFontSize, self.moveLineContentSkipDown, self.moveLineMusicOnlyLeftSkip]
   
     
               
@@ -747,9 +765,7 @@ class DancerPDF():
      lineTopSkip = self.movesLineTopSkip, 
      firstPageTopSkip = self._titleHeightRaw,
      #moveblockFirstLineIndent = moveblockFirstLineIndent,
-     lineContentIndent = self.moveLineContentIndent,
      barlineGlue = self.barlineGlue,
-     timeMarkWidth = self.timeMarkWidth,
      minMoveGlueWidth = self.minMoveGlueWidth,
      lastMovelineGlueMax = self.lastMovelineGlueMax,
      musicalDirectionContext = self._musicalDirectionContext,
