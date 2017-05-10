@@ -3,10 +3,10 @@
 
 import os.path
 import os
-import re
 import argparse
 import sys
-import subprocess
+
+# Code!
 
 import SourceIterators
 
@@ -39,8 +39,6 @@ class Parser:
         self.prevIndent = 0
         self.indent = 0
         self.line = ''
-        # store for split lines
-        self.splitLine = []
         # ...prime
         self._next()
         # let's go
@@ -50,6 +48,8 @@ class Parser:
     def error(self, rule, msg, withPosition):
         pos = Position(self.it.src, self.prevLineNo, 0) if withPosition else NoPosition 
         self.reporter.error(rule + ':' + msg, pos)
+        #? Might introduce some finness by allowing recovery sometimes?
+        sys.exit(1)
 
     def warning(self, msg, withPosition):
         pos = Position(self.it.src, self.prevLineNo, 0) if withPosition else NoPosition 
@@ -133,19 +133,7 @@ class Parser:
     def instructionCB(self, cmd, params):
       print('ins...')
       print(cmd)
-            
-    #?
-    def splitAndTest(self, ruleName, expectedItemCount):
-      self.splitLine = self.line.split()
-      if (len(self.splitLine) != expectedItemCount):
-        self.error(ruleName, 'Expected different count of items : count: ' + str(expectedItemCount), True)
-        
-    #?  
-    def assertSplitLineElement(self,  ruleName, idx, e):
-      if(self.splitLine[idx] != e):
-        #! sort offset
-        self.error('{0} : Expected element: {1}'.format(ruleName, e), True)
-        #! StopIteration
+
       
     def simultaneousInstructionsOpenCB(self):
       print('  simultaneousInstructions open...')
@@ -161,8 +149,15 @@ class Parser:
         self.simultaneousInstructionsOpenCB()
         self._next()
         while(True):
-          #! some form of body (accepts instructions)
-          self.plainInstruction()
+          #! some form of body (accepts functions)
+          #? but not simultaneousInstructions
+          if(not(
+          self.function()
+          or self.comment()
+          or  self.plainInstruction()
+          )):
+            self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
+
           if(not self.indentHeld()):
             break
         self.simultaneousInstructionsCloseCB()
@@ -189,15 +184,19 @@ class Parser:
       
     def functionBody(self):
       if (self.indentIncreased()):
-        self.functionBodyOpenCB()             
+        self.functionBodyOpenCB()
+        # ...in case indents further,
+        # cache start indent             
         baseIndent = self.indent
         while (True):
-          (
+          if(not(
           self.simultaneousInstructions()
           or self.function()
           or self.comment()
           or self.plainInstruction()
-          )
+          )):
+            self.error('functionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
+
           if (self.indent < baseIndent):
             break
         self.functionBodyCloseCB()             
@@ -220,9 +219,8 @@ class Parser:
                   self.namedParameters()
                   
               #print('function2...' + str(self.indentIncreased()))
-              #! ah, but the parameters would have stepped on?
               self.functionBody()
-            
+                          
         return commit
 
     def variableNameCB(self, name):
@@ -242,7 +240,6 @@ class Parser:
           self.function()
           or self.simultaneousInstructions()
           or self.comment()
-          #! but this accepts near anything?
           #! also, block of these useful
           or self.plainInstruction()
         )):
@@ -253,7 +250,7 @@ class Parser:
         while(
           self.comment()
           or self.function()
-          # this last. Has no intro chars, reacts to any line
+          # this last. Has only alphabetic test, reacts to most lines
           or self.variable()
           #or self.block()
         ):
@@ -273,7 +270,6 @@ class Parser:
 
 
 def parse(srcAsLines):
-    #print(srcAsLines)
     r = ConsoleStreamReporter()
     it = SourceIterators.StringIterator(srcAsLines)
     Parser(it, r)
@@ -362,7 +358,7 @@ def main(argv):
 
     parse(srcAsLines)
 
-    printInfo("written final 'dnc' file: path: {0}".format(args.outfile))
+    printInfo("written final 'dnc' file: {0}".format(args.outfile))
 
     #with open(args.outfile, 'w', encoding=args.codec) as f:
         #f.write(parser.result())
