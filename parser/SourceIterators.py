@@ -18,10 +18,9 @@ class StringIterator:
         return self
 
 
-    def __next__(self): # Python 3: def __next__(self)
+    def __next__(self):
         ls = ""
         while(not ls and self.i < self.size):
-         # print('not l')
           l = self.src[self.i]
           ls = l.lstrip()
           self.i += 1
@@ -32,10 +31,10 @@ class StringIterator:
         else:
             raise StopIteration
 
-
-with open('../test/test', 'r') as f:
-    srcAsLines = f.readlines()
-it = StringIterator(srcAsLines)
-for l in it:
-  print(l)
+# Test
+#with open('../test/test', 'r') as f:
+#    srcAsLines = f.readlines()
+#it = StringIterator(srcAsLines)
+#for l in it:
+#  print(l)
 

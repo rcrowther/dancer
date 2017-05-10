@@ -6,24 +6,7 @@ import os
 import argparse
 import sys
 
-import SourceIterators
-from ConsoleStreamReporter import ConsoleStreamReporter
 from Position import Position, NoPosition
-
-from tokens import *
-
-
-#? No warnings?
-def printMessage(msg):
-    print(msg)
-
-def printInfo(msg):
-    print('[info] {0}'.format(msg))
-
-def printError(msg):
-    print('[error] {0}'.format(msg))    
-
-
 
 
 class Parser:
@@ -69,7 +52,7 @@ class Parser:
         return self.indent > self.prevIndent
         
     def indentHeld(self):
-        print('indentHeld :' + str(self.prevIndent) + '-' + str(self.indent) )
+        #print('indentHeld :' + str(self.prevIndent) + '-' + str(self.indent) )
         return self.indent >= self.prevIndent
 
 
@@ -77,38 +60,46 @@ class Parser:
     ## Callbacks ##
 
     def commentCB(self, text):
-        print('comment...')
-        print('"' + text + '"')
+      #print('comment...')
+      #print('"' + text + '"')
+      pass
 
     def namedParameterCB(self, name, value):
-      print('namedParameter...')
-      print(name + ':' +value)
-            
+      #print('namedParameter...')
+      #print(name + ':' +value)
+      pass
+
     def functionNameCB(self, name):
-      print('function name...')
-      print(name)
+      #print('function name...')
+      #print(name)
+      pass
 
     def instructionCB(self, cmd, params):
-      print('ins...')
-      print(cmd)
+      #print('ins...')
+      #print(cmd)
+      pass
       
     def simultaneousInstructionsOpenCB(self):
-      print('  simultaneousInstructions open...')
+      #print('  simultaneousInstructions open...')
       pass      
 
     def simultaneousInstructionsCloseCB(self):
-      print('  simultaneousInstructions close...')
+      #print('  simultaneousInstructions close...')
       pass  
             
     def functionBodyOpenCB(self):
-      print('  functionBody open...')
+      #print('  functionBody open...')
       pass      
 
     def functionBodyCloseCB(self):
-      print('  functionBody close...')
+      #print('  functionBody close...')
       pass        
       
-      
+    def variableNameCB(self, name):
+      #print('variable name...')
+      #print(name)  
+      pass    
+            
                   
     ## Rules ##
     
@@ -170,9 +161,9 @@ class Parser:
       if (commit):
         p = self.line.split()
         if (len(p) < 2):
-          self.instructionCB(p, [])
+          self.instructionCB(p[0], [])
         else:
-          self.instructionCB(p, p[1:])
+          self.instructionCB(p[0], p[1:])
         self._next()
       return commit
 
@@ -218,10 +209,7 @@ class Parser:
                           
         return commit
 
-    def variableNameCB(self, name):
-      print('variable name...')
-      print(name)      
-      
+
     def variable(self):
       commit = (self.line[0] == '=')
       if (commit):
@@ -263,104 +251,3 @@ class Parser:
 
 
 
-
-def parse(srcAsLines):
-    r = ConsoleStreamReporter()
-    it = SourceIterators.StringIterator(srcAsLines)
-    Parser(it, r)
-
-
-
-def main(argv):
-    parser = argparse.ArgumentParser(
-        #epilog= "NB: keynames in the internal 'stanza' variable must be adjusted to match input files"
-        )
-
-
-    parser.add_argument("-c", "--codec",
-        default='UTF-8',
-        help="encoding of source file."
-        )
-
-    parser.add_argument("-e", "--expand-repeats", 
-        default='all',
-        help="Expand all repeated code, including code marked for visual repeats only."
-        )
-                
-    parser.add_argument("-s", "--solo", 
-        default='all',
-        help="Generate code for one dancer only, by index or name."
-        )
-
-    parser.add_argument("-t", "--tween", 
-        default=False,
-        help="Generate a limited set of tween frames for instructions marked as animated."
-        )
-                
-    parser.add_argument("-o", "--outfile", 
-        default='',
-        help="file path for output"
-        )
-        
-    parser.add_argument("infile", 
-        default='in.dn',
-        help="file for input"
-        )
-                
-    args = parser.parse_args()
-
-    # assert infile as absolute path
-    args.infile = os.path.abspath(args.infile)
-
-    f = args.infile
-    if (not os.path.exists(f)):
-        printError('Path not exists path: {0}'.format(f))
-        return 1
-        
-    if (os.path.isdir(f)):
-        printError('Path is dir path: {0}'.format(f))
-        return 1
-
-    # set output directory to inFile directory            
-    (args.workingDir, name) = os.path.split(args.infile)
-    
-    # baseName is everything to the dot separator for extension, if it exists
-    idx = name.find('.')
-    args.baseName = name if(idx == -1) else name[0:idx]
- 
-
-
-    # if no outfile, invent one
-    if (not args.outfile):
-        args.outfile = os.path.join(args.workingDir, '{0}.dnc'.format(args.baseName))
-
-    print ('infile:' + str(args.infile))
-    print ('workingDir:' + str(args.workingDir))
-    print ('baseName:' + str(args.baseName))
-    print ('codec:' + str(args.codec))
-    print ('outfile:' + str(args.outfile))
-    print ('\n')
-    
-    
-    
-    #try:
-
-
-    # do something
-    with open(args.infile, 'r', encoding=args.codec) as f:
-        srcAsLines = f.readlines()
-
-
-    parse(srcAsLines)
-
-    printInfo("written final 'dnc' file: {0}".format(args.outfile))
-
-    #with open(args.outfile, 'w', encoding=args.codec) as f:
-        #f.write(parser.result())
-
-    #except Exception as e:
-     #   print('Error: most errors are caused by wrong format for source. Other errors from malformed files?\n{0}'.format(e))
-        
-        
-if __name__ == "__main__":
-        main(sys.argv[1:])
