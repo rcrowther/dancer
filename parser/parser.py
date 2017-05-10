@@ -6,17 +6,14 @@ import os
 import argparse
 import sys
 
-# Code!
-
 import SourceIterators
-
 from ConsoleStreamReporter import ConsoleStreamReporter
 from Position import Position, NoPosition
 
 from tokens import *
 
 
-#? Could use reporter anyway?
+#? No warnings?
 def printMessage(msg):
     print(msg)
 
@@ -47,7 +44,7 @@ class Parser:
 
     def error(self, rule, msg, withPosition):
         pos = Position(self.it.src, self.prevLineNo, 0) if withPosition else NoPosition 
-        self.reporter.error(rule + ':' + msg, pos)
+        self.reporter.error(rule + ': ' + msg, pos)
         #? Might introduce some finness by allowing recovery sometimes?
         sys.exit(1)
 
@@ -77,12 +74,44 @@ class Parser:
 
 
 
-
+    ## Callbacks ##
 
     def commentCB(self, text):
         print('comment...')
         print('"' + text + '"')
 
+    def namedParameterCB(self, name, value):
+      print('namedParameter...')
+      print(name + ':' +value)
+            
+    def functionNameCB(self, name):
+      print('function name...')
+      print(name)
+
+    def instructionCB(self, cmd, params):
+      print('ins...')
+      print(cmd)
+      
+    def simultaneousInstructionsOpenCB(self):
+      print('  simultaneousInstructions open...')
+      pass      
+
+    def simultaneousInstructionsCloseCB(self):
+      print('  simultaneousInstructions close...')
+      pass  
+            
+    def functionBodyOpenCB(self):
+      print('  functionBody open...')
+      pass      
+
+    def functionBodyCloseCB(self):
+      print('  functionBody close...')
+      pass        
+      
+      
+                  
+    ## Rules ##
+    
     def comment(self):
         commit = (self.line[0] == "#")
         if(commit):
@@ -98,23 +127,8 @@ class Parser:
             txt = self.line[1:].strip()
           self.commentCB(txt)
           self._next()
-        return commit 
-        
+        return commit
 
-
-
-    def unbracketedParam(self):
-        print('unbracketedParam params...')
-        #commit = (self.value())
-        #return commit
-
-    def namedParameterCB(self, name, value):
-      print('namedParameter...')
-      print(name + ':' +value)
-            
-    def functionNameCB(self, name):
-      print('function name...')
-      print(name)
       
     def namedParameter(self):
       p = self.line.split()
@@ -130,19 +144,7 @@ class Parser:
       while(self.line[0] == ':'):
         self.namedParameter()
 
-    def instructionCB(self, cmd, params):
-      print('ins...')
-      print(cmd)
 
-      
-    def simultaneousInstructionsOpenCB(self):
-      print('  simultaneousInstructions open...')
-      pass      
-
-    def simultaneousInstructionsCloseCB(self):
-      print('  simultaneousInstructions close...')
-      pass  
-            
     def simultaneousInstructions(self):
       commit = (self.line[0] == '<' and self.line[1] == '<')
       if (commit):
@@ -174,14 +176,7 @@ class Parser:
         self._next()
       return commit
 
-    def functionBodyOpenCB(self):
-      print('  functionBody open...')
-      pass      
 
-    def functionBodyCloseCB(self):
-      print('  functionBody close...')
-      pass        
-      
     def functionBody(self):
       if (self.indentIncreased()):
         self.functionBodyOpenCB()
