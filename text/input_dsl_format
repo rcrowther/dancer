@@ -1,20 +1,20 @@
 = Format
 
-We use the format, fundamentally, of lillypond. It can embrace simutaeous happening---jump/turn, step/clap. And parallell happening---different dancers.
+We use the format, fundamentally, of Lillypond. It can embrace simutaneous happening---jump/turn, step/clap. And parallell happening---different dancers.
 
-Lillypond will need substancial adaption.
+Lillypond format will need adaption. We base on musical bars and beats. Most dancing is against or with the beat. However, we need this to stay fairly abstract, so markers can be put in. Then the markup can be recallibrated agaist video, as .srt subtitles are. We have no need so much for speed markup, etc.
 
-We base on musical bars and beats. Most dancing is against or with the beat. However, we need this to stay fairly abstract, so makers can be put in. Then the markup can be recallibrated agaist video, as .srt subtitles are. We have no need so much for speed markup, etc.
 
-== File generalities
+== Generalities
+=== File generalities
 Instructions are introduced with a slash
 
 \someinstruction
 
-braces introduce all commands,
+braces introduce sequences,
 {}
 
-and instructions are outside brasces, which work for parameters,
+Instructions are outside braces, which work for parameters,
 
 \someinstruction{}
 
@@ -30,7 +30,7 @@ block comment
 
 Whitespace is generally ignored, except as separator, and for line-end-finishing a comment. File text is case-sensitive.
 
-== All/About
+=== All/About
 ''about' is metadata. Here some useful ''about' properties,
 
 
@@ -41,7 +41,7 @@ Whitespace is generally ignored, except as separator, and for line-end-finishing
 \date 2012
 \style clog
 \author rob crowther
-\authorEmail robclog@gmail.com 
+\email robclog@gmail.com 
 \version
 }
 
@@ -56,7 +56,7 @@ Whitespace is generally ignored, except as separator, and for line-end-finishing
 \barbeats 4
 }
 
-== Time/tempo marks
+=== Time/tempo marks
 Not much needed here. Don't bother with the fussy music notation of lengths. \tempo as beats per min, \barbeats as simple count,
 
 \tempo 64
@@ -67,6 +67,8 @@ These should be usable in \all, and within a sequence (see below).
 
 == Dancer Count
 Unfortunately, we will need a way to introduce and remove dancers. For now, ignoring this feature.
+
+Initial count only?
 
 
 == Moves
@@ -100,18 +102,37 @@ Since these moves cannot be captured like a musical pitch, 'note middle-a', we p
 === Move modifiers
 These would naturally come after the event.
 
-What do we use numbers for? In music, duration of note, but in dance, the vast majority of maoves will happen over one or two or half notes?
+What do we use numbers for? In music, duration of note, but in dance, the vast majority of moves will happen over one or two or half notes?
 
 ==== Duration
-Like lillypond, any change in duration should persist until otherwise stated.
+Like Lillypond, any change in duration should persist until otherwise stated.
 
 ===== Pause
-lillypond uses 'r', with or without duration. 'r' as a move-mark is reserved.
+Lillypond uses 'r', with or without duration. 'r' as a move-mark is reserved.
+
+
+
+== Actual notation
+
+== bars
+Placed automatically. Special bars,
+
+'|.' end bar
+
+\repeat <count> {}
+\alternative { {}... }
+
+== Time mark
+\timeMark <count>
+\tempoMark <count>
 
 == Sequence
 {clap step-right}
 
-==Simutaeous
+== Rests
+{clap r4 r2 }
+
+==Simutaneous
 <<
 {clap step-right}
 {clap clap}
@@ -122,19 +143,18 @@ lillypond uses 'r', with or without duration. 'r' as a move-mark is reserved.
 Person - single person (multi movement)
 Score multi-person
 
-      \new Staff = "cello" <<
-         \new Person <<
-            \new Legs 
-            \new Arms 
-            \new Position
-         >>
-         \new Person <<
-            \new Legs 
-            \new Arms 
-            \new Position
-         >>
-       >>
-
+      \staff {
+            dancerName = ...
+         }
+      {
+         ... moves
+      }
+      \staff { 
+            dancerName = ...
+         }
+      {
+         ... moves
+      }
 
 == Variables
 person1 = \new Person <<
@@ -149,6 +169,8 @@ person2 = \new Person <<
             \new Position
          >>
 
+== Default
+Assembles everything
 {
 <<
 \person1
