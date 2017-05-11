@@ -7,6 +7,7 @@ class JSONParser(Parser):
     def __init__(self, it, reporter):
       self.b = ['\n{']
       self.comments = False
+      self.inSimutaneous = False
       Parser.__init__(self, it, reporter)
 
     def result(self):
@@ -39,23 +40,39 @@ class JSONParser(Parser):
         self.b.append('\nabout: {')
       pass
 
+    def functionCloseCB(self):
+      self.b.append('\n}')
+      pass
+      
     def instructionCB(self, cmd, params):
       #print('ins...')
       #print(cmd)
-      self.b.append("\n[['")
-      self.b.append(str(cmd))
-      for p in params:
-        self.b.append("', '")
-        self.b.append(str(p))
-      self.b.append("']],")
+      if (self.inSimutaneous):
+        self.b.append("['")
+        self.b.append(str(cmd))
+        for p in params:
+          self.b.append("', '")
+          self.b.append(str(p))
+        self.b.append("'],")
+      else: 
+        self.b.append("\n[['")
+        self.b.append(str(cmd))
+        for p in params:
+          self.b.append("', '")
+          self.b.append(str(p))
+        self.b.append("']],")
       pass
       
     def simultaneousInstructionsOpenCB(self):
       #print('  simultaneousInstructions open...')
+      self.b.append("\n[")
+      self.inSimutaneous = True
       pass      
 
     def simultaneousInstructionsCloseCB(self):
       #print('  simultaneousInstructions close...')
+      self.inSimutaneous = False
+      self.b.append("],")
       pass  
             
     def functionBodyOpenCB(self):

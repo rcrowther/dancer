@@ -12,6 +12,9 @@ from Position import Position, NoPosition
 class Parser:
     '''
     '''
+    V_INSTRUCTIONSEQ = 1
+    V_FUNCTION = 2
+    
     def __init__(self, it, reporter):
         self.it = it
         self.reporter = reporter
@@ -19,12 +22,22 @@ class Parser:
         self.prevIndent = 0
         self.indent = 0
         self.line = ''
+   
+        self.currentVarName = ''
+        self.stashLines = False
+        self.lineStash = []
+        
+        # ...prime
+        #self._next()
+        # let's go
+        #self.root()
+
+    def parse(self):
         # ...prime
         self._next()
         # let's go
         self.root()
-
-
+        
     def error(self, rule, msg, withPosition):
         pos = Position(self.it.src, self.prevLineNo, 0) if withPosition else NoPosition 
         self.reporter.error(rule + ': ' + msg, pos)
@@ -45,8 +58,11 @@ class Parser:
     def _next(self):
         self.prevLineNo = self.it.lineCount
         self.prevIndent = self.indent
-        self.indent, self.line = self.it.__next__()
-
+        n = self.it.__next__()
+        self.indent, self.line = n
+        if (self.stashLines):
+          self.lineStash.append(n)
+          
     def indentIncreased(self):
         #print('indentIncreased :' + str(self.prevIndent) + '-' + str(self.indent) )
         return self.indent > self.prevIndent
@@ -74,6 +90,10 @@ class Parser:
       #print(name)
       pass
 
+    def functionCloseCB(self):
+      #print('    functionCloseCB...')
+      pass
+  
     def instructionCB(self, cmd, params):
       #print('ins...')
       #print(cmd)
@@ -95,11 +115,19 @@ class Parser:
       #print('  functionBody close...')
       pass        
       
-    def variableNameCB(self, name):
+    def variableOpenCB(self, name):
       #print('variable name...')
       #print(name)  
       pass    
             
+    def variableCloseCB(self, tpe):
+      #print('variable type...')
+      #print(str(tpe))  
+      pass 
+
+         
+         
+         
                   
     ## Rules ##
     
@@ -145,9 +173,9 @@ class Parser:
           #! some form of body (accepts functions)
           #? but not simultaneousInstructions
           if(not(
-          self.function()
-          or self.comment()
-          or  self.plainInstruction()
+            self.function()
+            or self.comment()
+            or self.plainInstruction()
           )):
             self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
 
@@ -167,6 +195,12 @@ class Parser:
         self._next()
       return commit
 
+    def plainInstructionSeq(self):
+      baseIndent = self.indent
+      commit = ((baseIndent > 0) and self.plainInstruction())
+      while((self.indent >= baseIndent) and self.plainInstruction()):
+        pass
+      return commit
 
     def functionBody(self):
       if (self.indentIncreased()):
@@ -201,12 +235,13 @@ class Parser:
               
               self._next()
               
+              #? need test?
               if (self.line[0] == ':'):
                   self.namedParameters()
                   
               #print('function2...' + str(self.indentIncreased()))
               self.functionBody()
-                          
+              self.functionCloseCB()     
         return commit
 
 
@@ -216,19 +251,25 @@ class Parser:
         p = self.line.split()
         if (len(p) < 2):
           self.error('variable', 'Expected name to assign to?', True)
-        self.variableNameCB(p[1])
+        self.variableOpenCB(p[1])
+        self.currentVarName = p[1]
+        self.lineStash = []
+        self.stashLines = True
         self._next()
         #! now, e.g. parameters, ins, etc?
         if (not (
           self.function()
-          or self.simultaneousInstructions()
-          or self.comment()
+          #or self.simultaneousInstructions()
+          #or self.comment()
           #! also, block of these useful
-          or self.plainInstruction()
+          or self.plainInstructionSeq()
         )):
           self.error('variable', 'Variable must contain an understandable unit of code, currently one of a function, plain instruction, simultaneous instructions, or a comment', True)
+        self.stashLines = False
+        self.lineStash.pop()
       return commit
-              
+            
+            
     def rootSeq(self):
         while(
           self.comment()

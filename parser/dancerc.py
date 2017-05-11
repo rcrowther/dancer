@@ -7,6 +7,8 @@ import argparse
 import sys
 
 import SourceIterators
+import ExpandIterator
+
 from ConsoleStreamReporter import ConsoleStreamReporter
 from JSON import JSONParser
 from Python import PythonParser
@@ -26,10 +28,12 @@ def printError(msg):
 
 def parse(srcAsLines, parseType):
     r = ConsoleStreamReporter()
-    it = SourceIterators.StringIterator(srcAsLines)
+    sit = SourceIterators.StringIterator(srcAsLines)
+    eit = ExpandIterator.ExpandIterator(sit, r)
     #Parser(it, r)
     if (parseType ==  'JSON'):
-      p = JSONParser(it, r)
+      p = JSONParser(eit, r)
+      p.parse()
       print('output:')
       print(''.join(p.result())) 
 
