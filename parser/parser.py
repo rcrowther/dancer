@@ -160,11 +160,13 @@ class Parser:
 
 
     def simultaneousInstructions(self):
-      commit = (self.line[0] == '<' and self.line[1] == '<')
+      commit = (self.line[0] == '<')
       if (commit):
+        #print('simultaneousInstructions ' + str(self.prevLineNo))
         self.simultaneousInstructionsOpenCB()
         self._next()
-        while(True):
+        
+        while(self.line[0] != '>'):
           #! some form of body (accepts functions)
           #? but not simultaneousInstructions
           if(not(
@@ -174,9 +176,9 @@ class Parser:
           )):
             self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
 
-          if(self.line[0] == '>' and self.line[1] == '>'):
-            break
+
         self.simultaneousInstructionsCloseCB()
+        self._next()
       return commit
       
     def plainInstruction(self):
@@ -197,9 +199,12 @@ class Parser:
       return commit
 
     def functionBody(self):
-      if (self.line[0] == '{'):
+      #print('functionBody')
+      commit = (self.line[0] == '{')
+      if (commit):
         self.functionBodyOpenCB()
-
+        self._next()
+        
         while (True):
           if(not(
           self.simultaneousInstructions()
@@ -208,12 +213,12 @@ class Parser:
           or self.plainInstruction()
           )):
             self.error('functionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
-
           if (self.line[0] == '}'):
             break
+
         self.functionBodyCloseCB()             
         self._next()
-
+      return commit
         
         
     def functionCall(self):
@@ -247,13 +252,16 @@ class Parser:
         self.lineStash = []
         self.stashLines = True
         self._next()
+        #print('var body')
         #! now, e.g. parameters, ins, etc?
         if (not (
           self.functionCall()
+          #!
+          or self.functionBody()
           #or self.simultaneousInstructions()
           #or self.comment()
           #! also, block of these useful
-          or self.plainInstructionSeq()
+          #or self.plainInstructionSeq()
         )):
           self.error('variable', 'Variable must contain an understandable unit of code, currently one of a function, plain instruction, simultaneous instructions, or a comment', True)
         self.stashLines = False
@@ -266,7 +274,8 @@ class Parser:
           self.comment()
           or self.functionCall()
           # this last. Has only alphabetic test, reacts to most lines
-          #or self.variable()
+          #? you here!!!!!!!!!!!!!!!!
+          or self.variable()
           #or self.block()
         ):
           pass
@@ -283,14 +292,14 @@ class Parser:
 
 
 # Test
-from SourceIterators import StringIterator
-from ConsoleStreamReporter import ConsoleStreamReporter
+#from SourceIterators import StringIterator
+#from ConsoleStreamReporter import ConsoleStreamReporter
 
-with open('../test/test', 'r') as f:
-    srcAsLines = f.readlines()
+#with open('../test/test', 'r') as f:
+    #srcAsLines = f.readlines()
     
-sit = StringIterator(srcAsLines)
-r = ConsoleStreamReporter()
-p = Parser(sit, r)
+#sit = StringIterator(srcAsLines)
+#r = ConsoleStreamReporter()
+#p = Parser(sit, r)
 
-p.parse()
+#p.parse()

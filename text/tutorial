@@ -97,7 +97,7 @@ And speed, ''tempo' is also set by a command. The number is beats per minute,
 
 Both time and tempo marks can be placed anywhere is the stream of instructions, changing the value at that point.
 
-Her we go, laying out some basic moves,
+So, lay out some basic moves,
 
 {
     \beatsPerBar 3
@@ -106,3 +106,101 @@ Her we go, laying out some basic moves,
     step W
     step S
 }
+
+==== Working with input files
+Dancer input is case-sensitive,
+
+Nonline-end whitespace is ignored, even more so than most programming languages. 
+
+However, line ends are important. Dancer not only reads line by line, but processess line-by-line. This will cause beginners no problem, but users who can program computers may run into errors.
+
+If we say a command (function call), must look like this,
+
+\command
+{
+}
+
+it must look like that. Computer coders may try,
+
+\command{}
+
+That will fail. To say this in the way computer language coders would, you can not arrange the syntax without regarding the line-ends.
+
+There is a good reason for this. We need the input file to be clear of clutter when we write large strings of moves. this is a way to do that. For example, Lillypond  has the same need, long strings of description of musical notes need to be written, and kept clean. Lillypond gets round this by making every statement of musical information into one lexical unit. So to ''write' the notes, C, B#, G, C, as long notes,
+
+ c4 b#4 g4 c2
+
+but Dancer can not do that. Dancer needs to heavily classify many, many, moves, and the systems can not be squashed into single characteer descriptions. So dancer usues an unusual line-based processed input so you can write,
+
+
+clap mid
+jump
+clap overhead
+
+and it is still easy to look at and edit.
+
+Most of those ''commands' are modifications of a base layout of ''function calls'. If we invent a function,
+
+\modified 3 'thirty'
+: me
+{
+  stop work
+  goto lunch
+}
+
+it is layed out like that. Technically,
+
+\name <positional parameters separated by spaces...>
+<named parameters separated by line ends...>
+{
+  <body commands separated by line ends>
+}
+
+The parameters are optional. Much of the time, we only use part of the full form e.g.
+
+\beatsPerBar 6
+
+or,
+
+\repeat 2
+{
+}
+
+comments are in two forms, either a single line comment,
+
+# single line for information, teminated by line end
+
+or multi-line
+
+## Several lines of comment
+allow the user to be more ample in descriptions,
+make lists,
+- of stuff to do
+- or information to kenow
+and other funny layouts, before...
+They are terminated, on a new line, by a single hash
+#
+
+==== Handling errors
+Dancer input files can be incorrect. It is easy to make an incorrect file.
+
+However, Dancer's parser gives good error reporting. It tells you where the error happened. Like an expensive language compiler would. The unusual form of input and parsing gives error messages with more accuracy and help than computer language code usually can.
+
+Errors usually come from music not matching the right length. 
+
+**As we use the system, add more messages here**
+
+==== Using the manual
+This is a tutorial. At the moment, after that, you have only the code itself to help you.
+
+Do look at the next section, common notation.
+
+**As we use the system, add more messages here**
+
+
+
+== Common notation
+Notate most dancing in a way that can be used of several outputs.
+ 
+(for a short introduntion, see the previous section ''Notation')
+
