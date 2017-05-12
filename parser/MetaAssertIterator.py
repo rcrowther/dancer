@@ -6,9 +6,11 @@ import ExpandIterator
 
 class MetaAssertIterator():
     '''
-     Raises error on end of iteration
-     Requires an unprimed parser.
+    Normalise the stream from header data.
+    Currently adds initialising beatPerBar and tempo info as stream
+    instructions.
     '''
+    #? may do more?
     def __init__(self, srcIt, reporter):
       self.reporter = reporter
       self.it = ExpandIterator.ExpandIterator(srcIt, reporter)
@@ -26,37 +28,39 @@ class MetaAssertIterator():
     def __next__(self):
       r = self.stash.pop() if (len(self.stash) > 0) else self.it.__next__()
 
-      if r[1].startswith(':beatsPerBar'):
-        self.beatsPerBar = r[1][12:].lstrip()  
+      if r.startswith(':beatsPerBar'):
+        self.beatsPerBar = r[12:].lstrip()  
         if (not self.beatsPerBar):
           self.reporter.warning(':beatsPerBar in \init not given a parameter')
-      if r[1].startswith(':tempo'):
-        self.tempo = r[1][6:].lstrip()  
+      if r.startswith(':tempo'):
+        self.tempo = r[6:].lstrip()  
         if (not self.tempo):
           self.reporter.warning(':tempo  in \init not given a parameter')
         
-      if r[1].startswith('\\staff'):
+      if r.startswith('\\staff'):
         self.stash = []
         #self.stash.append(r)
         a = None
         while True:
           a = self.it.__next__()
-          if a[1][0] == ':':
+          if a[0] != '{':
             self.stash.append(a)
           else:
             break
+        # now at body beginning
+        # append that too
+        self.stash.append(a)
+        
+        # now append exta instructions
         if (not self.beatsPerBar):
-          self.reporter.warning(':beatsPerBar in \init not set, set to 4')
+          self.reporter.warning(':beatsPerBar not set in \init, default to 4')
           self.beatsPerBar = '4'
         if (not self.tempo):
-          self.reporter.warning(':tempo in \init not set, set to 60')
+          self.reporter.warning(':tempo not set in \init, default to 60')
           self.tempo = '60'
-        indent = r[0] + 1
-        self.stash.append((indent, '\\beatsPerBar '))
-        self.stash.append((indent + 1, ':' + self.beatsPerBar))
-        self.stash.append((indent, '\\tempo '))
-        self.stash.append((indent + 1, ':' + self.tempo))
-        self.stash.append(a)
+          
+        self.stash.append('\\beatsPerBar '  + self.beatsPerBar)
+        self.stash.append('\\tempo ' + self.tempo)
         self.stash = list(reversed(self.stash))
       return r
       

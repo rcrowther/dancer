@@ -199,7 +199,6 @@ class Parser:
       return commit
 
     def functionBody(self):
-      #print('functionBody')
       commit = (self.line[0] == '{')
       if (commit):
         self.functionBodyOpenCB()
@@ -230,11 +229,9 @@ class Parser:
             name = parts[0]            
             posParams = parts[1:]
             self.functionCallCB(name, posParams)
-
             self._next()
             
             self.namedParameters()
-            #print('function2...' + str(self.indentIncreased()))
             self.functionBody()
             
             self.functionCloseCB()     
@@ -252,18 +249,11 @@ class Parser:
         self.lineStash = []
         self.stashLines = True
         self._next()
-        #print('var body')
-        #! now, e.g. parameters, ins, etc?
         if (not (
-          #self.functionCall()
-          #!
+          #? this covers all we need and allow?
           self.functionBody()
-          #or self.simultaneousInstructions()
-          #or self.comment()
-          #! also, block of these useful
-          #or self.plainInstructionSeq()
         )):
-          self.error('variable', 'Variable must contain an understandable unit of code, currently one of a function, plain instruction, simultaneous instructions, or a comment', True)
+          self.error('variable', 'Variable must contain an understandable unit of code, currently anything allowed in a function body', True)
         self.stashLines = False
         self.lineStash.pop()
       return commit
@@ -274,9 +264,7 @@ class Parser:
           self.comment()
           or self.functionCall()
           # this last. Has only alphabetic test, reacts to most lines
-          #? you here!!!!!!!!!!!!!!!!
           or self.variable()
-          #or self.block()
         ):
           pass
 

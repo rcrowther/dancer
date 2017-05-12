@@ -6,8 +6,8 @@ import parser
 
 class ExpandIterator():
     '''
-     Raises error on end of iteration
-     Requires an unprimed parser.
+    Expands variables in the input stream.
+    Requires an unprimed instance of the parser.
     '''
     def __init__(self, srcIt, reporter):
         self.it = srcIt
