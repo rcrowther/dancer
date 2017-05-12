@@ -5,7 +5,12 @@
 
 class StringIterator:
     '''
-     Raises error on end of iteration
+    Creates an iterator from a collection of lines.
+    
+    Removes empty lines (so guarantees next()[0])
+    Raises StopIteration at end of iteration
+    
+    @srcLines As returned by Python readlines()
     '''
     def __init__(self, srcLines):
         self.src = srcLines
@@ -19,22 +24,21 @@ class StringIterator:
 
 
     def __next__(self):
-        ls = ""
-        while(not ls and self.i < self.size):
-          l = self.src[self.i]
-          ls = l.lstrip()
-          self.i += 1
-          self.lineCount += 1
-          
-        if (self.i < self.size):
-            return (len(l) - len(ls), ls)
-        else:
+        try:
+          while(True):
+            l = self.src[self.i].lstrip()
+            self.i += 1
+            self.lineCount += 1
+            if (l):
+              break
+          return l
+        except IndexError:
             raise StopIteration
 
 # Test
 #with open('../test/test', 'r') as f:
-#    srcAsLines = f.readlines()
+    #srcAsLines = f.readlines()
 #it = StringIterator(srcAsLines)
 #for l in it:
-#  print(l)
+  #print(l)
 

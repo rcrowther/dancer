@@ -25,7 +25,7 @@ WEST = 3
 dance = {
   'title': 'War Games',
   'performers': 'EastWest',
-  'description': "Originating in Bacup, the Coconutters have been described as the Most original dance in England. Nobody else would dare.",
+  'description': "Originating in Bacup, the Coconutters have been described as The Most Original Dance Group in England. Nobody else would dare.",
   'transcribed': 'Robert Crowther',
   'tempo': 60,
   'beatbar' : 4,

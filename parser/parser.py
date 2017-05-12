@@ -19,8 +19,6 @@ class Parser:
         self.it = it
         self.reporter = reporter
         self.prevLineNo = 1
-        self.prevIndent = 0
-        self.indent = 0
         self.line = ''
    
         self.currentVarName = ''
@@ -57,19 +55,11 @@ class Parser:
 
     def _next(self):
         self.prevLineNo = self.it.lineCount
-        self.prevIndent = self.indent
         n = self.it.__next__()
-        self.indent, self.line = n
+        self.line = n
         if (self.stashLines):
           self.lineStash.append(n)
-          
-    def indentIncreased(self):
-        #print('indentIncreased :' + str(self.prevIndent) + '-' + str(self.indent) )
-        return self.indent > self.prevIndent
-        
-    def indentHeld(self):
-        #print('indentHeld :' + str(self.prevIndent) + '-' + str(self.indent) )
-        return self.indent >= self.prevIndent
+
 
 
 
@@ -80,14 +70,16 @@ class Parser:
       #print('"' + text + '"')
       pass
 
-    def namedParameterCB(self, name, value):
-      #print('namedParameter...')
-      #print(name + ':' +value)
+    # @params [[name, value], ...]
+    def namedParametersCB(self, params):
+      #print('namedParameters...')
+      #print(params)
       pass
 
-    def functionNameCB(self, name):
-      #print('function name...')
-      #print(name)
+    # @posParams [param1, ...]
+    def functionCallCB(self, name, posParams):
+      #print('functionCall...')
+      #print(name + ':' + str(posParams))
       pass
 
     def functionCloseCB(self):
@@ -134,6 +126,7 @@ class Parser:
     def comment(self):
         commit = (self.line[0] == "#")
         if(commit):
+          txt = ''
           if(len(self.line) > 1 and self.line[1] == "#"):
             #multiline
             txt = self.line[2:].lstrip()
@@ -148,20 +141,22 @@ class Parser:
           self._next()
         return commit
 
-      
-    def namedParameter(self):
-      p = self.line.split()
-      name = p[0][1:]
-      if (len(p) < 2):
-        self.namedParameterCB(name, '')
-      else:
-        self.namedParameterCB(name, p[1])
-      self._next()
-      
+
 
     def namedParameters(self):
+      params = []
       while(self.line[0] == ':'):
-        self.namedParameter()
+        p = self.line.split()
+        name = p[0][1:]
+        if (len(p) > 2):
+            self.error('namedParameters', 'A parameter appears to have more than one value?', True)          
+        if (len(p) < 2):
+          params.append([name, ''])
+        else:
+          params.append([name, p[1]])
+        self._next()
+      self.namedParametersCB(params)
+
 
 
     def simultaneousInstructions(self):
@@ -173,13 +168,13 @@ class Parser:
           #! some form of body (accepts functions)
           #? but not simultaneousInstructions
           if(not(
-            self.function()
+            self.functionCall()
             or self.comment()
             or self.plainInstruction()
           )):
             self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
 
-          if(not self.indentHeld()):
+          if(self.line[0] == '>' and self.line[1] == '>'):
             break
         self.simultaneousInstructionsCloseCB()
       return commit
@@ -196,52 +191,48 @@ class Parser:
       return commit
 
     def plainInstructionSeq(self):
-      baseIndent = self.indent
-      commit = ((baseIndent > 0) and self.plainInstruction())
-      while((self.indent >= baseIndent) and self.plainInstruction()):
+      commit = self.plainInstruction()
+      while (self.plainInstruction()):
         pass
       return commit
 
     def functionBody(self):
-      if (self.indentIncreased()):
+      if (self.line[0] == '{'):
         self.functionBodyOpenCB()
-        # ...in case indents further,
-        # cache start indent             
-        baseIndent = self.indent
+
         while (True):
           if(not(
           self.simultaneousInstructions()
-          or self.function()
+          or self.functionCall()
           or self.comment()
           or self.plainInstruction()
           )):
             self.error('functionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
 
-          if (self.indent < baseIndent):
+          if (self.line[0] == '}'):
             break
         self.functionBodyCloseCB()             
-
+        self._next()
 
         
         
-    def function(self):
+    def functionCall(self):
         commit = (self.line[0] == '\\')
         if(commit):
-            if (len(self.line) < 2):
-              self.error('function', 'Expected characters', True)
-            else:
-              name = self.line[1:].rstrip()
-              self.functionNameCB(name)
-              
-              self._next()
-              
-              #? need test?
-              if (self.line[0] == ':'):
-                  self.namedParameters()
-                  
-              #print('function2...' + str(self.indentIncreased()))
-              self.functionBody()
-              self.functionCloseCB()     
+            parts = self.line[1:].split()
+            if (len(parts) < 1):
+              self.error('functionCall', 'Expected characters for a function name', True)
+            name = parts[0]            
+            posParams = parts[1:]
+            self.functionCallCB(name, posParams)
+
+            self._next()
+            
+            self.namedParameters()
+            #print('function2...' + str(self.indentIncreased()))
+            self.functionBody()
+            
+            self.functionCloseCB()     
         return commit
 
 
@@ -258,7 +249,7 @@ class Parser:
         self._next()
         #! now, e.g. parameters, ins, etc?
         if (not (
-          self.function()
+          self.functionCall()
           #or self.simultaneousInstructions()
           #or self.comment()
           #! also, block of these useful
@@ -273,9 +264,9 @@ class Parser:
     def rootSeq(self):
         while(
           self.comment()
-          or self.function()
+          or self.functionCall()
           # this last. Has only alphabetic test, reacts to most lines
-          or self.variable()
+          #or self.variable()
           #or self.block()
         ):
           pass
@@ -291,4 +282,15 @@ class Parser:
             pass
 
 
+# Test
+from SourceIterators import StringIterator
+from ConsoleStreamReporter import ConsoleStreamReporter
 
+with open('../test/test', 'r') as f:
+    srcAsLines = f.readlines()
+    
+sit = StringIterator(srcAsLines)
+r = ConsoleStreamReporter()
+p = Parser(sit, r)
+
+p.parse()

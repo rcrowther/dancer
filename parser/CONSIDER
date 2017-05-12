@@ -1,0 +1,21 @@
+Indenting is not working well - inefficient, unpredictable,
+Nothing wrong with sequentual statements
+
+\staff
+:dancerName "frontman"
+\body
+...
+
+Closed by what?
+space
+\bodyClose
+another mark?
+
+What about simutaneous? That can not be closed by 'another mark'. Unless '>>'
+
+What to do? Expamsion working ok, but bad on memory, will always be so.
+Auto insertion is horrible.
+Beat splitting not considered.
+staff interlacing not considered.
+
+

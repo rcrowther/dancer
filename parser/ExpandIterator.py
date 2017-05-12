@@ -16,6 +16,12 @@ class ExpandIterator():
         self.varMap = {}
         # [[indent, line]...]
         self.expandingVars = []
+
+    def error(self, msg, withPosition):
+        pos = Position(self.it.src, self.prevLineNo, 0) if withPosition else NoPosition 
+        self.reporter.error(msg, pos)
+        #? Might introduce some finness by allowing recovery sometimes?
+        sys.exit(1)
         
     def lineCount():
       return self.it.lineCount

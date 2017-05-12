@@ -1,0 +1,108 @@
+= Tutorial
+Dancer makes files representing dance moves which can then generate representations like a musical score, or be run in rendering engines to animate the moves. 
+
+== Intro
+How to use Dancer.
+
+=== Compiling
+The process of assembling, processing, and using an input file.
+
+==== Entering input
+Heres some input,
+
+      clap
+      clap overhead
+      step west
+
+When put through ''dancerc', this will produce a file ''test.dnc'. This file can be used to create directions, like sheet music,
+
+
+
+or run an animation.
+
+
+==== Program to use for input
+You use a text editor. Any will do. In Windows operating systems, you could use Wordpad. Don't use a word processor like Libreoffice or Microsoft ''Word' (unless you know what you are doing).
+
+If you get offered the choice, ''dancer' programs are standardised to ''UTF-8' encoding. Your code will probably work anyway.
+
+
+==== Commandline
+Create a ''test.dn' file,
+
+\score
+  \staff
+    :dancerName "albert"
+    {
+      clap
+      clap overhead
+      step west
+    }
+
+Run,
+
+dancerc test.dn
+
+You do not have to have ''dancerc' installed. If you do not, go to the ''dancerc' directory, then,
+
+./dancerc.py test.dn
+
+This will result in a file called ''test.dnc'.
+
+You can do several actions with this file, but the simplest is to run,
+
+dancerPDF test.dnc
+
+Which should result in a file,
+
+test.pdf
+
+Which you can view.
+
+
+=== Making a file
+Some basics about writing files.
+
+==== Notation
+Moves,
+
+   twirl
+   clap overhead
+
+Note all moves are on seperate lines.
+
+Note also that moves may have words after them which modify how the action is done. There can be many modifiers. How a move is classified is the result of extensive theory and work in Dancer, but you do not need to worry about this now.
+
+Moves often have automatic values, and these can be useful,
+
+clap
+
+is the same as ''clap mid'
+
+Moves can last longer than one beat. Put a number after them,
+
+   circle 2 arm
+
+Rests are a special move. They use the single letter 'r'. This is builtin to dancer. To rest for a bar
+
+   r 4
+
+Time signature is not subdivided as in sheet music. Use the \beatsPerBar command,
+
+  \beatsPerBar 3
+
+And speed, ''tempo' is also set by a command. The number is beats per minute,
+
+   \tempo 60
+
+Both time and tempo marks can be placed anywhere is the stream of instructions, changing the value at that point.
+
+Her we go, laying out some basic moves,
+
+{
+    \beatsPerBar 3
+    \tempo 50
+    step S
+    step W
+    step S
+}
