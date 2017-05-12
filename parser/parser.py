@@ -52,7 +52,7 @@ class Parser:
 
     def expectedError(self, msg):
         self.error("Expected {0} but found '{1}'".format(msg, tokenToString[self.tok]), True)
-
+      
     def _next(self):
         self.prevLineNo = self.it.lineCount
         n = self.it.__next__()
@@ -255,9 +255,9 @@ class Parser:
         #print('var body')
         #! now, e.g. parameters, ins, etc?
         if (not (
-          self.functionCall()
+          #self.functionCall()
           #!
-          or self.functionBody()
+          self.functionBody()
           #or self.simultaneousInstructions()
           #or self.comment()
           #! also, block of these useful

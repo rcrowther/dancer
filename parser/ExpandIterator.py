@@ -14,7 +14,7 @@ class ExpandIterator():
         self.reporter = reporter
         self.parser = parser.Parser(srcIt, reporter)
         self.varMap = {}
-        # [[indent, line]...]
+        # a stack of expanded material
         self.expandingVars = []
 
     def error(self, msg, withPosition):
@@ -33,18 +33,14 @@ class ExpandIterator():
 
     def isVarToExpand(self, line):
         foundExpansion = False
-        forTest = (line[1][0] == '\\')
-        #print('**is var to expand**')
+        forTest = (line[0] == '\\')
         if(forTest):
-          name = line[1][1:].rstrip()
-          #print('**var to expand**' + name)
+          name = line[1:].rstrip()
           m = self.varMap.get(name)
           if (m):
-            #print('**var to expand**' + name)
+            foundExpansion = True
             # ...a reference copy, I hope
             self.expandingVars.extend(reversed(m))
-            #print('**expanding**')
-            foundExpansion = True
         return self.nextFromExpansion() if foundExpansion else line
                 
     def nextFromExpansion(self):
@@ -55,16 +51,13 @@ class ExpandIterator():
         
     def nextFromIterator(self):
       self.parser._next()
-
-      #? This is daft
-      if (self.parser.variable()):
-        ## The parse moves us on... never mind...
-        #print('**found var**')
-        self.varMap[self.parser.currentVarName] = self.parser.lineStash
-        while(self.parser.variable()):
-          #print('**found var**')
-          self.varMap[self.parser.currentVarName] = self.parser.lineStash
-      r = (self.parser.indent, self.parser.line)
+      # A sucessful parse steps us on... that's where we want to be...
+      while(self.parser.variable()):
+        # linestash works round a function body,
+        # so includes the surrounding curly brackets.
+        # For an expansion, these have no meaning
+        self.varMap[self.parser.currentVarName] = self.parser.lineStash[1:-1]
+      r = self.parser.line
       return r
                 
                  
