@@ -12,13 +12,22 @@ class StringIterator:
     
     @srcLines As returned by Python readlines()
     '''
-    def __init__(self, srcLines):
+    def __init__(self, srcName, srcLines):
+        self._srcName = srcName
         self.src = srcLines
         self.i = 0
         self.size = len(srcLines)
-        self.lineCount = 1
+        self._lineCount = 0
 
+    @property
+    def srcName(self):
+      return self._srcName
+         
+    @property
+    def lineCount(self):
+      return self._lineCount
 
+    
     def __iter__(self):
         return self
 
@@ -28,17 +37,19 @@ class StringIterator:
           while(True):
             l = self.src[self.i].lstrip()
             self.i += 1
-            self.lineCount += 1
+            self._lineCount += 1
             if (l):
               break
           return l
         except IndexError:
             raise StopIteration
 
-# Test
-#with open('../test/test', 'r') as f:
+#p = '../test/test'
+#with open(p, 'r') as f:
     #srcAsLines = f.readlines()
-#it = StringIterator(srcAsLines)
+#it = StringIterator(p, srcAsLines)
+
+#print(it.srcName + ':')
 #for l in it:
-  #print(l)
+  #print(str(it.lineCount) + ' ' + l)
 

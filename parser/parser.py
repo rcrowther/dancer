@@ -23,12 +23,12 @@ class Parser:
     def __init__(self, it, reporter):
         self.it = it
         self.reporter = reporter
-        self.prevLineNo = 1
+        #self._prevLineNo = 1
         self.line = ''
    
         # var data gathering
         self.currentVarName = ''
-        self.stashVarLines = False
+        self._stashVarLines = False
         self.varLineStash = []
 
         # namedParams gathering
@@ -46,27 +46,27 @@ class Parser:
         self.root()
         
     def error(self, rule, msg, withPosition):
-        pos = Position(self.it.src, self.prevLineNo, 0) if withPosition else NoPosition 
+        pos = Position(self.it.srcName, self.it.lineCount, 0) if withPosition else NoPosition 
         self.reporter.error(rule + ': ' + msg, pos)
         #? Might introduce some finness by allowing recovery sometimes?
         sys.exit(1)
 
     def warning(self, msg, withPosition):
-        pos = Position(self.it.src, self.prevLineNo, 0) if withPosition else NoPosition 
+        pos = Position(self.it.srcName, self.it.lineCount, 0) if withPosition else NoPosition 
         self.reporter.warning(msg, pos)
 
     def info(self, msg, withPosition):
-        pos = Position(self.it.src, self.prevLineNo, 0) if withPosition else NoPosition 
+        pos = Position(self.it.srcName, self.it.lineCount, 0) if withPosition else NoPosition 
         self.reporter.info(msg, pos)
 
     def expectedError(self, msg):
         self.error("Expected {0} but found '{1}'".format(msg, tokenToString[self.tok]), True)
       
     def _next(self):
-        self.prevLineNo = self.it.lineCount
+        #self._prevLineNo = self.it.lineCount
         n = self.it.__next__()
         self.line = n
-        if (self.stashVarLines):
+        if (self._stashVarLines):
           self.varLineStash.append(n)
 
 
@@ -166,7 +166,7 @@ class Parser:
     def simultaneousInstructions(self):
       commit = (self.line[0] == '<')
       if (commit):
-        #print('simultaneousInstructions ' + str(self.prevLineNo))
+        #print('simultaneousInstructions ' + str(self._prevLineNo))
         self.simultaneousInstructionsOpenCB()
         self._next()
         
@@ -251,25 +251,28 @@ class Parser:
         self.variableOpenCB(p[1])
         self.currentVarName = p[1]
         self.varLineStash = []
-        self.stashVarLines = True
+        self._stashVarLines = True
         self._next()
         if (not (
           #? this covers all we need and allow?
           self.functionBody()
         )):
           self.error('variable', 'Variable must contain an understandable unit of code, currently anything allowed in a function body', True)
-        self.stashVarLines = False
+        self._stashVarLines = False
         self.varLineStash.pop()
       return commit
             
             
     def rootSeq(self):
-        while(
-          self.comment()
-          or self.functionCall()
-          # this last. Has only alphabetic test, reacts to most lines
-          or self.variable()
-        ):
+        while(True):
+            if(not(
+            self.comment()
+            or self.functionCall()
+            # this last. Has only alphabetic test, reacts to most lines
+            or self.variable()          
+          )):
+            self.error('root sequence', 'Must contain an understandable unit of code, currently a comment, variable, or function call', True)
+
           pass
 
     def root(self):

@@ -3,7 +3,7 @@
 
 import ExpandIterator
 
-
+#x ?
 class MetaAssertIterator():
     '''
     Normalise the stream from header data.
@@ -69,11 +69,12 @@ import SourceIterators
 
 from ConsoleStreamReporter import ConsoleStreamReporter
 
-with open('../test/test', 'r') as f:
+p = '../test/test'
+with open(p, 'r') as f:
     srcAsLines = f.readlines()
     
 r = ConsoleStreamReporter()
-sit = SourceIterators.StringIterator(srcAsLines)
+sit = SourceIterators.StringIterator(p, srcAsLines)
 it = MetaAssertIterator(sit, r)
 
 for l in it:

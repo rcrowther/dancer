@@ -27,12 +27,13 @@ def printError(msg):
 
 
 
-def parse(srcAsLines, parseType):
+def parse(srcAsLines, args):
     r = ConsoleStreamReporter()
-    sit = SourceIterators.StringIterator(srcAsLines)
+    sit = SourceIterators.StringIterator(args.infile, srcAsLines)
     #it = MetaAssertIterator.MetaAssertIterator(sit, r)
     it = ExpandIterator.ExpandIterator(sit, r)
     #Parser(it, r)
+    parseType = args.parser
     if (parseType ==  'JSON'):
       p = JSONPrintGenerator(it, r)
       p.parse()
@@ -158,7 +159,7 @@ def main(argv):
         srcAsLines = f.readlines()
 
 
-    parse(srcAsLines, args.parser)
+    parse(srcAsLines, args)
 
 
 

@@ -23,9 +23,14 @@ class ExpandIterator():
         #? Might introduce some finness by allowing recovery sometimes?
         sys.exit(1)
         
-    def lineCount():
+    @property
+    def lineCount(self):
       return self.it.lineCount
-      
+
+    @property
+    def srcName(self):
+      return self.it.srcName
+             
     def __iter__(self):
         return self
         
@@ -73,15 +78,17 @@ class ExpandIterator():
 
 #from ConsoleStreamReporter import ConsoleStreamReporter
 
-#with open('../test/test', 'r') as f:
+#p = '../test/test'
+#with open(p, 'r') as f:
     #srcAsLines = f.readlines()
     
 #r = ConsoleStreamReporter()
-#sit = SourceIterators.StringIterator(srcAsLines)
-#eit = ExpandIterator(sit, r)
+#sit = SourceIterators.StringIterator(p, srcAsLines)
+#it = ExpandIterator(sit, r)
 
-#for l in eit:
-  #print(l)
+#print(it.srcName + ':')
+#for l in it:
+  #print(str(it.lineCount) + ' ' + l)
 
 #print('map:')
-#print(eit.varMap)
+#print(it.varMap)
