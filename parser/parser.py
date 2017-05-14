@@ -8,7 +8,12 @@ import sys
 
 from Position import Position, NoPosition
 
-
+#! not parsing positional parameters
+#! need a resolverIterator to remove functions from instruction lists?
+#! otheerwise they screw JSON representation, and maybe other bytecode?
+#! scores cannot accept staffs as bodies. 
+#! Positional, or named?
+#! 
 class Parser:
     '''
     '''
@@ -21,9 +26,13 @@ class Parser:
         self.prevLineNo = 1
         self.line = ''
    
+        # var data gathering
         self.currentVarName = ''
-        self.stashLines = False
-        self.lineStash = []
+        self.stashVarLines = False
+        self.varLineStash = []
+
+        # namedParams gathering
+        self.namedParamsStash = []
         
         # ...prime
         #self._next()
@@ -57,8 +66,8 @@ class Parser:
         self.prevLineNo = self.it.lineCount
         n = self.it.__next__()
         self.line = n
-        if (self.stashLines):
-          self.lineStash.append(n)
+        if (self.stashVarLines):
+          self.varLineStash.append(n)
 
 
 
@@ -70,22 +79,25 @@ class Parser:
       #print('"' + text + '"')
       pass
 
-    # @params [[name, value], ...]
-    def namedParametersCB(self, params):
-      #print('namedParameters...')
-      #print(params)
-      pass
-
-    # @posParams [param1, ...]
-    def functionCallCB(self, name, posParams):
+    # @posParams [param1, ...] @namedParams [[name, val],...]
+    def functionCallOpenCB(self, name, posParams, namedParams):
       #print('functionCall...')
-      #print(name + ':' + str(posParams))
+      #print(name + ':' + str(posParams) +str(namedParams))
+      pass
+      
+    def functionCallCloseCB(self, name):
+      #print('    functionCallCloseCB...')
+      #print(name)
       pass
 
-    def functionCloseCB(self):
-      #print('    functionCloseCB...')
-      pass
-  
+    def functionBodyOpenCB(self):
+      #print('  functionBody open...')
+      pass      
+
+    def functionBodyCloseCB(self):
+      #print('  functionBody close...')
+      pass        
+      
     def instructionCB(self, cmd, params):
       #print('ins...')
       #print(cmd)
@@ -99,14 +111,7 @@ class Parser:
       #print('  simultaneousInstructions close...')
       pass  
             
-    def functionBodyOpenCB(self):
-      #print('  functionBody open...')
-      pass      
 
-    def functionBodyCloseCB(self):
-      #print('  functionBody close...')
-      pass        
-      
     def variableOpenCB(self, name):
       #print('variable name...')
       #print(name)  
@@ -144,18 +149,17 @@ class Parser:
 
 
     def namedParameters(self):
-      params = []
+      self.namedParamsStash = []
       while(self.line[0] == ':'):
         p = self.line.split()
         name = p[0][1:]
         if (len(p) > 2):
             self.error('namedParameters', 'A parameter appears to have more than one value?', True)          
         if (len(p) < 2):
-          params.append([name, ''])
+          self.namedParamsStash.append([name, ''])
         else:
-          params.append([name, p[1]])
+          self.namedParamsStash.append([name, p[1]])
         self._next()
-      self.namedParametersCB(params)
 
 
 
@@ -228,13 +232,13 @@ class Parser:
               self.error('functionCall', 'Expected characters for a function name', True)
             name = parts[0]            
             posParams = parts[1:]
-            self.functionCallCB(name, posParams)
             self._next()
-            
             self.namedParameters()
+            self.functionCallOpenCB(name, posParams, self.namedParamsStash)
+
             self.functionBody()
             
-            self.functionCloseCB()     
+            self.functionCallCloseCB(name)     
         return commit
 
 
@@ -246,16 +250,16 @@ class Parser:
           self.error('variable', 'Expected name to assign to?', True)
         self.variableOpenCB(p[1])
         self.currentVarName = p[1]
-        self.lineStash = []
-        self.stashLines = True
+        self.varLineStash = []
+        self.stashVarLines = True
         self._next()
         if (not (
           #? this covers all we need and allow?
           self.functionBody()
         )):
           self.error('variable', 'Variable must contain an understandable unit of code, currently anything allowed in a function body', True)
-        self.stashLines = False
-        self.lineStash.pop()
+        self.stashVarLines = False
+        self.varLineStash.pop()
       return commit
             
             

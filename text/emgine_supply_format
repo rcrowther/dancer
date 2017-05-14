@@ -42,3 +42,30 @@ and maybe extras like annotation marks?
 
 These should be marked with a Boolean so they can be quickly asessed then diverted to other code.
 
+==  Differences beteen formats
+While the expansion and parse and are usefful to both formats, some processing should maybe be diferent?
+
+=== For rendering engines
+- normalisation of header material
+- beat-based rendering 
+- Beats should be interlaced?
+- maybe benefit from tweening (needs a format?)?
+- All repeats need expanding
+- stripped data?
+
+Extra steps forward from the print, then.
+
+=== For printing
+- headers as-is
+- duration-based rendering
+- beats should not be interlaced (but see Lillypond rendering?)
+- only internal, not visible repeats need expanding
+- all data
+
+This can eaw and low. Only prepocessing is
+- expand vars
+- expand non-visible repeats 
+- other expansions (circle?)
+- parse for errors
+It is steps back from rendering parsing.
+

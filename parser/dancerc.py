@@ -8,9 +8,10 @@ import sys
 
 import SourceIterators
 import ExpandIterator
+import MetaAssertIterator
 
 from ConsoleStreamReporter import ConsoleStreamReporter
-from JSON import JSONParser
+from JSON import JSONPrintGenerator
 from Python import PythonParser
 
 #? No warnings?
@@ -29,10 +30,11 @@ def printError(msg):
 def parse(srcAsLines, parseType):
     r = ConsoleStreamReporter()
     sit = SourceIterators.StringIterator(srcAsLines)
-    eit = ExpandIterator.ExpandIterator(sit, r)
+    #it = MetaAssertIterator.MetaAssertIterator(sit, r)
+    it = ExpandIterator.ExpandIterator(sit, r)
     #Parser(it, r)
     if (parseType ==  'JSON'):
-      p = JSONParser(eit, r)
+      p = JSONPrintGenerator(it, r)
       p.parse()
       print('output:')
       print(''.join(p.result())) 
@@ -73,6 +75,11 @@ def main(argv):
         help="Expand all repeated code, including code marked for visual repeats only."
         )
 
+    parser.add_argument("-i", "--interlace-dancers", 
+        default='all',
+        help="Add marks for the dancer, reconstucting the instructions by beat"
+        )
+        
     parser.add_argument('-p', '--parser', 
         default='JSON',
         #type=string, 

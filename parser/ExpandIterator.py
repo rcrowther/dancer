@@ -53,10 +53,10 @@ class ExpandIterator():
       self.parser._next()
       # A sucessful parse steps us on... that's where we want to be...
       while(self.parser.variable()):
-        # linestash works round a function body,
+        # varLineStash works round a function body,
         # so includes the surrounding curly brackets.
         # For an expansion, these have no meaning
-        self.varMap[self.parser.currentVarName] = self.parser.lineStash[1:-1]
+        self.varMap[self.parser.currentVarName] = self.parser.varLineStash[1:-1]
       r = self.parser.line
       return r
                 
