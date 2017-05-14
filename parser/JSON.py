@@ -9,7 +9,6 @@ class JSONPrintGenerator(Parser):
       self.comments = False
       self.inSimutaneous = False
 
-
       # keep track of list indexing, for commas 
       self.first = True
       Parser.__init__(self, it, reporter)
@@ -70,7 +69,7 @@ class JSONPrintGenerator(Parser):
     def functionBodyOpenCB(self):
       #print('  functionBody open...')
       # always posParams, if empty
-      self.b.append(',\n"instructions" : [')
+      self.b.append(',\n"body" : [')
       # for contents
       self.first = True
       pass      
@@ -79,16 +78,29 @@ class JSONPrintGenerator(Parser):
       #print('  functionBody close...')
       self.b.append('\n]')
       pass  
-            
+
+    def simultaneousFunctionBodyOpenCB(self):
+      #print('  simultaneousFunctionBody open...')
+      self.b.append(',\n"simultaneousBody" : {')
+      pass      
+
+    def simultaneousFunctionBodyCloseCB(self):
+      #print('  simultaneousFunctionBody close...')
+      self.b.append('\n}')
+      pass       
+      
+      
     def _addInstruction(self, cmd, params):
-        self.b.append("['")
+        self.b.append('["')
         self.b.append(str(cmd))
         # its a move, not a system instruction
-        self.b.append("', True")
+        self.b.append('", true')
         for p in params:
-          self.b.append(", ")
+          self.b.append(', "')
           self.b.append(str(p))
-        self.b.append("]")
+        if (params):
+                  self.b.append('"')
+        self.b.append(']')
               
     def instructionCB(self, cmd, params):
       #print('ins...')

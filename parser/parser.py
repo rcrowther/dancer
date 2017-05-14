@@ -97,6 +97,15 @@ class Parser:
     def functionBodyCloseCB(self):
       #print('  functionBody close...')
       pass        
+
+    def simultaneousFunctionBodyOpenCB(self):
+      #print('  simultaneousFunctionBody open...')
+      pass      
+
+    def simultaneousFunctionBodyCloseCB(self):
+      #print('  simultaneousFunctionBody close...')
+      pass       
+      
       
     def instructionCB(self, cmd, params):
       #print('ins...')
@@ -208,6 +217,7 @@ class Parser:
         self.functionBodyOpenCB()
         self._next()
         
+        #!? Why both instructions and instruction?
         while (True):
           if(not(
           self.simultaneousInstructions()
@@ -223,6 +233,33 @@ class Parser:
         self._next()
       return commit
         
+    def simultaneousFunctionBody(self):
+      commit = (
+        len(self.line) > 1 
+        and self.line[0] == '<' 
+        and self.line[1] == '<'
+      )
+      
+      if (commit):
+        self.simultaneousFunctionBodyOpenCB()
+        self._next()
+        
+        while (True):
+          if(not(
+            self.functionCall()
+            or self.comment()
+          )):
+            self.error('simultaneousFunctionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
+          if (
+            len(self.line) > 1 
+            and self.line[0] == '>' 
+            and self.line[1] == '>'
+          ):
+            break
+
+        self.simultaneousFunctionBodyCloseCB()             
+        self._next()
+      return commit
         
     def functionCall(self):
         commit = (self.line[0] == '\\')
@@ -236,7 +273,9 @@ class Parser:
             self.namedParameters()
             self.functionCallOpenCB(name, posParams, self.namedParamsStash)
 
+            # both optional
             self.functionBody()
+            self.simultaneousFunctionBody()
             
             self.functionCallCloseCB(name)     
         return commit
@@ -265,7 +304,7 @@ class Parser:
             
     def rootSeq(self):
         while(True):
-            if(not(
+          if(not(
             self.comment()
             or self.functionCall()
             # this last. Has only alphabetic test, reacts to most lines
@@ -273,12 +312,10 @@ class Parser:
           )):
             self.error('root sequence', 'Must contain an understandable unit of code, currently a comment, variable, or function call', True)
 
-          pass
 
     def root(self):
         try:
             self.rootSeq()
-            #self.seqContents(self.treeRoot.body)
             # if we don't except on StopIteration...
             self.error('parser', 'Parsing did not complete, stopped here?', True)
         except StopIteration:
@@ -290,11 +327,12 @@ class Parser:
 #from SourceIterators import StringIterator
 #from ConsoleStreamReporter import ConsoleStreamReporter
 
-#with open('../test/test', 'r') as f:
+#p = '../test/test'
+#with open(p, 'r') as f:
     #srcAsLines = f.readlines()
     
-#sit = StringIterator(srcAsLines)
+#it = StringIterator(p, srcAsLines)
 #r = ConsoleStreamReporter()
-#p = Parser(sit, r)
+#p = Parser(it, r)
 
 #p.parse()
