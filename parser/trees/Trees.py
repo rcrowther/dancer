@@ -9,13 +9,8 @@ class Node():
     self.entitySuffix = 'Node'
     self.children = []
     
-  def extendString(self, b):
-    pass
-
-  def addString(self, b):
-    b.append(self.entitySuffix)
-    b.append('(')
-    self.extendString(b)
+  def addChildren(self, b):
+    b.append('[')
     first = True
     for e in self.children:
       if (first):
@@ -23,6 +18,16 @@ class Node():
       else:
         b.append(", ")
       e.addString(b)
+    b.append(']')
+    
+  def extendString(self, b):
+    pass
+
+  def addString(self, b):
+    b.append(self.entitySuffix)
+    b.append('(')
+    self.extendString(b)
+    self.addChildren(b)
     b.append(')')
     return b
     
@@ -35,6 +40,11 @@ class Node():
 
        
 ## Generic nodes ##
+class Root(Node):
+  def __init__(self):
+    Node.__init__(self)
+    self.entitySuffix = 'Root'
+
 class GenericFunction(Node):
   def __init__(self, name, posParams, namedParams): 
     Node.__init__(self)
@@ -106,17 +116,26 @@ class GenericInstruction(Node):
   def params(self, params):
     self._params = params
 
+  # kill this, never has children
+  def addChildren(self, b):
+   pass
+   
   def extendString(self, b):
      b.append(self.cmd)    
-     #b.append(', ')    
-     #b.append(str(self.posParams))  
+     b.append(', ')    
+     b.append(str(self.duration))  
  
 class GenericSimultaneous(Node):
   def __init__(self):
     Node.__init__(self)
     self.entitySuffix = 'GenericSimultaneous'
 
-    
+ 
+class GenericSimultaneousInstruction(Node):
+  def __init__(self):
+    Node.__init__(self)
+    self.entitySuffix = 'GenericSimultaneousInstruction'
+
  ###################################################################            
 # Context has no time
 # It is used for overall dance control

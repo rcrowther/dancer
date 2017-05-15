@@ -1,0 +1,10 @@
+I got somewhere. I defined an input language, which is ok, and bult a parser, which makes aan AST tree from generic nodes. Try,
+
+./dancerc.py -p ast ../test/test
+
+Where to go fro here is difficult.
+
+
+Lillypond is complicated by being using Guile, (look for SCM) with callbacks so most properties can be overridden.
+
+Lilly main seems to degenerate into multi-processing handling. Lilly parser seems to make the events. 

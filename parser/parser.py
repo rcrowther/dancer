@@ -26,7 +26,7 @@ class Parser:
         self.it = it
         self.reporter = reporter
         
-        self.tree = Score()
+        self.tree = Root()
 
         #self._prevLineNo = 1
         self.line = ''
@@ -186,7 +186,7 @@ class Parser:
         #print('simultaneousInstructions ' + str(self._prevLineNo))
         self.simultaneousInstructionsOpenCB()
         self._next()
-        n = GenericSimultaneous()
+        n = GenericSimultaneousInstruction()
         childList.append(n)
         while(self.line[0] != '>'):
           #! some form of body (accepts functions)
@@ -207,13 +207,29 @@ class Parser:
       commit = self.line[0].isalpha()
       if (commit):
         p = self.line.split()
+        name = p[0]
+        
+        # split durations
+        i = len(name) - 1
+        while(i >= 0 and name[i].isdigit()):
+          i -= 1
+        if (i == -1):
+          self.error('plainInstruction', 'An instruction name can not be all digits', True)
+        i += 1
+        
+        # get name and duration values
+        duration = name[i:]
+        if (not duration):
+          duration = 1
+        name = name[:i]
+        
         if (len(p) < 2):
-          self.instructionCB(p[0], [])
+          self.instructionCB(name, [])
           #print('ins' + p[0])
-          childList.append(GenericInstruction(p[0], 1, []))
+          childList.append(GenericInstruction(name, duration, []))
         else:
           self.instructionCB(p[0], p[1:])
-          childList.append(GenericInstruction(p[0], 1, p[1:]))
+          childList.append(GenericInstruction(name, duration, p[1:]))
         self._next()
       return commit
 
