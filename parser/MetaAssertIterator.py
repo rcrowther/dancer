@@ -65,17 +65,17 @@ class MetaAssertIterator():
       return r
       
       
-import SourceIterators
+#import SourceIterators
 
-from ConsoleStreamReporter import ConsoleStreamReporter
+#from ConsoleStreamReporter import ConsoleStreamReporter
 
-p = '../test/test'
-with open(p, 'r') as f:
-    srcAsLines = f.readlines()
+#p = '../test/test'
+#with open(p, 'r') as f:
+    #srcAsLines = f.readlines()
     
-r = ConsoleStreamReporter()
-sit = SourceIterators.StringIterator(p, srcAsLines)
-it = MetaAssertIterator(sit, r)
+#r = ConsoleStreamReporter()
+#sit = SourceIterators.StringIterator(p, srcAsLines)
+#it = MetaAssertIterator(sit, r)
 
-for l in it:
-  print(l)
+#for l in it:
+  #print(l)

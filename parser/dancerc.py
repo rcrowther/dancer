@@ -12,7 +12,8 @@ import MetaAssertIterator
 
 from ConsoleStreamReporter import ConsoleStreamReporter
 from JSON import JSONPrintGenerator
-from Python import PythonParser
+from Python import PythonBuilder
+from parser import Parser
 
 #? No warnings?
 #? use reporter?
@@ -34,13 +35,21 @@ def parse(srcAsLines, args):
     it = ExpandIterator.ExpandIterator(sit, r)
     #Parser(it, r)
     parseType = args.parser
-    if (parseType ==  'JSON'):
+    
+    if (parseType == 'ast'):
+      p = Parser(it, r)
+      p.parse()
+      print('output:')
+      #print(''.join(p.result())) 
+      print(str(p.ast())) 
+      
+    if (parseType == 'json'):
       p = JSONPrintGenerator(it, r)
       p.parse()
       print('output:')
       print(''.join(p.result())) 
 
-    if (parseType ==  'Bytecode'):
+    if (parseType == 'bytecode'):
       print('Not enabled. Help!') 
       
     print(r.summaryString())
@@ -84,7 +93,7 @@ def main(argv):
     parser.add_argument('-p', '--parser', 
         default='JSON',
         #type=string, 
-        choices=('JSON', 'Bytecode')
+        choices=('ast', 'json', 'bytecode')
         )
        
     parser.add_argument("-s", "--solo", 

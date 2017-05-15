@@ -30,7 +30,7 @@ class JSONPrintGenerator(Parser):
           self.b.append(", ")
                 
     def functionCallOpenCB(self, name, posParams, namedParams):
-      #print('function name...')
+      #print('function copen...')
       #print(name + ':' + str(posParams) +str(namedParams))
 
       self._addComma()

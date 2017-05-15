@@ -7,6 +7,8 @@ import argparse
 import sys
 
 from Position import Position, NoPosition
+from trees.Trees import *
+
 
 #! not parsing positional parameters
 #! need a resolverIterator to remove functions from instruction lists?
@@ -23,6 +25,9 @@ class Parser:
     def __init__(self, it, reporter):
         self.it = it
         self.reporter = reporter
+        
+        self.tree = Score()
+
         #self._prevLineNo = 1
         self.line = ''
    
@@ -45,6 +50,9 @@ class Parser:
         # let's go
         self.root()
         
+    def ast(self):
+      return self.tree
+      
     def error(self, rule, msg, withPosition):
         pos = Position(self.it.srcName, self.it.lineCount, 0) if withPosition else NoPosition 
         self.reporter.error(rule + ': ' + msg, pos)
@@ -172,20 +180,21 @@ class Parser:
 
 
 
-    def simultaneousInstructions(self):
+    def simultaneousInstructions(self, childList):
       commit = (self.line[0] == '<')
       if (commit):
         #print('simultaneousInstructions ' + str(self._prevLineNo))
         self.simultaneousInstructionsOpenCB()
         self._next()
-        
+        n = GenericSimultaneous()
+        childList.append(n)
         while(self.line[0] != '>'):
           #! some form of body (accepts functions)
           #? but not simultaneousInstructions
           if(not(
-            self.functionCall()
+            self.functionCall(n.children)
             or self.comment()
-            or self.plainInstruction()
+            or self.plainInstruction(n.children)
           )):
             self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
 
@@ -194,36 +203,35 @@ class Parser:
         self._next()
       return commit
       
-    def plainInstruction(self):
+    def plainInstruction(self, childList):
       commit = self.line[0].isalpha()
       if (commit):
         p = self.line.split()
         if (len(p) < 2):
           self.instructionCB(p[0], [])
+          #print('ins' + p[0])
+          childList.append(GenericInstruction(p[0], 1, []))
         else:
           self.instructionCB(p[0], p[1:])
+          childList.append(GenericInstruction(p[0], 1, p[1:]))
         self._next()
       return commit
 
-    def plainInstructionSeq(self):
-      commit = self.plainInstruction()
-      while (self.plainInstruction()):
-        pass
-      return commit
 
-    def functionBody(self):
+    def functionBody(self, childList):
       commit = (self.line[0] == '{')
       if (commit):
+        #self.functionTreeNode()
         self.functionBodyOpenCB()
         self._next()
         
         #!? Why both instructions and instruction?
         while (True):
           if(not(
-          self.simultaneousInstructions()
-          or self.functionCall()
+          self.simultaneousInstructions(childList)
+          or self.functionCall(childList)
           or self.comment()
-          or self.plainInstruction()
+          or self.plainInstruction(childList)
           )):
             self.error('functionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
           if (self.line[0] == '}'):
@@ -233,7 +241,7 @@ class Parser:
         self._next()
       return commit
         
-    def simultaneousFunctionBody(self):
+    def simultaneousFunctionBody(self, childList):
       commit = (
         len(self.line) > 1 
         and self.line[0] == '<' 
@@ -246,7 +254,7 @@ class Parser:
         
         while (True):
           if(not(
-            self.functionCall()
+            self.functionCall(childList)
             or self.comment()
           )):
             self.error('simultaneousFunctionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
@@ -261,7 +269,13 @@ class Parser:
         self._next()
       return commit
         
-    def functionCall(self):
+    #def functionCallTreeNode(self):
+      #Dancer(name)
+      #Repeat(isVisual, body, alternatives)
+      #BeatsPerBar
+      #Tempo
+      
+    def functionCall(self, childList):
         commit = (self.line[0] == '\\')
         if(commit):
             parts = self.line[1:].split()
@@ -272,10 +286,12 @@ class Parser:
             self._next()
             self.namedParameters()
             self.functionCallOpenCB(name, posParams, self.namedParamsStash)
+            n = GenericFunction(name, posParams, self.namedParamsStash)
+            childList.append(n)
 
             # both optional
-            self.functionBody()
-            self.simultaneousFunctionBody()
+            self.functionBody(n.children)
+            self.simultaneousFunctionBody(n.children)
             
             self.functionCallCloseCB(name)     
         return commit
@@ -294,7 +310,7 @@ class Parser:
         self._next()
         if (not (
           #? this covers all we need and allow?
-          self.functionBody()
+          self.functionBody([])
         )):
           self.error('variable', 'Variable must contain an understandable unit of code, currently anything allowed in a function body', True)
         self._stashVarLines = False
@@ -302,11 +318,11 @@ class Parser:
       return commit
             
             
-    def rootSeq(self):
+    def rootSeq(self, childList):
         while(True):
           if(not(
             self.comment()
-            or self.functionCall()
+            or self.functionCall(childList)
             # this last. Has only alphabetic test, reacts to most lines
             or self.variable()          
           )):
@@ -315,7 +331,7 @@ class Parser:
 
     def root(self):
         try:
-            self.rootSeq()
+            self.rootSeq(self.tree.children)
             # if we don't except on StopIteration...
             self.error('parser', 'Parsing did not complete, stopped here?', True)
         except StopIteration:
