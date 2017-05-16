@@ -37,8 +37,39 @@ class Node():
     '''
     return "".join(self.addString([]))  
 
+## Base nodes ##
 
-       
+     
+# An Instruction is an event, has a time
+# may be a structuring element, though, not an instruction for a dancer
+# or a direction for visusl lsyout?
+# See Move
+class Instruction(Node):
+  def __init__(self, isMove):
+    Node.__init__(self)
+    self.entitySuffix = 'Instruction'
+    self._isMove = isMove
+    
+  @property
+  def isMove(self):
+    return self._isMove
+
+  @isMove.setter
+  def params(self, isMove):
+    self._isMove = isMove
+
+
+
+class MoveInstruction(Instruction):
+  def __init__(self):
+    Instruction.__init__(self, True)
+    self.entitySuffix = 'Instruction'
+    self._isMove = isMove
+    
+  # kill this, never has children
+  def addChildren(self, b):
+   pass
+   
 ## Generic nodes ##
 class Root(Node):
   def __init__(self):
@@ -83,10 +114,12 @@ class GenericFunction(Node):
      b.append(str(self.posParams))    
      #b.append(self.name)    
     
-  
-class GenericInstruction(Node):
+#! revise so fits Instruction
+#! so Tempo, etc.
+class GenericInstruction(Instruction):
+  # defsults to isMove == True
   def __init__(self, cmd, duration, params):
-    Node.__init__(self)
+    Instruction.__init__(self, True)
     self.entitySuffix = 'GenericInstruction'
     self._cmd = cmd
     self._duration = duration
@@ -125,16 +158,17 @@ class GenericInstruction(Node):
      b.append(', ')    
      b.append(str(self.duration))  
  
+#? do this way, or with a seperate body?
 class GenericSimultaneous(Node):
   def __init__(self):
     Node.__init__(self)
     self.entitySuffix = 'GenericSimultaneous'
 
  
-class GenericSimultaneousInstruction(Node):
+class SimultaneousInstructions(Node):
   def __init__(self):
     Node.__init__(self)
-    self.entitySuffix = 'GenericSimultaneousInstruction'
+    self.entitySuffix = 'SimultaneousInstructions'
 
  ###################################################################            
 # Context has no time
@@ -164,68 +198,79 @@ class Dancer(Context):
     return self.name     
      
      
-     
-# An Instruction is an event, has a time
-# may be a structuring element, though, not an instruction for a dancer
-# or a direction for visusl lsyout?
-# See Move
-class Instruction(Node):
-  def __init__(isMove):
-    Node.__init__(self)
-    self.entitySuffix = 'Instruction'
-    self.isMove = isMove
-    
-  @property
-  def isMove(self):
-    return self.isMove
-
 
 
 ## Non-move instructions ##
 class Repeat(Instruction):
   
-  def __init__(isVisual, body, alternatives):
+  def __init__(value, body, alternatives):
     Instruction.__init__(self, False)
     self.entitySuffix = 'Repeat'
-    self.isVisual = isVisual
+    self._value = value
     self.body = body
-    self.alternatives = alternatives
+    self._alternatives = alternatives
     
   @property
-  def isVisual(self):
-    return self.isVisual
-
-  @property
-  def body(self):
-    return self.body
+  def value(self):
+    return self._value
+    
+  @value.setter
+  def value(self, value):
+    self._value = value
     
   @property
   def alternatives(self):
-    return self.alternatives
+    return self._alternatives
+
+  @alternatives.setter
+  def alternatives(self, alternatives):
+    self._alternatives = alternatives
 
 
 class BeatsPerBar(Instruction):
-  def __init__(value):
+  def __init__(self, value):
     Instruction.__init__(self, False)
     self.entitySuffix = 'BeatsPerBar'
-    self.value = value
+    self._value = value
     
   @property
   def value(self):
-    return self.value
+    return self._value
+    
+  @value.setter
+  def value(self, value):
+    self._value = value
 
+  def extendString(self, b):
+     b.append(self.value)
 
+  # kill this, never has children
+  def addChildren(self, b):
+   pass
+    
+    
 class Tempo(Instruction):  
-  def __init__(value):
+  def __init__(self, value):
     Instruction.__init__(self, False)
     self.entitySuffix = 'Tempo'
-    self.value = value
+    self._value = value
     
   @property
   def value(self):
-    return self.value
+    return self._value
     
-    
+  @value.setter
+  def value(self, value):
+    self._value = value
+
+  def extendString(self, b):
+     b.append(self.value)    
+
+  # kill this, never has children
+  def addChildren(self, b):
+   pass
+     
+         
 ## Move instructions ##
 # A move is something that a dancer will do
 class Move(Instruction):

@@ -14,6 +14,7 @@ from ConsoleStreamReporter import ConsoleStreamReporter
 from JSON import JSONPrintGenerator
 from Python import PythonBuilder
 from parser import Parser
+from Phases import *
 
 #? No warnings?
 #? use reporter?
@@ -39,6 +40,11 @@ def parse(srcAsLines, args):
     if (parseType == 'ast'):
       p = Parser(it, r)
       p.parse()
+      cu = CompilationUnit(p.ast())
+      ph1 = GatherInfoPhase(cu, r)
+      ph1.process()
+      ph2 = NormaliseInstructionsPhase(cu, r)
+      ph2.process()
       print('output:')
       #print(''.join(p.result())) 
       print(str(p.ast())) 

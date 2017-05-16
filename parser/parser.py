@@ -186,7 +186,7 @@ class Parser:
         #print('simultaneousInstructions ' + str(self._prevLineNo))
         self.simultaneousInstructionsOpenCB()
         self._next()
-        n = GenericSimultaneousInstruction()
+        n = SimultaneousInstructions()
         childList.append(n)
         while(self.line[0] != '>'):
           #! some form of body (accepts functions)
