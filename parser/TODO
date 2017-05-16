@@ -406,7 +406,8 @@ voice:
   \consists "Tuplet_engraver"
   \consists "Grace_engraver"
   \consists "Instrument_switch_engraver"
-}
+
+
  
 == PDF rendering
 TODO: Main one---decide how to generate x/y coordinates fron the tree parse.

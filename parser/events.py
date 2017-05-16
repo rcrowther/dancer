@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from enum import Enum
+#from enum import Enum
 
 EventType = {
   'CreateContext': 1,
@@ -15,6 +15,7 @@ EventType = {
 
 EventTypeToString = { v: k for (k, v) in EventType.items()}
   
+#! need DeleteProperty, sometime
 
 class Event():
   def __init__(self, context, tpe):
@@ -60,11 +61,11 @@ class Event():
         
     
 class CreateContext(Event):
-  def __init__(self, idx, ctxType):
+  def __init__(self, idx, name):
     Event.__init__(self, None, EventType['CreateContext'])
     self.entitySuffix = 'CreateContext'
     self._idx = idx
-    self._ctxType = ctxType
+    self._name = name
       
   @property
   def idx(self):
@@ -75,19 +76,19 @@ class CreateContext(Event):
     self._idx = idx
         
   @property
-  def ctxType(self):
-    return self._ctxType
-
-  @ctxType.setter
-  def ctxType(self, ctxType):
-    self._ctxType = ctxType
+  def name(self):
+    return self._name
+    
+  @name.setter
+  def name(self, name):
+    self._name = name
 
           
   def extendString(self, b):
     b.append(', ')
     b.append(str(self.idx))
     b.append(', "')
-    b.append(self.ctxType) 
+    b.append(self.name) 
     b.append('"')
 
     
@@ -133,6 +134,9 @@ class MergeProperty(Event):
 
             
 class PrepareEvent(Event):
+  '''
+  @moment int, for now
+  '''
   def __init__(self, context, moment):
     Event.__init__(self, context, EventType['Prepare'])
     self.entitySuffix = 'PrepareEvent'
