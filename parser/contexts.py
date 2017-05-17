@@ -17,7 +17,9 @@ def uid():
 class Context():
 
   def __init__(self, uid, name):
-    self.name = name
+    self._name = name
+    # To some means doubles up, either subcontexts or a list of music
+    # events. Both children, both iterable, though. 
     self.children = []
     self.uid = uid
     # The itertor can be
@@ -29,7 +31,7 @@ class Context():
     # properties could e on the object
     # but I don't want this too Python
     # general. Written to streams
-    self._properties = {}
+    self.properties = {}
     # internal. Ued for temp
     self._iProperties = {}
     
@@ -43,13 +45,13 @@ class Context():
     
     
   def mergeProperty(self, k, v):
-    self._properties[k] = v
+    self.properties[k] = v
 
   def readProperty(self, k):
-    return self._properties[k]
+    return self.properties[k]
         
   def deleteProperty(self, k):
-    del self._properties[k]
+    del self.properties[k]
     
     
   def isLeaf(self):
@@ -58,12 +60,12 @@ class Context():
 
 
     
-class Dancer(Context):
-  def __init__(self, eventIt):
+class DancerContext(Context):
+  def __init__(self):
     Context.__init__(self, uid(), 'Dancer')
-    self.eventStream = [Finish()]
-    self.it = eventIt
-    self.it.contextUID = self.uid
+    #self.eventStream = [Finish()]
+    #self.it = eventIt
+    #self.it.contextUID = self.uid
   
   #? unused
   def prepare(self):
@@ -72,11 +74,11 @@ class Dancer(Context):
 
 
 
-class Score(Context):
+class ScoreContext(Context):
   def __init__(self):
     Context.__init__(self, uid(), 'Score')
-    self.it = ChildContextIterator()
-    self.it.contextUID = self.uid
+    #self.it = ChildContextIterator()
+    #self.it.contextUID = self.uid
 
   #x unused
   def prepare(self):
@@ -151,12 +153,12 @@ class Build(Processor):
     #return inStream 
     
     
-class Global(Context):
+class GlobalContext(Context):
   def __init__(self):
     Context.__init__(self, 0, 'Global')
     self.outStream = []
-    self.score = Score()
-    self.it = self.score.it
+    #self.score = Score()
+    #self.it = self.score.it
     #! A lot not right
     #! how to output results from a process phase? In the phase?
     #! howto initially load phases?
@@ -204,22 +206,22 @@ class Global(Context):
 
 from events import *
 
-stream1 = [
-  CreateContext(4, 'dancer'),
-  MergeProperty('context', 'indent-stave', 2),
-  PrepareEvent('context', 0),
-  MusicEvent('context', 'clap', 1, 'mid'),
-  MusicEvent('context', 'clap', 1, 'mid'),
-  PrepareEvent('context', 1),
-  MusicEvent('context', 'step', 1, 'south'),
-  PrepareEvent('context', 2),
-  MusicEvent('context', 'point', 1, 'right'),
-  Finish()
-]
-stream2 = [
-  MergeProperty('dancer2', 'indent-stave', 2),
-  Finish()
-]
+#stream1 = [
+  #CreateContext(4, 'dancer'),
+  #MergeProperty('context', 'indent-stave', 2),
+  #PrepareEvent('context', 0),
+  #MusicEvent('context', 'clap', 1, 'mid'),
+  #MusicEvent('context', 'clap', 1, 'mid'),
+  #PrepareEvent('context', 1),
+  #MusicEvent('context', 'step', 1, 'south'),
+  #PrepareEvent('context', 2),
+  #MusicEvent('context', 'point', 1, 'right'),
+  #Finish()
+#]
+#stream2 = [
+  #MergeProperty('dancer2', 'indent-stave', 2),
+  #Finish()
+#]
 
 
 #d1 = Dancer(StreamIterator(stream1))
@@ -235,18 +237,15 @@ stream2 = [
     #b += ', '
   #print(b)
 
-d1 = Dancer(StreamIterator(stream1))
-d2 = Dancer(StreamIterator(stream2))
+#d1 = Dancer(StreamIterator(stream1))
+#d2 = Dancer(StreamIterator(stream2))
 
 
 
-g = Global()
+#g = Global()
 
-g.score.addChild(d1)
-g.score.addChild(d2)
+#g.score.addChild(d1)
+#g.score.addChild(d2)
 
-#print(g)
-#g.prepare()
-##print(str(g.pendingMoment()))
 
-g.runIterator()
+#g.runIterator()
