@@ -197,15 +197,30 @@ class MusicEvent(Event):
     b.append(self.params)
 
 
+class Finish(Event):
+  def __init__(self):
+    Event.__init__(self, None, EventType['Finish'])
+    self.entitySuffix = 'Finish'
+    self._moment = -2
+      
+  @property
+  def moment(self):
+    return self._moment
 
-e = CreateContext(4, 'staff')
-print(str(e))
+  @moment.setter
+  def moment(self, moment):
+    self._moment = moment
+    
+#e = CreateContext(4, 'staff')
+#print(str(e))
 
-e = DeleteContext('context')
-print(str(e))
-e = MergeProperty('context', 'indent-stave', 2)
-print(str(e))
-e = PrepareEvent('context', 'moment')
-print(str(e))        
-e = MusicEvent('context', 'clap', 2, 'above')
-print(str(e))
+#e = DeleteContext('context')
+#print(str(e))
+#e = MergeProperty('context', 'indent-stave', 2)
+#print(str(e))
+#e = PrepareEvent('context', 'moment')
+#print(str(e))        
+#e = MusicEvent('context', 'clap', 2, 'above')
+#print(str(e))
+#e = Finish()
+#print(str(e))

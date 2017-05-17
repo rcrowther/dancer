@@ -27,6 +27,10 @@ We also know that engravers carry info like what note type, directions, etc. Eng
 We know that the object list then uses a 'tramslator' to generate either performance or a writtem scpre.
 
 bars get numbered. 
+
+I thnk the parser makes events directly. this makes a big difference, the iterators only need to move across events. But we do seem to get a score object with contexts. So we got those as objects, but with event sequences as input.
+
+
 TODO: Number bars?test for lengths?
 
 line-interface draws lines from 'offsets' to
