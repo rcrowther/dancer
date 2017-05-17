@@ -16,7 +16,8 @@ EventType = {
 EventTypeToString = { v: k for (k, v) in EventType.items()}
   
 #! need DeleteProperty, sometime
-
+#! use the word *Event, or not?
+#! context is the conext ID.
 class Event():
   def __init__(self, context, tpe):
     self.entitySuffix = 'Event'

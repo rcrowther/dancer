@@ -12,9 +12,10 @@ def uid():
   _uid += 1
   return _uid
    
-      
+#! contexts need to be able to toEvents their own
+#! build creation events. For use from parsing. 
 class Context():
-  #NB: put properties on the object
+
   def __init__(self, uid, name):
     self.name = name
     self.children = []
@@ -25,7 +26,12 @@ class Context():
     # - other terators
     # bulding from a stream
     self.it = None
-    
+    # properties could e on the object
+    # but I don't want this too Python
+    # general. Written to streams
+    self._properties = {}
+    # internal. Ued for temp
+    self._iProperties = {}
     
   @property
   def name(self):
@@ -35,9 +41,16 @@ class Context():
   def name(self, name):
     self._name = name
     
- # def addChild(self, child):
- #   self.children.append(child)
- #   return child
+    
+  def mergeProperty(self, k, v):
+    self._properties[k] = v
+
+  def readProperty(self, k):
+    return self._properties[k]
+        
+  def deleteProperty(self, k):
+    del self._properties[k]
+    
     
   def isLeaf(self):
     return (len(self.children) == 0)
@@ -52,6 +65,7 @@ class Dancer(Context):
     self.it = eventIt
     self.it.contextUID = self.uid
   
+  #? unused
   def prepare(self):
     #self.it = StreamIterator(self.eventStream)
     pass
@@ -64,6 +78,7 @@ class Score(Context):
     self.it = ChildContextIterator()
     self.it.contextUID = self.uid
 
+  #x unused
   def prepare(self):
     #self.it = ChildContextIterator()
     for c in self.children:
@@ -91,14 +106,71 @@ class Score(Context):
     #? do we ever manually delete before exhaustion?
     self.it.deleteChild(uid) 
 
+# we need to be able to modify properties...
+class Processor():
+  def __init__(self, context):
+    self.context = context
+    
+  def process(self, context, moment, inStream):
+    pass
+    
+class PrintStage(Processor):
+  def process(self, context, moment, inStream):
+    print('moment: ' + str(moment))
+    b = ''
+    for e in inStream:
+      b += str(e)
+      b += ', '
+    print(b) 
+    return inStream
 
+class Build(Processor):
+  def __init__(self, context):
+    Processor.__init__(self, context)
+    self.b = ''
+    #context._iProperties['stream-builder'] = []
+
+  def process(self, context, moment, inStream):
+    for e in inStream:
+      #self.b.append(str(e))
+      #self.b.append(', ')
+      self.b += str(e)
+      self.b += ', '
+    return inStream 
+  
+#class Timing(Processor):
+  ## Should update currentMoment and currentBar
+  #def __init__(self, context):
+    #Processor.__init__(self, context)
+    #self.momentCount = 0
+    #context._iProperties['currentMoment'] = 4
+    #context._iProperties['currentBar'] = 0
+    #context._iProperties['currentBeatsPerBar'] = 4
+
+  #def process(self, context, moment, inStream):
+    #return inStream 
+    
+    
 class Global(Context):
   def __init__(self):
     Context.__init__(self, 0, 'Global')
     self.outStream = []
     self.score = Score()
-    #self.it = self.score.it
-      
+    self.it = self.score.it
+    #! A lot not right
+    #! how to output results from a process phase? In the phase?
+    #! howto initially load phases?
+    #!
+    p = PrintStage(self)
+    self.processors  = [
+    p.process
+    ]
+    #p = Build(self)
+    #self.processors  = [
+    #p.process
+    #]
+    
+  #x unused
   def prepare(self):
     # recurse
     self.score.prepare()
@@ -107,17 +179,18 @@ class Global(Context):
   def pendingMoment(self):
      return self.it.pendingMoment()
 
+  #! should we process events singly? Probably yes?
+  #! this will not work for parser-sourced events with no moments?
+  #! how to return events to te stream. This isnt. Do we need deletions?
   def process(self, moment, events):
-      print('moment:' + str(moment))
-      b = ''
-      for e in events:
-        b += str(e)
-        b += ', '
-      print(b) 
-      self.outStream.append(PrepareEvent('context', 1))
-      self.outStream.extend(events)
+    r = events
+    for p in self.processors:
+      p(self, moment, r)
+    #self.outStream.append(PrepareEvent('context', 1))
+    #self.outStream.extend(events)
 
-          
+  #? Should iterators be part of process?
+  #? context names need to be set on events.
   def runIterator(self):
     it = g.score.it
     while(True):
@@ -144,6 +217,7 @@ stream1 = [
   Finish()
 ]
 stream2 = [
+  MergeProperty('dancer2', 'indent-stave', 2),
   Finish()
 ]
 
