@@ -23,7 +23,7 @@ EventTypeToString = { v: k for (k, v) in EventType.items()}
 #! context is the conext ID.
 class Event():
   '''
-  @parentId parent context id
+  @parentId parent context id (for property events, the local context id)
   '''
   def __init__(self, parentId, tpe):
     self.entitySuffix = type(self).__name__
@@ -112,6 +112,9 @@ class DeleteContext(Event):
 
 
 class MergeProperty(Event):
+  '''
+  @parentId the local context (not the parent of the context)
+  '''
   def __init__(self, parentId, key, value):
     Event.__init__(self, parentId, EventType['MergeProperty'])
     #self.entitySuffix = 'MergeProperty'

@@ -2,6 +2,7 @@
 
 from iterators import *
 
+from events import *
 
 
 # Not for threads (you know it)
@@ -58,6 +59,42 @@ class Context():
     
   def isLeaf(self):
     return (len(self.children) == 0)
+
+
+  def _toPropertyEvents(self, b):
+    for k, v in self.properties.items():
+      e = MergeProperty(self.uid, k, v)
+      b.append(e)
+    for child in self.children:
+      # contexts are the first in a child list, so breaking is ok.
+      # ...and spares us iterting every DanceMove child
+      if (isinstance(child, Context)):
+        child._toPropertyEvents(b)
+      else:
+        break
+    return b
+    
+  def toPropertyEvents(self):
+    return self._toPropertyEvents([])
+    
+    
+  def _toCreateEvents(self, parentId, b):
+    e = CreateContext(parentId, self.uid, self.name)
+    b.append(e)
+    for child in self.children:
+      # contexts are the first in a child list, so breaking is ok.
+      # ...and spares us iterting every DanceMove child
+      if (isinstance(child, Context)):
+        child._toCreateEvents(self.uid, b)
+      else:
+        break
+    return b
+    
+  def toCreateEvents(self):
+    '''
+    Should only be called on Global, or parents are undetermined?
+    '''
+    return self._toCreateEvents(0, [])
 
   def extendString(self, b):
     b.append(str(self.uid))
@@ -235,24 +272,24 @@ class GlobalContext(Context):
       self.process(pm, r)
     print('done')
 
-from events import *
+#from events import *
 
-stream1 = [
-  CreateContext(3, 4, 'dancer'),
-  MergeProperty(3, 'indent-stave', 2),
-  PrepareEvent(3, 0),
-  MusicEvent(3, 'clap', 1, 'mid'),
-  MusicEvent(3, 'clap', 1, 'mid'),
-  PrepareEvent(3, 1),
-  MusicEvent(3, 'step', 1, 'south'),
-  PrepareEvent(3, 2),
-  MusicEvent(3, 'point', 1, 'right'),
-  Finish(3)
-]
-stream2 = [
-  MergeProperty(5, 'indent-stave', 2),
-  Finish(5)
-]
+#stream1 = [
+  #CreateContext(3, 4, 'dancer'),
+  #MergeProperty(3, 'indent-stave', 2),
+  #PrepareEvent(3, 0),
+  #MusicEvent(3, 'clap', 1, 'mid'),
+  #MusicEvent(3, 'clap', 1, 'mid'),
+  #PrepareEvent(3, 1),
+  #MusicEvent(3, 'step', 1, 'south'),
+  #PrepareEvent(3, 2),
+  #MusicEvent(3, 'point', 1, 'right'),
+  #Finish(3)
+#]
+#stream2 = [
+  #MergeProperty(5, 'indent-stave', 2),
+  #Finish(5)
+#]
 
 
 #d1 = Dancer(StreamIterator(stream1))
@@ -268,13 +305,33 @@ stream2 = [
     #b += ', '
   #print(b)
 
-#d1 = DancerContext()
-#d2 = DancerContext()
 
-#g = GlobalContext()
-#g.children.append(d1)
-#g.children.append(d2)
+d1 = DancerContext()
+d1.properties['dancerName'] = 'frontman'
 
-#print(g)
+d2 = DancerContext()
+d2.properties['dancerName'] = 'Eric'
+d2.properties['beatsPerBar'] = 6
+
+s = ScoreContext()
+s.children.append(d1)
+s.children.append(d2)
+s.properties['beatsPerBar'] = 4
+s.properties['tempo'] = 80
+
+g = GlobalContext()
+g.children.append(s)
+g.properties['title'] = "Coconutters"
+g.properties['style'] = 'clog'
+
+print(str(g))
+
+xe = g.toCreateEvents()
+for e in xe:
+  print(e)
+
+xe = g.toPropertyEvents()
+for e in xe:
+  print(e)
 
 #g.runIterator()

@@ -14,9 +14,8 @@ from Position import Position, NoPosition
 #! fix missimg functions
 #! do something about counting and prepare marks
 #! look at context nesting again
-#! print out contexts
 #! fix import loop with iterator
-
+#! build in a timer
 
 ## Specifics ##
 # Return is the params a body should accept. 
@@ -114,10 +113,7 @@ class Parser:
         # namedParams gathering
         self.namedParamsStash = []
         self.globalExp = GlobalContext()
-        # ...prime
-        #self._next()
-        # let's go
-        #self.root()
+
 
     def parse(self):
         # ...prime
@@ -262,11 +258,10 @@ class Parser:
       commit = (self.line[0] == '{')
       if (commit):
         if(not context):
-          self.error('simultaneousFunctionBody', 'Not expecting a body?', True)
+          self.error('functionBody', 'Not expecting a body?', True)
           
         self._next()
         
-        #!? Why both instructions and instruction?
         while (True):
           if(not(
           self.simultaneousInstructions(context)
