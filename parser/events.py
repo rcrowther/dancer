@@ -9,10 +9,11 @@ EventType = {
   'CreateContext': 1,
   'DeleteContext': 2,
   'MergeProperty': 3,
-  #SetProperty = 2
-  'Prepare': 4,
-  'MusicEvent': 5,
-  'Finish': 6
+  'DeleteProperty': 4,
+  'MomentStart': 5,
+  'MomentEnd': 6,
+  'DanceEvent': 7,
+  'Finish': 8
 }
 
 
@@ -145,14 +146,37 @@ class MergeProperty(Event):
     b.append(str(self.value))          
 
 
-            
-class PrepareEvent(Event):
+class DeleteProperty(Event):
   '''
+  @parentId the local context (not the parent of the context)
+  '''
+  def __init__(self, parentId, key):
+    Event.__init__(self, parentId, EventType['DeleteProperty'])
+    self._key = key
+    
+  @property
+  def key(self):
+    return self._key
+    
+  @key.setter
+  def key(self, key):
+    self._key = key
+          
+  def extendString(self, b):
+    b.append(', "')
+    b.append(self.key)
+
+    
+    
+    
+class MomentStart(Event):
+  '''
+  For consistency, has a parent Id, but always set to 0.
   @moment int, for now
   '''
-  def __init__(self, parentId, moment):
-    Event.__init__(self, parentId, EventType['Prepare'])
-    #self.entitySuffix = 'PrepareEvent'
+  def __init__(self, moment):
+    Event.__init__(self, 0, EventType['MomentStart'])
+    #self.entitySuffix = 'MomentStart'
     self._moment = moment
       
   @property
@@ -168,11 +192,21 @@ class PrepareEvent(Event):
     b.append(str(self.moment))
         
         
+class MomentEnd(Event):
+  '''
+  For consistency, has a parent Id, but always set to 0.
+  @moment int, for now
+  '''
+  def __init__(self):
+    Event.__init__(self, 0, EventType['MomentEnd'])
+
+  def extendString(self, b):
+    pass
+                
         
-class MusicEvent(Event):
+class DanceEvent(Event):
   def __init__(self, parentId, name, duration, params):
-    Event.__init__(self, parentId, EventType['MusicEvent'])
-    #self.entitySuffix = 'MusicEvent'
+    Event.__init__(self, parentId, EventType['DanceEvent'])
     self._name = name
     self._duration = duration
     self._params = params
@@ -231,9 +265,9 @@ class Finish(Event):
 #print(str(e))
 #e = MergeProperty('context', 'indent-stave', 2)
 #print(str(e))
-#e = PrepareEvent('context', 'moment')
+#e = MomentStart('context', 'moment')
 #print(str(e))        
-#e = MusicEvent('context', 'clap', 2, 'above')
+#e = DanceEvent('context', 'clap', 2, 'above')
 #print(str(e))
 #e = Finish()
 #print(str(e))

@@ -16,6 +16,7 @@ from Position import Position, NoPosition
 #! look at context nesting again
 #! fix import loop with iterator
 #! build in a timer
+#! where are dancer names going?
 
 ## Specifics ##
 # Return is the params a body should accept. 
@@ -123,6 +124,15 @@ class Parser:
         
     def ast(self):
       return self.globalExp
+    
+    def toEvents(self):
+      b = []
+      b.extend(self.globalExp.toCreateEvents())
+      b.append(MomentStart(0))
+      #? not sure trigger by dancer? This is a big clump of startup properties.
+      #? by iteration? here for now.
+      b.extend(self.globalExp.toPropertyEvents())
+      return b 
       
     def error(self, rule, msg, withPosition):
         pos = Position(self.it.srcName, self.it.lineCount, 0) if withPosition else NoPosition 
@@ -247,7 +257,7 @@ class Parser:
         if (len(p) > 1):
           params = p[1:]
           
-        context.children.append(MusicEvent(context.uid, name, duration, params))
+        context.children.append(DanceEvent(context.uid, name, duration, params))
         
         self._next()
       return commit
@@ -394,3 +404,7 @@ p = Parser(sit, r)
 p.parse()
 
 print(str(p.ast()))
+
+xe = p.toEvents()
+for e in xe:
+  print(str(e))

@@ -278,12 +278,12 @@ class GlobalContext(Context):
   #CreateContext(3, 4, 'dancer'),
   #MergeProperty(3, 'indent-stave', 2),
   #PrepareEvent(3, 0),
-  #MusicEvent(3, 'clap', 1, 'mid'),
-  #MusicEvent(3, 'clap', 1, 'mid'),
+  #DanceEvent(3, 'clap', 1, 'mid'),
+  #DanceEvent(3, 'clap', 1, 'mid'),
   #PrepareEvent(3, 1),
-  #MusicEvent(3, 'step', 1, 'south'),
+  #DanceEvent(3, 'step', 1, 'south'),
   #PrepareEvent(3, 2),
-  #MusicEvent(3, 'point', 1, 'right'),
+  #DanceEvent(3, 'point', 1, 'right'),
   #Finish(3)
 #]
 #stream2 = [
