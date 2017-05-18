@@ -17,15 +17,17 @@ def uid():
 class Context():
 
   def __init__(self, uid, name):
+    self.entitySuffix = type(self).__name__
+
     self._name = name
-    # To some means doubles up, either subcontexts or a list of music
+    # doubles up meanings, either subcontexts or a list of music
     # events. Both children, both iterable, though. 
     self.children = []
     self.uid = uid
-    # The itertor can be
+    # The iterator can be
     # building from source AST
     # - child stream
-    # - other terators
+    # - other iterators
     # bulding from a stream
     self.it = None
     # properties could e on the object
@@ -57,8 +59,36 @@ class Context():
   def isLeaf(self):
     return (len(self.children) == 0)
 
+  def extendString(self, b):
+    b.append(str(self.uid))
+    b.append(', ')
+    b.append(str(self.properties))
 
 
+  def addChildren(self, b):
+    b.append(', [')
+    first = True
+    for e in self.children:
+      if (first):
+        first = False
+      else:
+        b.append(", ")
+      e.addString(b)
+    b.append(']')
+    
+  def addString(self, b):
+    b.append(self.entitySuffix)
+    b.append('(')
+    self.extendString(b)
+    self.addChildren(b)
+    #b.append(str(self.children))
+    b.append(')')
+    return b
+    
+  def __str__(self):
+    return "".join(self.addString([]))  
+    
+    
     
 class DancerContext(Context):
   def __init__(self):
@@ -172,6 +202,7 @@ class GlobalContext(Context):
     #p.process
     #]
     
+    
   #x unused
   def prepare(self):
     # recurse
@@ -206,22 +237,22 @@ class GlobalContext(Context):
 
 from events import *
 
-#stream1 = [
-  #CreateContext(4, 'dancer'),
-  #MergeProperty('context', 'indent-stave', 2),
-  #PrepareEvent('context', 0),
-  #MusicEvent('context', 'clap', 1, 'mid'),
-  #MusicEvent('context', 'clap', 1, 'mid'),
-  #PrepareEvent('context', 1),
-  #MusicEvent('context', 'step', 1, 'south'),
-  #PrepareEvent('context', 2),
-  #MusicEvent('context', 'point', 1, 'right'),
-  #Finish()
-#]
-#stream2 = [
-  #MergeProperty('dancer2', 'indent-stave', 2),
-  #Finish()
-#]
+stream1 = [
+  CreateContext(3, 4, 'dancer'),
+  MergeProperty(3, 'indent-stave', 2),
+  PrepareEvent(3, 0),
+  MusicEvent(3, 'clap', 1, 'mid'),
+  MusicEvent(3, 'clap', 1, 'mid'),
+  PrepareEvent(3, 1),
+  MusicEvent(3, 'step', 1, 'south'),
+  PrepareEvent(3, 2),
+  MusicEvent(3, 'point', 1, 'right'),
+  Finish(3)
+]
+stream2 = [
+  MergeProperty(5, 'indent-stave', 2),
+  Finish(5)
+]
 
 
 #d1 = Dancer(StreamIterator(stream1))
@@ -237,15 +268,13 @@ from events import *
     #b += ', '
   #print(b)
 
-#d1 = Dancer(StreamIterator(stream1))
-#d2 = Dancer(StreamIterator(stream2))
+#d1 = DancerContext()
+#d2 = DancerContext()
 
+#g = GlobalContext()
+#g.children.append(d1)
+#g.children.append(d2)
 
-
-#g = Global()
-
-#g.score.addChild(d1)
-#g.score.addChild(d2)
-
+#print(g)
 
 #g.runIterator()

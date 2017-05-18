@@ -9,9 +9,13 @@ from events import *
 from contexts import *
 
 from Position import Position, NoPosition
-from trees.Trees import *
 
 
+#! fix missimg functions
+#! do something about counting and prepare marks
+#! look at context nesting again
+#! print out contexts
+#! fix import loop with iterator
 
 
 ## Specifics ##
@@ -33,6 +37,7 @@ def functionHandlerGlobalProperties(context, name, posParams, namedParams):
 
    
 def functionHandlerCreateSubcontext(context, name, posParams, namedParams):
+  print('new context for' + context.name)
   newCtx = None
   if (name == 'score'):
     newCtx = ScoreContext()
@@ -72,7 +77,6 @@ def functionHandlerRepeat(context, name, posParams, namedParams):
 
 def functionHandlerAlternative(context, name, posParams, namedParams):
   #print('dummy function handler: ' + name)
-  
   return context
   
 acceptedFunctionsInstructions = {
@@ -99,10 +103,7 @@ class Parser:
     def __init__(self, it, reporter):
         self.it = it
         self.reporter = reporter
-        
-        self.tree = Root()
 
-        #self._prevLineNo = 1
         self.line = ''
    
         # var data gathering
@@ -112,7 +113,7 @@ class Parser:
 
         # namedParams gathering
         self.namedParamsStash = []
-        self.globalExp =  GlobalContext()
+        self.globalExp = GlobalContext()
         # ...prime
         #self._next()
         # let's go
@@ -125,7 +126,7 @@ class Parser:
         self.root()
         
     def ast(self):
-      return self.tree
+      return self.globalExp
       
     def error(self, rule, msg, withPosition):
         pos = Position(self.it.srcName, self.it.lineCount, 0) if withPosition else NoPosition 
@@ -309,11 +310,7 @@ class Parser:
         self._next()
       return commit
         
-    #def functionCallTreeNode(self):
-      #Dancer(name)
-      #Repeat(isVisual, body, alternatives)
-      #BeatsPerBar
-      #Tempo
+
       
     def functionCall(self, context, acceptedFunctions):
         commit = (self.line[0] == '\\')
@@ -400,3 +397,5 @@ sit = StringIterator(p, srcAsLines)
 p = Parser(sit, r)
 
 p.parse()
+
+print(str(p.ast()))
