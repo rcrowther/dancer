@@ -19,42 +19,34 @@ EventType = {
 
 EventTypeToString = { v: k for (k, v) in EventType.items()}
   
-#! need DeleteProperty, sometime
 #! use the word *Event, or not?
-#! context is the conext ID.
+#! context is sometimes the parent when relevent, or surrounding self.
+
 class Event():
   '''
-  @parentId parent context id (for property events, the local context id)
+  Where relevant, context id is the parent. For property events, is the
+  local context id.
+  @contextId unique id of the context
   '''
-  def __init__(self, parentId, tpe):
+  def __init__(self, contextId):
     self.entitySuffix = type(self).__name__
-    self._parentId = parentId
-    self._tpe = tpe
-      
-  @property
-  def parentId(self):
-    return self._parentId
+    self._contextId = contextId
 
-  @parentId.setter
-  def parentId(self, parentId):
-    self._parentId = parentId
     
   @property
-  def tpe(self):
-    return self._tpe
-        
-  @tpe.setter
-  def tpe(self, tpe):
-    self._tpe = tpe
+  def contextId(self):
+    return self._contextId
 
+  @contextId.setter
+  def contextId(self, contextId):
+    self._contextId = contextId
+    
   def extendString(self, b):
     pass
     
   def addString(self, b):
     b.append(self.entitySuffix)
     b.append('(')
-    #b.append(EventTypeToString[self.tpe])
-    #b.append(', ')
     self.extendString(b)
     b.append(')')
     return b
@@ -72,12 +64,12 @@ class CreateContext(Event):
   '''
   @newType is currently a string 'score', 'dancer' etc.
   '''
-  def __init__(self, parentId, newId, newType):
-    Event.__init__(self, parentId, EventType['CreateContext'])
-    #self.entitySuffix = 'CreateContext'
+  def __init__(self, contextId, newId, newType):
+    Event.__init__(self, contextId)
     self._newId = newId
     self._newType = newType
-      
+ 
+    
   @property
   def newId(self):
     return self._newId
@@ -96,7 +88,7 @@ class CreateContext(Event):
 
           
   def extendString(self, b):
-    b.append(str(self.parentId))
+    b.append(str(self.contextId))
     b.append(', ')
     b.append(str(self.newId))
     b.append(', "')
@@ -106,12 +98,12 @@ class CreateContext(Event):
     
 
 class DeleteContext(Event):
-  def __init__(self, uId):
-    Event.__init__(self, uId, EventType['DeleteContext'])
-    self.uId = uId
+  def __init__(self,  contextId):
+    Event.__init__(self, contextId)
 
   def extendString(self, b):
-    b.append(str(self.uId))
+    b.append(str(self.contextId))
+
 
 
 
@@ -119,9 +111,8 @@ class MergeProperty(Event):
   '''
   @parentId the local context (not the parent of the context)
   '''
-  def __init__(self, parentId, key, value):
-    Event.__init__(self, parentId, EventType['MergeProperty'])
-    #self.entitySuffix = 'MergeProperty'
+  def __init__(self, contextId, key, value):
+    Event.__init__(self, contextId)
     self._key = key
     self._value = value
     
@@ -143,8 +134,8 @@ class MergeProperty(Event):
     self._value = value
           
   def extendString(self, b):
-    b.append(str(self.parentId))
-    b.append(', "')
+    b.append(str(self.contextId))
+    b.append(', ')
     b.append(self.key)
     b.append('", ')
     b.append(str(self.value))          
@@ -154,8 +145,8 @@ class DeleteProperty(Event):
   '''
   @parentId the local context (not the parent of the context)
   '''
-  def __init__(self, parentId, key):
-    Event.__init__(self, parentId, EventType['DeleteProperty'])
+  def __init__(self, contextId, key):
+    Event.__init__(self, contextId)
     self._key = key
     
   @property
@@ -167,8 +158,8 @@ class DeleteProperty(Event):
     self._key = key
           
   def extendString(self, b):
-    b.append(str(self.parentId))
-    b.append(', "')
+    b.append(str(self.contextId))
+    b.append(', ')
     b.append(self.key)
 
     
@@ -185,10 +176,9 @@ class MomentStart(Event):
   @moment int, for now
   '''
   def __init__(self, moment):
-    Event.__init__(self, 0, EventType['MomentStart'])
-    #self.entitySuffix = 'MomentStart'
+    Event.__init__(self, 0)
     self._moment = moment
-      
+    
   @property
   def moment(self):
     return self._moment
@@ -207,18 +197,19 @@ class MomentEnd(Event):
   @moment int, for now
   '''
   def __init__(self):
-    Event.__init__(self, 0, EventType['MomentEnd'])
+    Event.__init__(self, 0)
 
+    
   def extendString(self, b):
-    pass
-                
+    pass               
         
 class DanceEvent(Event):
-  def __init__(self, parentId, name, duration, params):
-    Event.__init__(self, parentId, EventType['DanceEvent'])
+  def __init__(self, contextId, name, duration, params):
+    Event.__init__(self, contextId)
     self._name = name
     self._duration = duration
     self._params = params
+
     
   @property
   def name(self):
@@ -245,8 +236,8 @@ class DanceEvent(Event):
     self._params = params
 
   def extendString(self, b):
-    b.append(str(self.parentId))
-    b.append(', "')
+    b.append(str(self.contextId))
+    b.append(', ')
     b.append(self.name)
     b.append('", ')
     b.append(str(self.duration))
@@ -256,10 +247,9 @@ class DanceEvent(Event):
 
 class Finish(Event):
   def __init__(self):
-    Event.__init__(self, 0, EventType['Finish'])
-    #self.entitySuffix = 'Finish'
+    Event.__init__(self, 0)
     self._moment = -2
-      
+
   @property
   def moment(self):
     return self._moment

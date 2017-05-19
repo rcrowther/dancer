@@ -205,7 +205,7 @@ class ChildContextIterator(DataIterator):
 class ParseCompileIterator(DataIterator):
   '''
   use prepare() to set data and contextId
-  used in intermediade contexts like ScoreContext.
+  used in intermediate contexts like ScoreContext.
   '''
   def __init__(self):
     DataIterator.__init__(self)
