@@ -21,14 +21,13 @@ class DataIterator():
   - bulding from a stream
   '''
   def __init__(self):
-    self.contextUID = None
+    self.contextId = None
 
-  def __iter__(self):
-    return self
         
   
   def pendingMoment(self):
     '''
+    Should be repeatedly callable without side effects
     Should return MOMENT_EXHAUSTED when done 
     '''
     pass
@@ -55,6 +54,9 @@ class DataIterator():
 #? This is a big messy method?
 #! error and stats report. Bar counts, validationn?
 class ParsedDanceeventIterator(DataIterator):
+  '''
+  use prepare() to set data and contextId
+  '''
   # This has parser-based form to account for.
   # - MomentEvents are dummies to mark simutaneous operation.
   # - *Property events may appear. Like the input language, these
@@ -69,7 +71,7 @@ class ParsedDanceeventIterator(DataIterator):
   # PendingMoment can not be resolved without caching.
   
   def __init__(self):
-    self.contextId = None
+    DataIterator.__init__(self)
     self._data = None
     self._pendingMoment = 0
     self._pendingMomentIncrement = 1
@@ -130,8 +132,75 @@ class ParsedDanceeventIterator(DataIterator):
         
 
 
-    
+
+class ChildContextIterator(DataIterator):
+  '''
+  use prepare() to set data and contextId
+  '''
+  def __init__(self):
+    DataIterator.__init__(self)
+    self._childIts = []
+    self.pendingIterators = []
+    self._pendingMoment = -1
   
+  def prepare(self, contextId, data): 
+    self.contextId = contextId
+    self._childIts = data
+    # need to ask our position
+    self.stepForward()
+
+  def addChild(self, it):
+    self._childIts.append(it)
+    
+  def _deleteChild(self, uid):
+    i = 0
+    l = len(self._childIts)
+    while(i < l):
+      if (self._childIts[i].contextId == uid):
+        self._childIts.pop(i)
+        break
+      else:
+        i += 1
+        
+        
+  def pendingMoment(self):
+    return self._pendingMoment
+
+  def stepForward(self):
+    low = sys.maxsize 
+    self.pendingIterators = []
+    exhaustedIteratorIds = []
+    for it in self._childIts:
+      newLow = it.pendingMoment()
+      if (newLow == MOMENT_EXHAUSTED):
+        exhaustedIteratorIds.append(it.contextId)
+      elif(newLow < low):
+        low = newLow
+        self.pendingIterators = [it]
+      elif(newLow == low):
+        self.pendingIterators.append(it)
+    
+    # delete exhausted iterators
+    for uid in exhaustedIteratorIds:
+      self._deleteChild(uid)
+
+    # Now check anything left
+    if (self._childIts):  
+      self._pendingMoment = low
+    else:
+      self._pendingMoment = MOMENT_EXHAUSTED 
+
+    
+  def __next__(self):
+    events = []
+    for it in self.pendingIterators:
+      events.extend(it.__next__())
+    self.stepForward()    
+    return events
+
+
+    
+#! uodate
 class StreamIterator(DataIterator):
   '''
   Only works with a whole provided stream.
@@ -168,76 +237,20 @@ class StreamIterator(DataIterator):
     return self.cache
 
 
-
-class ChildContextIterator(DataIterator):
-  '''
-  pendingMoment() must be called before next.
-  needs contextUID to be set
-  
-  '''
-  def __init__(self):
-    DataIterator.__init__(self)
-    self._childIts = []
-    self.pendingIterators = []
-    
-  def addChild(self, it):
-    self._childIts.append(it)
-    
-  def _delete(self, lst, uid):
-    i = 0
-    l = len(lst)
-    while(i < l):
-      if (lst[i].contextUID == uid):
-        lst.pop(i)
-        break
-      else:
-        i += 1
-        
-  def deleteChildIterator(self, uid):
-    print('deletechild uid: ' + str(uid))
-    # delete iterator
-    self._delete(self._childIts, uid)
-          
-  def __iter__(self):
-    return self
-        
-  def pendingMoment(self):
-    low = sys.maxsize 
-    self.pendingIterators = []
-    exhausted = []
-    for c in self._childIts:
-      newLow = c.pendingMoment()
-      if (newLow == MOMENT_EXHAUSTED):
-        exhausted.append(c.contextUID)
-      elif(newLow < low):
-        low = newLow
-        self.pendingIterators = [c]
-      elif(newLow == low):
-        self.pendingIterators.append(c)
-      
-    # delete exhausted iterators
-    for uid in exhausted:
-      self.deleteChildIterator(c.contextUID)
-    if (low == sys.maxsize):
-      low = MOMENT_EXHAUSTED
-    return low
-    
-  def __next__(self):
-    events = []
-    if (not self.pendingIterators):
-      raise StopIteration
-    for it in self.pendingIterators:
-      events.extend(it.__next__())
-    return events
-
-
 from events import *
 
 #stream1 = [DanceEvent(6, "clap", 1, []), DanceEvent(6, "clap", 1, ['overhead']), DanceEvent(6, "step", 1, ['west']), MomentStart(-3), DanceEvent(6, "cross", 1, ['legs']), DanceEvent(6, "cross", 1, ['hands']), MomentEnd(), MomentStart(-3), DanceEvent(6, "jump", 1, ['south']), DanceEvent(6, "hands", 1, ['ears']), MomentEnd(), DanceEvent(6, "bend", 1, ['knees']), DanceEvent(6, "slap", 1, ['other']), DanceEvent(6, "slap", 2, ['knees']), DanceEvent(6, "twirl", 1, ['right']), DanceEvent(6, "split", 1, ['knees']), DanceEvent(6, "turn", 1, ['west']), MergeProperty(6, "beatsPerBar", 3), MergeProperty(6, "tempo", 80), DanceEvent(6, "kick", 1, ['low'])]
 #stream2 = [DanceEvent(4, "clap", 1, []), DanceEvent(4, "clap", 1, ['overhead']), DanceEvent(4, "step", 1, ['west']), MomentStart(-3), DanceEvent(4, "cross", 1, ['legs']), DanceEvent(4, "cross", 1, ['hands']), MomentEnd(), MomentStart(-3), DanceEvent(4, "jump", 1, ['south']), DanceEvent(4, "hands", 1, ['ears']), MomentEnd(), DanceEvent(4, "r", 6, []), DanceEvent(4, "swipe", 2, ['low']), DanceEvent(4, "jump", 1, ['spot'])]
 
 
-#it = ParsedDanceeventIterator()
-#it.prepare(4, stream2)
+#it1 = ParsedDanceeventIterator()
+#it1.prepare(4, stream1)
+#it2 = ParsedDanceeventIterator()
+#it2.prepare(5, stream2)
 #print(str(it.length))
 #print(str(it))
+
+#cit = ChildContextIterator()
+#cit.prepare(8, [it1, it2])
+#print(str(len(cit._childIts)))
+#print(str(cit))
