@@ -212,9 +212,9 @@ class ParseCompileIterator(DataIterator):
     self._childIt = None
     self._startEvents = None
     self._endEvents = None
-    self.itExhausted = False
     self.finished = False
     self.start = True
+    self.eventsCache = []
    
   def prepare(self, contextId, data): 
     self.contextId = contextId
@@ -223,37 +223,36 @@ class ParseCompileIterator(DataIterator):
     self._childIt = data[2]
         
   def hasNext(self):
-    self.itExhausted = (self._childIt.pendingMoment() == MOMENT_EXHAUSTED)
-    return (not(self.itExhausted and self.finished))
-  #def pendingMoment(self):
-    #self.momentStart = self._pendingMoment
-  #  return self._childIt.pendingMoment()
-
+    return not self.finished or len(self.eventsCache) > 0
     
   def __next__(self):
-    events = []
-    if (self.start):
-      self.start = False
-      events.extend(self._startEvents)
-      # Will return empty moment zero data...
-      events.extend(self._childIt.__next__())
-    elif (not self.itExhausted):
-      events.append(MomentStart(self._childIt.pendingMoment()))
-      events.extend(self._childIt.__next__())
-      events.append(MomentEnd())
-    else:
-      if (not self.finished):
-        self.finished = True
-        events = self._endEvents
-    return events
+    if (not self.eventsCache):
+      if (self.start):
+        self.start = False
+        self.eventsCache.extend(self._startEvents)
+        # Will return empty moment zero data...
+        self._childIt.__next__()
+      elif (not self._childIt.pendingMoment() == MOMENT_EXHAUSTED):
+        self.eventsCache.append(MomentStart(self._childIt.pendingMoment()))
+        self.eventsCache.extend(self._childIt.__next__())
+        self.eventsCache.append(MomentEnd())
+      else:
+        if (not self.finished):
+          self.finished = True
+          self.eventsCache = self._endEvents
+          #print('final' + ''.join(self.eventsCache))
+      # reverse for easy popping
+      self.eventsCache.reverse()
+    return self.eventsCache.pop()
+
 
   def __str__(self):
     b = ''
     while(self.hasNext()):
-      r = self.__next__()
-      for e in r:
-        b += str(e)
-        b += ', '
+      e = self.__next__()
+      #for e in r:
+      b += str(e)
+      b += ', '
     return b
     
 #! uodate
