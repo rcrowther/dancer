@@ -99,6 +99,9 @@ class Context():
     
     
   def _toCreateEvents(self, parentId, b):
+    '''
+    Top-down, for saner creation
+    '''
     e = CreateContext(parentId, self.uid, self.name)
     b.append(e)
     for child in self.children:
@@ -116,6 +119,27 @@ class Context():
     '''
     return self._toCreateEvents(0, [])
 
+  def _toDeleteEvents(self, b):
+    '''
+    Bottom-up, for saner destruction
+    '''
+    for child in self.children:
+      # contexts are the first in a child list, so breaking is ok.
+      # ...and spares us iterting every DanceMove child
+      if (isinstance(child, Context)):
+        child._toDeleteEvents(b)
+      else:
+        break
+    e = DeleteContext(self.uid)
+    b.append(e)
+    return b
+    
+  def toDeleteEvents(self):
+    '''
+    Should only be called on Global, or parents are undetermined?
+    '''
+    return self._toDeleteEvents([])
+    
   def extendString(self, b):
     b.append(str(self.uid))
     b.append(', ')
@@ -277,9 +301,35 @@ class GlobalContext(Context):
     # recurse
     self.score.prepare()
     #self.it = self.score.it
+
+
     
-  def pendingMoment(self):
-     return self.it.pendingMoment()
+  def prepareAsParsedData(self):
+    # sets up parse data iterators
+    # must be called when data in place
+    assert(len(self.children) == 1)
+    #recurse
+    for c in self.children:
+      c.prepareAsParsedData()
+    self.it = ParseCompileIterator()
+    de = self.toDeleteEvents()
+    de.append(Finish())
+    self.it.prepare(0, [self.toCreateEvents(), de, self.children[0].it])
+
+  # build the events from parsed data
+  #! write down?
+  #! not complete, moments need writing
+  #! so need an assembly iterator...
+  #! test this
+  def parseDataToEvents(self):
+    self.prepareAsParsedData()
+    events = []
+    while(self.it.hasNext()):
+      events.extend(self.__next__())
+    return events
+    
+  #def pendingMoment(self):
+   #  return self.it.pendingMoment()
 
   #! should we process events singly? Probably yes?
   #! this will not work for parser-sourced events with no moments?
@@ -351,5 +401,8 @@ d2 = DancerContext()
 d2.children.extend(stream2)
 s = ScoreContext()
 s.children.extend([d1, d2])
-s.prepareAsParsedData()
-print(str(s.it))
+g = GlobalContext() 
+g.children.append(s)
+g.prepareAsParsedData()
+#s.prepareAsParsedData()
+print(str(g.it))

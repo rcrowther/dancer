@@ -106,12 +106,12 @@ class CreateContext(Event):
     
 
 class DeleteContext(Event):
-  def __init__(self, parentId):
-    Event.__init__(self, parentId, EventType['DeleteContext'])
-    #self.entitySuffix = 'DeleteContext'
+  def __init__(self, uId):
+    Event.__init__(self, uId, EventType['DeleteContext'])
+    self.uId = uId
 
   def extendString(self, b):
-    b.append(str(self.parentId))
+    b.append(str(self.uId))
 
 
 
@@ -255,8 +255,8 @@ class DanceEvent(Event):
 
 
 class Finish(Event):
-  def __init__(self, parentId):
-    Event.__init__(self, parentId, EventType['Finish'])
+  def __init__(self):
+    Event.__init__(self, 0, EventType['Finish'])
     #self.entitySuffix = 'Finish'
     self._moment = -2
       
