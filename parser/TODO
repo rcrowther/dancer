@@ -5,11 +5,53 @@ I got somewhere. I defined an input language, which is ok, and bult a parser, wh
 Where to go fro here is difficult.
 
 == Lillypond processing
-Not structure---thats ell docuented. We'd like to know, but hard to find.
+Not structure---thats well docuented. We'd like to know, but hard to find.
 
-Lillypond is complicated by being using Guile, (look for SCM) with callbacks so most properties can be overridden.
+Lillypond is complicated by using Guile, (look for SCM) with callbacks so most properties can be overridden.
 
-Lilly main seems to degenerate into multi-processing handling. Lilly parser seems to make 'events'. Evebts, e.g.
+
+=== Control
+lilly/main seems to degenerate into multi-processing handling. 
+
+lily/global-context has the big methods on the controlling context.
+
+lily/global-context-scheme contains ly_interpret_music_expression(), which runs iterators. No idea where triggered?
+
+
+lily.scm seems to handle taking these lists and running them, somehow?
+
+scm/define-music-types joins data to a delivery code, and mentions iterator construction.
+
+
+=== Triggering and building a model
+
+We know music is a list,
+http://lilypond.org/doc/v2.18/Documentation/extending/internal-music-representation
+
+Probably made from callbacks in Lily-parser.yy (a BISON parser). The callbacks go to scm/ly-syntax-constructors.scm, which makes lists with fake contexts built from lists themselves.
+
+
+=== Iteration
+global_contxt contains run_iterator_on_me(), the key method.
+
+music-wrapper-iterator handles both 'music' and child iterators
+
+There are a few specialist iterators, unfold-loop, simultaneous-music-iterator, etc. presumably these are walking music list 'twigs'
+
+music-iterator is interesting. 
+
+- get_static_get_iterator takes 'music' and a property "iterator-ctor", generates a music-wrapper-iterator or whatever, initialises and returns it.
+
+- get_iterator gets an iterator from above, and also builds children
+
+
+
+
+=== Outputs
+
+We know that the object list then uses a 'tramslator' to generate either performance or a writtem scpre.
+
+Lilly parser seems to make 'events'. Events, e.g.
 
 http://lilypond.org/doc/v2.18/Documentation/internals/noteevent
 
@@ -17,14 +59,10 @@ which says the types lead to an engraver.
 
 Where the datatype 'event'?
 
-We know music is a list,
-http://lilypond.org/doc/v2.18/Documentation/extending/internal-music-representation
 
 We know engravers sit in stave information.
 
 We also know that engravers carry info like what note type, directions, etc. Engravers generate objects, which have no generic name, but the objects can be found by the engraver in lilly/. These objects do include some x/y details like how high to relatively sit on a stave.
-
-We know that the object list then uses a 'tramslator' to generate either performance or a writtem scpre.
 
 bars get numbered. 
 
@@ -34,7 +72,8 @@ I thnk the parser makes events directly. this makes a big difference, the iterat
 TODO: Number bars?test for lengths?
 
 line-interface draws lines from 'offsets' to
-SHORT version
+
+=== in SHORT
 Don't know where control goes after scm/lilly. Does it run the functions in scm/music-functions?
 
 Don't know what a music event is as data, besides a type.

@@ -55,14 +55,14 @@ class Event():
     b.append('(')
     #b.append(EventTypeToString[self.tpe])
     #b.append(', ')
-    b.append(str(self.parentId))
     self.extendString(b)
     b.append(')')
     return b
     
   def __str__(self):
     '''
-    Print this tree.
+    String representation of this class.
+    The representation is valid constructor code.
     '''
     return "".join(self.addString([]))
     
@@ -96,6 +96,7 @@ class CreateContext(Event):
 
           
   def extendString(self, b):
+    b.append(str(self.parentId))
     b.append(', ')
     b.append(str(self.newId))
     b.append(', "')
@@ -109,6 +110,8 @@ class DeleteContext(Event):
     Event.__init__(self, parentId, EventType['DeleteContext'])
     #self.entitySuffix = 'DeleteContext'
 
+  def extendString(self, b):
+    b.append(str(self.parentId))
 
 
 
@@ -140,6 +143,7 @@ class MergeProperty(Event):
     self._value = value
           
   def extendString(self, b):
+    b.append(str(self.parentId))
     b.append(', "')
     b.append(self.key)
     b.append('", ')
@@ -163,6 +167,7 @@ class DeleteProperty(Event):
     self._key = key
           
   def extendString(self, b):
+    b.append(str(self.parentId))
     b.append(', "')
     b.append(self.key)
 
@@ -172,6 +177,11 @@ class DeleteProperty(Event):
 class MomentStart(Event):
   '''
   For consistency, has a parent Id, but always set to 0.
+  Special moments
+  - -1: before Dancer parses
+  - -2: List in content has ended
+  - -3: Dummy for marking simultaneous music during a parse. Before 
+  music streams are interleaved and moment marked inserted.  
   @moment int, for now
   '''
   def __init__(self, moment):
@@ -188,7 +198,6 @@ class MomentStart(Event):
     self._moment = moment
     
   def extendString(self, b):
-    b.append(', ')
     b.append(str(self.moment))
         
         
@@ -236,6 +245,7 @@ class DanceEvent(Event):
     self._params = params
 
   def extendString(self, b):
+    b.append(str(self.parentId))
     b.append(', "')
     b.append(self.name)
     b.append('", ')

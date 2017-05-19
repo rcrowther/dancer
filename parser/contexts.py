@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from iterators import *
+#from iterators import *
 
 from events import *
 
@@ -13,10 +13,20 @@ def uid():
   _uid += 1
   return _uid
    
+#! need error reporting
 #! contexts need to be able to toEvents their own
 #! build creation events. For use from parsing. 
 class Context():
-
+  '''
+  Every context knows the iterator it will use if it needs one. 
+  Iterators are used at their most complex to walk a parse and
+  interleave it. One iterator calls another down the Context tree.
+  
+  The StreamContext takes a pre-compiled, interleaved stream and has
+  its own iterator. Due to the compilation, this is a simple
+  configuration.
+  
+  '''
   def __init__(self, uid, name):
     self.entitySuffix = type(self).__name__
 
@@ -25,12 +35,20 @@ class Context():
     # events. Both children, both iterable, though. 
     self.children = []
     self.uid = uid
+    
+    '''
+    Every context can process it's input stream.
+    The stack of processors is built here.
+    '''
+    self.processors  = []
+    
     # The iterator can be
     # building from source AST
     # - child stream
     # - other iterators
     # bulding from a stream
     self.it = None
+    
     # properties could e on the object
     # but I don't want this too Python
     # general. Written to streams
@@ -46,13 +64,13 @@ class Context():
   def name(self, name):
     self._name = name
     
-    
+  #?x
   def mergeProperty(self, k, v):
     self.properties[k] = v
-
+  #?x
   def readProperty(self, k):
     return self.properties[k]
-        
+  #?x
   def deleteProperty(self, k):
     del self.properties[k]
     
@@ -60,7 +78,9 @@ class Context():
   def isLeaf(self):
     return (len(self.children) == 0)
 
-
+  def prepareAsParsedData():
+    pass
+    
   def _toPropertyEvents(self, b):
     for k, v in self.properties.items():
       e = MergeProperty(self.uid, k, v)
@@ -139,6 +159,9 @@ class DancerContext(Context):
     #self.it = StreamIterator(self.eventStream)
     pass
 
+  def prepareAsParsedData(self):
+    self.it = ParsedDanceeventIterator()
+    self.it.prepare(self.uid, self.children)
 
 
 class ScoreContext(Context):
@@ -272,66 +295,47 @@ class GlobalContext(Context):
       self.process(pm, r)
     print('done')
 
-#from events import *
-
-#stream1 = [
-  #CreateContext(3, 4, 'dancer'),
-  #MergeProperty(3, 'indent-stave', 2),
-  #PrepareEvent(3, 0),
-  #DanceEvent(3, 'clap', 1, 'mid'),
-  #DanceEvent(3, 'clap', 1, 'mid'),
-  #PrepareEvent(3, 1),
-  #DanceEvent(3, 'step', 1, 'south'),
-  #PrepareEvent(3, 2),
-  #DanceEvent(3, 'point', 1, 'right'),
-  #Finish(3)
-#]
-#stream2 = [
-  #MergeProperty(5, 'indent-stave', 2),
-  #Finish(5)
-#]
 
 
-#d1 = Dancer(StreamIterator(stream1))
-#d1.eventStream = stream1
-
-#it = d1.it
-#while(True):
-  #print('pending:' + str(it.pendingMoment()))
-  #r = it.__next__()
-  #b = ''
-  #for e in r:
-    #b += str(e)
-    #b += ', '
-  #print(b)
+from events import *
+from iterators import *
 
 
-d1 = DancerContext()
-d1.properties['dancerName'] = 'frontman'
 
-d2 = DancerContext()
-d2.properties['dancerName'] = 'Eric'
-d2.properties['beatsPerBar'] = 6
 
-s = ScoreContext()
-s.children.append(d1)
-s.children.append(d2)
-s.properties['beatsPerBar'] = 4
-s.properties['tempo'] = 80
 
-g = GlobalContext()
-g.children.append(s)
-g.properties['title'] = "Coconutters"
-g.properties['style'] = 'clog'
+#d1 = DancerContext()
+#d1.properties['dancerName'] = 'frontman'
 
-print(str(g))
+#d2 = DancerContext()
+#d2.properties['dancerName'] = 'Eric'
+#d2.properties['beatsPerBar'] = 6
 
-xe = g.toCreateEvents()
-for e in xe:
-  print(e)
+#s = ScoreContext()
+#s.children.append(d1)
+#s.children.append(d2)
+#s.properties['beatsPerBar'] = 4
+#s.properties['tempo'] = 80
 
-xe = g.toPropertyEvents()
-for e in xe:
-  print(e)
+#g = GlobalContext()
+#g.children.append(s)
+#g.properties['title'] = "Coconutters"
+#g.properties['style'] = 'clog'
+
+#print(str(g))
+
+#xe = g.toCreateEvents()
+#for e in xe:
+  #print(e)
+
+#xe = g.toPropertyEvents()
+#for e in xe:
+  #print(e)
 
 #g.runIterator()
+
+stream = [DanceEvent(4, "clap", 1, []), DanceEvent(4, "clap", 1, ['overhead']), DanceEvent(4, "step", 1, ['west']), MomentStart(-3), DanceEvent(4, "cross", 1, ['legs']), DanceEvent(4, "cross", 1, ['hands']), MomentEnd(), MomentStart(-3), DanceEvent(4, "jump", 1, ['south']), DanceEvent(4, "hands", 1, ['ears']), MomentEnd(), DanceEvent(4, "r", 6, []), DanceEvent(4, "swipe", 2, ['low']), DanceEvent(4, "jump", 1, ['spot'])]
+d = DancerContext()
+d.children.extend(stream)
+d.prepareAsParsedData()
+print(str(d.it))

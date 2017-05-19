@@ -96,6 +96,15 @@ acceptedFunctionsInstructions = {
 #! 
 class Parser:
     '''
+   Generates a parser-based DanceEvent form,
+   - MomentEvents are dummies to mark simutaneous operation.
+   - *Property events may appear. Like the input language, these
+   are associated with following events. Not marked as simultaneous.
+   - DanceEvent is a step in time.
+   No Finish and no end is marked to the DanceEvent chain. 
+   - *Context does not appear at all.
+   - Finish does not appear
+   No premoment instructions exist.
     '''
     V_INSTRUCTIONSEQ = 1
     V_FUNCTION = 2
@@ -216,6 +225,8 @@ class Parser:
       commit = (self.line[0] == '<')
       if (commit):
         #print('simultaneousInstructions ' + str(self._prevLineNo))
+        context.children.append(MomentStart(-3))
+        
         self._next()
 
         while(self.line[0] != '>'):
@@ -229,6 +240,8 @@ class Parser:
           )):
             self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
 
+        context.children.append(MomentEnd())
+        
         self._next()
       return commit
       
