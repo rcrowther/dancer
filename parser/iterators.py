@@ -255,6 +255,7 @@ class ParseCompileIterator(DataIterator):
       b += ', '
     return b
     
+
 #! uodate
 class StreamIterator(DataIterator):
   '''
@@ -262,9 +263,9 @@ class StreamIterator(DataIterator):
   Stream must end with Finish()
   needs contextUID to be set
   '''
-  def __init__(self, stream):
+  def __init__(self):
     DataIterator.__init__(self)
-    self.streamIt = iter(stream)
+    self.streamIt = None
     self.cache = []
     self._nextMoment = -1
 

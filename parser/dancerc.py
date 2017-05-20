@@ -8,7 +8,6 @@ import sys
 
 import SourceIterators
 import ExpandIterator
-import MetaAssertIterator
 
 from ConsoleStreamReporter import ConsoleStreamReporter
 import chains
@@ -55,60 +54,40 @@ def getContextData(args, reporter):
 def doSomething(args):
     r = ConsoleStreamReporter()
     ctx = getContextData(args, r)
-    #Parser(it, r)
-    parseType = args.parser
     
-    if (parseType == 'ast'):
-      #p = Parser(it, r)
-      #p.parse()
-      #contexts = p.ast()
-      #contexts.prepareAsParsedData()
-
-      #cu = CompilationUnit(p.ast())
-      #ph1 = GatherInfoPhase(cu, r)
-      #ph1.process()
-      #ph2 = NormaliseInstructionsPhase(cu, r)
-      #ph2.process()
-      #print('output:')
-      ##print(''.join(p.result())) 
-      #print(str(p.ast())) 
-      
-      ctx.mergeProperty('outfile', args.outfile)
-      ctx.setChainAs(chains.EventsToFile)
-      ctx.runProcessChain()
-      printInfo('written: {0}'.format(args.outfile))
-
-    if (parseType == 'console'):
-      ctx.mergeProperty('outfile', args.outfile)
+    if (args.print):
       ctx.setChainAs(chains.EventsToConsole)
       ctx.runProcessChain()
-      printInfo('written: {0}'.format(args.outfile))
+    else:
+      form = args.format
       
-    if (parseType == 'json'):
-      #p = JSONPrintGenerator(it, r)
-      #p.parse()
-      #print('output:')
-      #print(''.join(p.result())) 
-      print('JSON Not enabled. Help!') 
+      if (form == 'events'):
+        args.outfile = args.outfile + '.dnc'
+        ctx.mergeProperty('outfile', args.outfile)
+        ctx.setChainAs(chains.EventsToFile)
+        ctx.runProcessChain()
+  
+      if (form == 'json'):
+        args.outfile = args.outfile + '.json'
+        #p = JSONPrintGenerator(it, r)
+        #p.parse()
+        #print('output:')
+        #print(''.join(p.result())) 
+        print('JSON Not enabled. Help!') 
+  
+      if (form == 'bytecode'):
+        args.outfile = args.outfile + '.dnbc'
+        print('bytecode Not enabled. Help!') 
 
-    if (parseType == 'bytecode'):
-      print('bytecode Not enabled. Help!') 
-      
+      if (form == 'pdf'):
+        
+        print('pdf Not enabled. Help!') 
+        
+      printInfo('written: {0}'.format(args.outfile))
     print(r.summaryString())
 
-def writeOutputFile(args):
-    with open(args.outfile, 'w', encoding=args.codec) as f:
-        f.write()
-    printInfo("written final 'dnc' file: {0}".format(args.outfile))
-   
-def openOutputFile(args):
-  pass
 
-def writeLine(args):
-  pass  
 
-def closeOutputFile(args):
-  pass
          
 def main(argv):
     parser = argparse.ArgumentParser(
@@ -116,28 +95,32 @@ def main(argv):
         #epilog= "NB: keynames in the internal 'stanza' variable must be adjusted to match input files"
         )
 
-
+    parser.add_argument("-b", "--beat-assert", 
+        help="Reconstucting the events for every beat.",
+        action="store_true"
+        )
+        
     parser.add_argument("-c", "--codec",
         default='UTF-8',
         help="encoding of source file."
         )
 
     parser.add_argument("-e", "--expand-repeats", 
-        default='all',
-        help="Expand all repeated code, including code marked for visual repeats only."
-        )
-
-    parser.add_argument("-i", "--interlace-dancers", 
-        default='all',
-        help="Add marks for the dancer, reconstucting the instructions by beat"
+        help="Expand all repeated code, including code marked for visual repeats only.",
+        action="store_true"
         )
         
-    parser.add_argument('-p', '--parser', 
-        default='ast',
-        #type=string, 
-        choices=('ast', 'console', 'json', 'bytecode')
+    parser.add_argument('-f', '--format', 
+        help="Output format. 'events' is the default, a compiled input.",
+        default='events',
+        choices=('events', 'json', 'bytecode', 'pdf')
         )
-       
+
+    parser.add_argument('-p', '--print',
+        help="Print the event queue to the console. Overrides -f.",
+        action="store_true"
+        )
+        
     parser.add_argument("-s", "--solo", 
         default='all',
         help="Generate code for one dancer only, by index or name."
@@ -188,13 +171,14 @@ def main(argv):
 
     # if no outfile, invent one
     if (not args.outfile):
-        args.outfile = os.path.join(args.workingDir, '{0}.dnc'.format(args.baseName))
+        args.outfile = os.path.join(args.workingDir, '{0}'.format(args.baseName))
 
     print ('infile:' + str(args.infile))
     print ('workingDir:' + str(args.workingDir))
     print ('baseName:' + str(args.baseName))
     print ('codec:' + str(args.codec))
-    print ('parser:' + str(args.parser))
+    print ('format:' + str(args.format))
+    print ('print:' + str(args.print))
     print ('outfile:' + str(args.outfile))
     print ('comments:' + str(args.comments))
 
