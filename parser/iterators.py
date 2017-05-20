@@ -55,6 +55,7 @@ class DataIterator():
 #! error and stats report. Bar counts, validationn?
 class ParsedDanceeventIterator(DataIterator):
   '''
+  Iterates a parsed event list.
   use prepare() to set data and contextId
   used in DancerContext
   '''
@@ -136,6 +137,7 @@ class ParsedDanceeventIterator(DataIterator):
 
 class ChildContextIterator(DataIterator):
   '''
+  Interlaces events from child iterators by Moment.
   use prepare() to set data and contextId
   used in intermediade contexts like ScoreContext.
   '''
@@ -204,8 +206,11 @@ class ChildContextIterator(DataIterator):
 
 class ParseCompileIterator(DataIterator):
   '''
+  Inserts Moment events from pending calls.
+  Can prepend and append extra events.
+  Reduces clutches  of events to a steady stream of single events.
   use prepare() to set data and contextId
-  used in intermediate contexts like ScoreContext.
+  used at base in GlobalContext.
   '''
   def __init__(self):
     DataIterator.__init__(self)
@@ -256,43 +261,48 @@ class ParseCompileIterator(DataIterator):
     return b
     
 
-#! uodate
+####################################################################
+## Stream iterators ##
+
 class StreamIterator(DataIterator):
   '''
-  Only works with a whole provided stream.
+  Iterates a compiled event queue.
   Stream must end with Finish()
-  needs contextUID to be set
+  use prepare() to set data and contextId
+  used to read compiled event streams.
   '''
+  # 
   def __init__(self):
     DataIterator.__init__(self)
-    self.streamIt = None
-    self.cache = []
-    self._nextMoment = -1
+    self._data = None
+    self.curse = 0
+    self.length = 0
 
-  def _cacheToNextMoment(self):
-    while(True):
-      e = self.streamIt.__next__()
-      if (not( isinstance(e, PrepareEvent) or isinstance(e, Finish))):
-        self.cache.append(e)
-      else:
-        break
-    self._nextMoment = e.moment
-             
-  def __iter__(self):
-    return self
-        
+  def prepare(self, data): 
+    self.length = len(data)
+    self._data = data
+
+
   def hasNext(self):
-    return self._nextMoment == MOMENT_EXHAUSTED
+    return self.curse < self.length 
     
-  def pendingMoment(self):
-    return self._nextMoment
-         
-  def __next__(self): 
-    self.cache = []
-    self._cacheToNextMoment()
-    return self.cache
+    
+  def __next__(self):
+    r = self._data[self.curse]
+    self.curse += 1   
+    return r
 
-
+  def __str__(self):
+    b = ''
+    while(self.hasNext()):
+      e = self.__next__()
+      #for e in r:
+      b += str(e)
+      b += ', '
+    return b
+    
+    
+    
 #from events import *
 
 #stream1 = [DanceEvent(6, "clap", 1, []), DanceEvent(6, "clap", 1, ['overhead']), DanceEvent(6, "step", 1, ['west']), MomentStart(-3), DanceEvent(6, "cross", 1, ['legs']), DanceEvent(6, "cross", 1, ['hands']), MomentEnd(), MomentStart(-3), DanceEvent(6, "jump", 1, ['south']), DanceEvent(6, "hands", 1, ['ears']), MomentEnd(), DanceEvent(6, "bend", 1, ['knees']), DanceEvent(6, "slap", 1, ['other']), DanceEvent(6, "slap", 2, ['knees']), DanceEvent(6, "twirl", 1, ['right']), DanceEvent(6, "split", 1, ['knees']), DanceEvent(6, "turn", 1, ['west']), MergeProperty(6, "beatsPerBar", 3), MergeProperty(6, "tempo", 80), DanceEvent(6, "kick", 1, ['low'])]
@@ -315,3 +325,31 @@ class StreamIterator(DataIterator):
 #pit.prepare(0, [[CreateContext(0, 0, 'Global')], [Finish()], cit])
 ##print(str(len(pit._childIts)))
 #print(str(pit))
+
+########################################
+eStream = [
+CreateContext(0, 0, "Global"),
+CreateContext(0, 5, "Score"),
+CreateContext(5, 6, "Dancer"),
+CreateContext(5, 7, "Dancer"),
+MergeProperty(0, "performer", "Bacup"),
+MergeProperty(0, "style", "clog"),
+MergeProperty(0, "tempo", 120),
+MergeProperty(0, "title", "Coconutters"),
+MergeProperty(0, "beatsPerBar", 4),
+MergeProperty(0, "dancers", 3),
+MergeProperty(0, "date", None),
+MomentStart(1),
+DanceEvent(6, "clap", 1, []),
+DanceEvent(7, "clap", 1, []),
+MomentEnd(),
+MomentStart(2),
+DanceEvent(6, "clap", 1, ['overhead']),
+DanceEvent(7, "clap", 1, ['overhead']),
+MomentEnd(),
+Finish()
+]
+
+it = StreamIterator()
+it.prepare(eStream)
+print(str(it))

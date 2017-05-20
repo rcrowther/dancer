@@ -240,50 +240,7 @@ class ScoreContext(Context):
     #? do we ever manually delete before exhaustion?
     self.it.deleteChild(uid) 
 
-# we need to be able to modify properties...
-class Processor():
-  def __init__(self, context):
-    self.context = context
-    
-  def process(self, context, moment, inStream):
-    pass
-    
-class PrintStage(Processor):
-  def process(self, context, moment, inStream):
-    print('moment: ' + str(moment))
-    b = ''
-    for e in inStream:
-      b += str(e)
-      b += ', '
-    print(b) 
-    return inStream
 
-class Build(Processor):
-  def __init__(self, context):
-    Processor.__init__(self, context)
-    self.b = ''
-    #context._iProperties['stream-builder'] = []
-
-  def process(self, context, moment, inStream):
-    for e in inStream:
-      #self.b.append(str(e))
-      #self.b.append(', ')
-      self.b += str(e)
-      self.b += ', '
-    return inStream 
-  
-#class Timing(Processor):
-  ## Should update currentMoment and currentBar
-  #def __init__(self, context):
-    #Processor.__init__(self, context)
-    #self.momentCount = 0
-    #context._iProperties['currentMoment'] = 4
-    #context._iProperties['currentBar'] = 0
-    #context._iProperties['currentBeatsPerBar'] = 4
-
-  #def process(self, context, moment, inStream):
-    #return inStream 
-    
     
 class GlobalContext(Context):
   def __init__(self):

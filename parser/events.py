@@ -237,7 +237,7 @@ class DanceEvent(Event):
 
   def extendString(self, b):
     b.append(str(self.contextId))
-    b.append(', ')
+    b.append(', "')
     b.append(self.name)
     b.append('", ')
     b.append(str(self.duration))
