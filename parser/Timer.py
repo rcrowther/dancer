@@ -24,3 +24,6 @@ def process(properties, e):
     properties['barCount'] += 1
     print('bar: ' + str(properties['barCount']))
   return e
+
+def after(properties):
+  pass

@@ -106,7 +106,7 @@ class ParsedDanceeventIterator(DataIterator):
 
       if (isinstance(e, DanceEvent)):
         self.cache = [e]
-        self._pendingMomentIncrement = e.duration 
+        self._pendingMomentIncrement = int(e.duration) 
       else:
         # handle simultaneous form
         # skip moment start
@@ -115,7 +115,7 @@ class ParsedDanceeventIterator(DataIterator):
         e = self._data[self.curse]
         longest = 0          
         while(not isinstance(e, MomentEnd)):
-          if (isinstance(e, DanceEvent) and e.duration > longest):
+          if (isinstance(e, DanceEvent) and int(e.duration) > longest):
             longest = e.duration
           self.cache.append(e)
           self.curse += 1

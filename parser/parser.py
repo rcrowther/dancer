@@ -400,24 +400,24 @@ class Parser:
 
 
 # Test
-from SourceIterators import StringIterator
-#import ExpandIterator
-from ConsoleStreamReporter import ConsoleStreamReporter
+#from SourceIterators import StringIterator
+##import ExpandIterator
+#from ConsoleStreamReporter import ConsoleStreamReporter
 
-p = '../test/test'
-with open(p, 'r') as f:
-    srcAsLines = f.readlines()
+#p = '../test/test.dn'
+#with open(p, 'r') as f:
+    #srcAsLines = f.readlines()
     
-r = ConsoleStreamReporter()
-sit = StringIterator(p, srcAsLines)
-#it = ExpandIterator.ExpandIterator(sit, r)
+#r = ConsoleStreamReporter()
+#sit = StringIterator(p, srcAsLines)
+##it = ExpandIterator.ExpandIterator(sit, r)
 
-p = Parser(sit, r)
+#p = Parser(sit, r)
 
-p.parse()
+#p.parse()
 
-print(str(p.ast()))
+#print(str(p.ast()))
 
-xe = p.toEvents()
-for e in xe:
-  print(str(e))
+#xe = p.toEvents()
+#for e in xe:
+  #print(str(e))

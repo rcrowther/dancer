@@ -11,10 +11,12 @@ import ExpandIterator
 import MetaAssertIterator
 
 from ConsoleStreamReporter import ConsoleStreamReporter
-from JSON import JSONPrintGenerator
-from Python import PythonBuilder
+import chains
+
+#from JSON import JSONPrintGenerator
+#from Python import PythonBuilder
 from parser import Parser
-from Phases import *
+#from Phases import *
 
 #? No warnings?
 #? use reporter?
@@ -29,34 +31,68 @@ def printError(msg):
 
 
 
-def parse(srcAsLines, args):
-    r = ConsoleStreamReporter()
+def getContextData(args, reporter):
+  inPath = args.infile
+  if (inPath.endswith('.dnc')):
+    #assuming a compiled event file
+    print('not implemented?')
+  elif (inPath.endswith('.dn')):
+    # assuming a parsable file
+    with open(inPath, 'r', encoding=args.codec) as f:
+      srcAsLines = f.readlines()
     sit = SourceIterators.StringIterator(args.infile, srcAsLines)
     #it = MetaAssertIterator.MetaAssertIterator(sit, r)
-    it = ExpandIterator.ExpandIterator(sit, r)
+    it = ExpandIterator.ExpandIterator(sit, reporter)
+    p = Parser(it, reporter)
+    p.parse()
+    ctx = p.ast()
+    ctx.prepareAsParsedData()
+    return ctx
+  else:
+    printError("file has no dancer extension ('.dnc', '.dn'): {0}".format(infile))
+
+
+def doSomething(args):
+    r = ConsoleStreamReporter()
+    ctx = getContextData(args, r)
     #Parser(it, r)
     parseType = args.parser
     
     if (parseType == 'ast'):
-      p = Parser(it, r)
-      p.parse()
-      cu = CompilationUnit(p.ast())
-      ph1 = GatherInfoPhase(cu, r)
-      ph1.process()
-      ph2 = NormaliseInstructionsPhase(cu, r)
-      ph2.process()
-      print('output:')
-      #print(''.join(p.result())) 
-      print(str(p.ast())) 
+      #p = Parser(it, r)
+      #p.parse()
+      #contexts = p.ast()
+      #contexts.prepareAsParsedData()
+
+      #cu = CompilationUnit(p.ast())
+      #ph1 = GatherInfoPhase(cu, r)
+      #ph1.process()
+      #ph2 = NormaliseInstructionsPhase(cu, r)
+      #ph2.process()
+      #print('output:')
+      ##print(''.join(p.result())) 
+      #print(str(p.ast())) 
+      
+      ctx.mergeProperty('outfile', args.outfile)
+      ctx.setChainAs(chains.EventsToFile)
+      ctx.runProcessChain()
+      printInfo('written: {0}'.format(args.outfile))
+
+    if (parseType == 'console'):
+      ctx.mergeProperty('outfile', args.outfile)
+      ctx.setChainAs(chains.EventsToConsole)
+      ctx.runProcessChain()
+      printInfo('written: {0}'.format(args.outfile))
       
     if (parseType == 'json'):
-      p = JSONPrintGenerator(it, r)
-      p.parse()
-      print('output:')
-      print(''.join(p.result())) 
+      #p = JSONPrintGenerator(it, r)
+      #p.parse()
+      #print('output:')
+      #print(''.join(p.result())) 
+      print('JSON Not enabled. Help!') 
 
     if (parseType == 'bytecode'):
-      print('Not enabled. Help!') 
+      print('bytecode Not enabled. Help!') 
       
     print(r.summaryString())
 
@@ -97,9 +133,9 @@ def main(argv):
         )
         
     parser.add_argument('-p', '--parser', 
-        default='JSON',
+        default='ast',
         #type=string, 
-        choices=('ast', 'json', 'bytecode')
+        choices=('ast', 'console', 'json', 'bytecode')
         )
        
     parser.add_argument("-s", "--solo", 
@@ -170,11 +206,8 @@ def main(argv):
 
 
     # do something
-    with open(args.infile, 'r', encoding=args.codec) as f:
-        srcAsLines = f.readlines()
 
-
-    parse(srcAsLines, args)
+    doSomething(args)
 
 
 

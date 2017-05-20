@@ -2,6 +2,7 @@
 
 #from iterators import *
 
+
 from events import *
 
 import Timer
@@ -65,13 +66,20 @@ class Context():
   def name(self, name):
     self._name = name
     
-  #?x
+  # Following are useful for external controls i.e. dancerc
+  #? make general API, even for chainLinks?
   def mergeProperty(self, k, v):
     self.properties[k] = v
-  #?x
+
+  def containsProperty(self, k):
+    return (self.properties[k] == None)
+
   def readProperty(self, k):
     return self.properties[k]
-  #?x
+
+  def readPropertyOption(self, k):
+    return self.properties.get(k)
+    
   def deleteProperty(self, k):
     del self.properties[k]
     
@@ -324,15 +332,15 @@ class GlobalContext(Context):
   #! not complete, moments need writing
   #! so need an assembly iterator...
   #! test this
-  def parseDataToEvents(self):
-    self.prepareAsParsedData()
-    events = []
-    while(self.it.hasNext()):
-      events.extend(self.__next__())
-    return events
+  #def writeIteratorToFile(self, filePath):
+    #self.prepareAsParsedData()
+    #events = []
+    #while(self.it.hasNext()):
+      #events.extend(self.__next__())
+    #return events
     
-  #def pendingMoment(self):
-   #  return self.it.pendingMoment()
+  def setChainAs(self, chain):
+    self.processors = chain
 
   #! should we process events singly? Probably yes?
   #! this will not work for parser-sourced events with no moments?
@@ -344,8 +352,8 @@ class GlobalContext(Context):
       e = self.it.__next__()
       for p in self.processors:
          p.process(self.properties, e)
-    #self.outStream.append(PrepareEvent('context', 1))
-    #self.outStream.extend(events)
+    for p in self.processors:
+      p.after(self.properties)
 
   #? Should iterators be part of process?
   #? context names need to be set on events.
