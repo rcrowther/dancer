@@ -327,29 +327,29 @@ class StreamIterator(DataIterator):
 #print(str(pit))
 
 ########################################
-eStream = [
-CreateContext(0, 0, "Global"),
-CreateContext(0, 5, "Score"),
-CreateContext(5, 6, "Dancer"),
-CreateContext(5, 7, "Dancer"),
-MergeProperty(0, "performer", "Bacup"),
-MergeProperty(0, "style", "clog"),
-MergeProperty(0, "tempo", 120),
-MergeProperty(0, "title", "Coconutters"),
-MergeProperty(0, "beatsPerBar", 4),
-MergeProperty(0, "dancers", 3),
-MergeProperty(0, "date", None),
-MomentStart(1),
-DanceEvent(6, "clap", 1, []),
-DanceEvent(7, "clap", 1, []),
-MomentEnd(),
-MomentStart(2),
-DanceEvent(6, "clap", 1, ['overhead']),
-DanceEvent(7, "clap", 1, ['overhead']),
-MomentEnd(),
-Finish()
-]
+#eStream = [
+#CreateContext(0, 0, "Global"),
+#CreateContext(0, 5, "Score"),
+#CreateContext(5, 6, "Dancer"),
+#CreateContext(5, 7, "Dancer"),
+#MergeProperty(0, "performer", "Bacup"),
+#MergeProperty(0, "style", "clog"),
+#MergeProperty(0, "tempo", 120),
+#MergeProperty(0, "title", "Coconutters"),
+#MergeProperty(0, "beatsPerBar", 4),
+#MergeProperty(0, "dancers", 3),
+#MergeProperty(0, "date", None),
+#MomentStart(1),
+#DanceEvent(6, "clap", 1, []),
+#DanceEvent(7, "clap", 1, []),
+#MomentEnd(),
+#MomentStart(2),
+#DanceEvent(6, "clap", 1, ['overhead']),
+#DanceEvent(7, "clap", 1, ['overhead']),
+#MomentEnd(),
+#Finish()
+#]
 
-it = StreamIterator()
-it.prepare(eStream)
-print(str(it))
+#it = StreamIterator()
+#it.prepare(eStream)
+#print(str(it))

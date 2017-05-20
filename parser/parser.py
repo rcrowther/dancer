@@ -48,7 +48,13 @@ def functionHandlerCreateSubcontext(context, name, posParams, namedParams):
   context.children.append(newCtx)
   return newCtx
 
-
+class AcceptedFunctionsDummy():
+  def dummyFunctionHandler(self, context, name, posParams, namedParams):
+    return context
+    
+  def get(self, k):
+   return self.dummyFunctionHandler
+   
 acceptedFunctionsGlobal = {
 "init" : functionHandlerGlobalProperties,
 "about" : functionHandlerGlobalProperties,
@@ -298,6 +304,7 @@ class Parser:
            
         self._next()
       return commit
+
         
     def simultaneousFunctionBody(self, context):
       commit = (
@@ -356,26 +363,71 @@ class Parser:
         return commit
 
 
+####################
+
+    def variableFunctionBody(self, context):
+      commit = (self.line[0] == '{')
+      if (commit):
+        
+        self._next()
+        
+        while (True):
+          if(not(
+          self.simultaneousInstructions(context)
+          or self.variableFunctionCall(context)
+          or self.comment()
+          or self.plainInstruction(context)
+          )):
+            self.error('functionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
+          if (self.line[0] == '}'):
+            break
+           
+        self._next()
+      return commit
+
+    def variableFunctionCall(self, context):
+        commit = (self.line[0] == '\\')
+        if(commit):
+            parts = self.line[1:].split()
+            if (len(parts) < 1):
+              self.error('functionCall', 'Expected characters for a function name', True)
+            name = parts[0]    
+            #print(name)
+            posParams = parts[1:]
+            self._next()
+            self.namedParameters()
+
+            # both optional
+            # may need properties or children
+            self.variableFunctionBody(context)
+            # will only need children
+            self.simultaneousFunctionBody(context)
+            
+        return commit
+        
+    # Must drop level name-checking for functions,
+    # ...we have no idea on the level of the functions 
     def variable(self):
       commit = (self.line[0] == '=')
       if (commit):
         p = self.line.split()
         if (len(p) < 2):
           self.error('variable', 'Expected name to assign to?', True)
-        self.variableOpenCB(p[1])
         self.currentVarName = p[1]
         self.varLineStash = []
         self._stashVarLines = True
         self._next()
         if (not (
           #? this covers all we need and allow?
-          self.functionBody([])
+          self.variableFunctionBody(DummyContext())
         )):
           self.error('variable', 'Variable must contain an understandable unit of code, currently anything allowed in a function body', True)
         self._stashVarLines = False
         self.varLineStash.pop()
       return commit
-            
+           
+#####################################
+
             
     def rootSeq(self, globalExp):
         while(True):
