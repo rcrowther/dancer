@@ -4,6 +4,7 @@
 
 from events import *
 
+import Timer
 
 # Not for threads (you know it)
 _uid = 1
@@ -288,7 +289,7 @@ class GlobalContext(Context):
     #!
     p = PrintStage(self)
     self.processors  = [
-    p.process
+    Timer
     ]
     #p = Build(self)
     #self.processors  = [
@@ -314,7 +315,9 @@ class GlobalContext(Context):
     self.it = ParseCompileIterator()
     de = self.toDeleteEvents()
     de.append(Finish())
-    self.it.prepare(0, [self.toCreateEvents(), de, self.children[0].it])
+    ctxEvents = self.toCreateEvents()
+    ctxEvents.extend(self.toPropertyEvents())
+    self.it.prepare(0, [ctxEvents, de, self.children[0].it])
 
   # build the events from parsed data
   #! write down?
@@ -334,25 +337,23 @@ class GlobalContext(Context):
   #! should we process events singly? Probably yes?
   #! this will not work for parser-sourced events with no moments?
   #! how to return events to te stream. This isnt. Do we need deletions?
-  def process(self, moment, events):
-    r = events
+  def runProcessChain(self):
     for p in self.processors:
-      p(self, moment, r)
+      p.before(self.properties)
+    while(self.it.hasNext()):
+      e = self.it.__next__()
+      for p in self.processors:
+         p.process(self.properties, e)
     #self.outStream.append(PrepareEvent('context', 1))
     #self.outStream.extend(events)
 
   #? Should iterators be part of process?
   #? context names need to be set on events.
-  def runIterator(self):
-    it = g.score.it
-    while(True):
-      pm = it.pendingMoment()
-     # print('pending:' + str(pm))
-      if (pm == -2):
-        break
-      r = it.__next__()
-      self.process(pm, r)
-    print('done')
+  #def runIterator(self):
+  #  while(self.it.hasNext()):
+      # print('pending:' + str(pm))
+      #self.process(self.it.__next__())
+  #  print('done')
 
 
 
@@ -404,5 +405,6 @@ s.children.extend([d1, d2])
 g = GlobalContext() 
 g.children.append(s)
 g.prepareAsParsedData()
-#s.prepareAsParsedData()
-print(str(g.it))
+#print(str(g.it))
+g.runProcessChain()
+print(str(g.properties))
