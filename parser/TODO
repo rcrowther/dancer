@@ -46,10 +46,11 @@ music-iterator is interesting.
 
 
 
+paper-column
 
 === Outputs
 
-We know that the object list then uses a 'tramslator' to generate either performance or a writtem scpre.
+We know that the object list then uses a 'translator' to generate either performance or a writtem scpre.
 
 Lilly parser seems to make 'events'. Events, e.g.
 
@@ -59,19 +60,24 @@ which says the types lead to an engraver.
 
 Where the datatype 'event'?
 
-
+=== Engraving
 We know engravers sit in stave information.
 
 We also know that engravers carry info like what note type, directions, etc. Engravers generate objects, which have no generic name, but the objects can be found by the engraver in lilly/. These objects do include some x/y details like how high to relatively sit on a stave.
 
+Engraving seems to take place in several places. Is that what 'dispatcher' is for, engraving per context? But why, if we have an event list?
+
+What is notable is that the 'staff' context proceszs list (see below), only seems to chuse note types, etc. Whereas the 'score' context process list has  "Timing_translator",, "Default_bar_line_engraver"
+
 bars get numbered. 
 
-I thnk the parser makes events directly. this makes a big difference, the iterators only need to move across events. But we do seem to get a score object with contexts. So we got those as objects, but with event sequences as input.
+I thnk the parser makes events directly. This makes a big difference, the iterators only need to move across events. But we do seem to get a score object with contexts. So we got those as objects, but with event sequences as input.
 
 
 TODO: Number bars?test for lengths?
 
 line-interface draws lines from 'offsets' to
+
 
 === in SHORT
 Don't know where control goes after scm/lilly. Does it run the functions in scm/music-functions?

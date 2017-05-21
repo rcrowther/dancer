@@ -45,15 +45,36 @@ def functionHandlerCreateSubcontext(context, name, posParams, namedParams):
     newCtx = DancerContext()
   elif (name == 'dancer'):
     newCtx = DancerContext()
-  context.children.append(newCtx)
+  context.appendChild(newCtx)
   return newCtx
 
-class AcceptedFunctionsDummy():
-  def dummyFunctionHandler(self, context, name, posParams, namedParams):
-    return context
+# DO NOT REMOVE
+# Unuse, but here so you know I tried it R.C.
+#class AcceptedFunctionsDummy():
+  #'''
+  #Pretends to be an acceptedFunction dictionary.
+  #Every call returns the same handler.
+  #Every hander entry does nothing. The handler returns None (no body)
+  #or, if the function needs a body, a DnummyContext. 
+  #'''  
+  #DUMMY_CONTEXT = DummyContext()
+  ## Should be kept up-to-date.
+  ## ...the nasty part of this.
+  #funcsWithBody = [
+    #"score", "dancer", "dancerGroup", "repeat", "seenRepeat", "alternative"
+    #]
     
-  def get(self, k):
-   return self.dummyFunctionHandler
+  #def dummyFunctionHandler(self, context, name, posParams, namedParams):
+    #r = None 
+    #if (name in AcceptedFunctionsDummy.funcsWithBody):
+      #r = AcceptedFunctionsDummy.DUMMY_CONTEXT
+    #return r
+    
+  #def get(self, k):
+   #return self.dummyFunctionHandler
+   
+#acceptedFunctionsDummy = AcceptedFunctionsDummy()
+
    
 acceptedFunctionsGlobal = {
 "init" : functionHandlerGlobalProperties,
@@ -71,7 +92,7 @@ acceptedFunctionsSimultaneous = {
 
 def functionHandlerMergeProperty(context, name, posParams, namedParams):
   print('merge property function handler: ' + name)
-  context.children.append(MergeProperty(context.uid, name, posParams[0]))
+  context.appendChild(MergeProperty(context.uid, name, posParams[0]))
   return None
 
   
@@ -231,7 +252,7 @@ class Parser:
       commit = (self.line[0] == '<')
       if (commit):
         #print('simultaneousInstructions ' + str(self._prevLineNo))
-        context.children.append(MomentStart(-3))
+        context.appendChild(MomentStart(-3))
         
         self._next()
 
@@ -246,7 +267,7 @@ class Parser:
           )):
             self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
 
-        context.children.append(MomentEnd())
+        context.appendChild(MomentEnd())
         
         self._next()
       return commit
@@ -276,7 +297,7 @@ class Parser:
         if (len(p) > 1):
           params = p[1:]
           
-        context.children.append(DanceEvent(context.uid, name, duration, params))
+        context.appendChild(DanceEvent(context.uid, name, duration, params))
         
         self._next()
       return commit
@@ -364,7 +385,10 @@ class Parser:
 
 
 ####################
-
+    ## variable handling ##
+    
+    #  Sadly, we do need to modify this, or it will go hunting for 
+    # specific acceptedFunction's.
     def variableFunctionBody(self, context):
       commit = (self.line[0] == '{')
       if (commit):
@@ -378,19 +402,23 @@ class Parser:
           or self.comment()
           or self.plainInstruction(context)
           )):
-            self.error('functionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
+            self.error('variableFunctionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
           if (self.line[0] == '}'):
             break
            
         self._next()
       return commit
 
+    # Sadly, we do need to modify this, or it will 'handle' functions.
+    # While the handling can be nullified by returning DummyContext
+    # we need to kill name searching altogether (e.g. variable names 
+    # are still present)
     def variableFunctionCall(self, context):
         commit = (self.line[0] == '\\')
         if(commit):
             parts = self.line[1:].split()
             if (len(parts) < 1):
-              self.error('functionCall', 'Expected characters for a function name', True)
+              self.error('variableFunctionCall', 'Expected characters for a function name', True)
             name = parts[0]    
             #print(name)
             posParams = parts[1:]

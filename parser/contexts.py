@@ -83,7 +83,14 @@ class Context():
   def deleteProperty(self, k):
     del self.properties[k]
     
-    
+  def appendChild(self, v):
+    '''
+    This accessor allows us to reimplement if necessary.
+    Notably, DummyContext, which has no tree-building needs,
+    disables this method.
+    '''
+    self.children.append(v)
+  
   def isLeaf(self):
     return (len(self.children) == 0)
 
@@ -180,8 +187,17 @@ class Context():
     
 
 class DummyContext(Context):
+  '''
+  A near-empty version of context.
+  This is used to parse variables, where we have no need to collect 
+  data.
+  So appendChild is passed.
+  '''
   def __init__(self):
     Context.__init__(self, -1, 'Dummy')
+  
+  def appendChild(self, v):
+    pass
     
 class DancerContext(Context):
   def __init__(self):
