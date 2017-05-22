@@ -62,7 +62,9 @@ class Event():
     
 class CreateContext(Event):
   '''
-  @newType is currently a string 'score', 'dancer' etc.
+  @contextId the id of the parent context
+  @newId the id of the new context
+  @newType is currently a string 'Score', 'Dancer' etc.
   '''
   def __init__(self, contextId, newId, newType):
     Event.__init__(self, contextId)
@@ -98,6 +100,9 @@ class CreateContext(Event):
     
 
 class DeleteContext(Event):
+  '''
+  @contextId the id of the context
+  '''
   def __init__(self,  contextId):
     Event.__init__(self, contextId)
 
@@ -109,7 +114,7 @@ class DeleteContext(Event):
 
 class MergeProperty(Event):
   '''
-  @parentId the local context (not the parent of the context)
+  @contextId the local context (not the parent of the context)
   '''
   def __init__(self, contextId, key, value):
     Event.__init__(self, contextId)
@@ -135,15 +140,16 @@ class MergeProperty(Event):
           
   def extendString(self, b):
     b.append(str(self.contextId))
-    b.append(', ')
+    b.append(', "')
     b.append(self.key)
     b.append('", ')
     b.append(str(self.value))          
 
 
+
 class DeleteProperty(Event):
   '''
-  @parentId the local context (not the parent of the context)
+  @contextId the local context (not the parent of the context)
   '''
   def __init__(self, contextId, key):
     Event.__init__(self, contextId)
@@ -159,10 +165,10 @@ class DeleteProperty(Event):
           
   def extendString(self, b):
     b.append(str(self.contextId))
-    b.append(', ')
+    b.append(', "')
     b.append(self.key)
+    b.append('"')
 
-    
     
     
 class MomentStart(Event):
@@ -191,6 +197,7 @@ class MomentStart(Event):
     b.append(str(self.moment))
         
         
+        
 class MomentEnd(Event):
   '''
   For consistency, has a parent Id, but always set to 0.
@@ -203,7 +210,12 @@ class MomentEnd(Event):
   def extendString(self, b):
     pass               
         
+        
+        
 class DanceEvent(Event):
+  '''
+  @contextId the parent context
+  '''  
   def __init__(self, contextId, name, duration, params):
     Event.__init__(self, contextId)
     self._name = name

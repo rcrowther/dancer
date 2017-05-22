@@ -9,16 +9,15 @@ MOMENT_PARSEDSTART = -3
 # -2 moment = finished stream
 MOMENT_EXHAUSTED  = -2
 # -1 moment = pre-play stream
+# No, thatsMoment = 0 now.
 MOMENT_PREPLAY  = -1
 
+
+
+#! Should be ParseDataIterators
 class DataIterator():
   '''
-  Iterate over data given to Dancer code.
-  The itertor can be
-  - building from source AST
-  -- child stream
-  -- music instruction iterators
-  - bulding from a stream
+  Iterate over data given to Dancer code by parsers.
   '''
   def __init__(self):
     self.contextId = None
@@ -204,7 +203,12 @@ class ChildContextIterator(DataIterator):
     return events
 
 
-class ParseCompileIterator(DataIterator):
+
+
+from EventIterators import EventIterator
+
+# Aside from the prepare(), this is an EventIterator 
+class ParseCompileIterator(EventIterator):
   '''
   Inserts Moment events from pending calls.
   Can prepend and append extra events.
@@ -212,8 +216,8 @@ class ParseCompileIterator(DataIterator):
   use prepare() to set data and contextId
   used at base in GlobalContext.
   '''
-  def __init__(self):
-    DataIterator.__init__(self)
+  def __init__(self, srcName):
+    EventIterator.__init__(self, srcName)
     self._childIt = None
     self._startEvents = None
     self._endEvents = None
@@ -230,7 +234,7 @@ class ParseCompileIterator(DataIterator):
   def hasNext(self):
     return not self.finished or len(self.eventsCache) > 0
     
-  def __next__(self):
+  def next(self):
     if (not self.eventsCache):
       if (self.start):
         self.start = False
@@ -251,56 +255,16 @@ class ParseCompileIterator(DataIterator):
     return self.eventsCache.pop()
 
 
-  def __str__(self):
-    b = ''
-    while(self.hasNext()):
-      e = self.__next__()
-      #for e in r:
-      b += str(e)
-      b += ', '
-    return b
+  #def __str__(self):
+    #b = ''
+    #while(self.hasNext()):
+      #e = self.__next__()
+      ##for e in r:
+      #b += str(e)
+      #b += ', '
+    #return b
     
 
-####################################################################
-## Stream iterators ##
-
-class StreamIterator(DataIterator):
-  '''
-  Iterates a compiled event queue.
-  Stream must end with Finish()
-  use prepare() to set data and contextId
-  used to read compiled event streams.
-  '''
-  # 
-  def __init__(self):
-    DataIterator.__init__(self)
-    self._data = None
-    self.curse = 0
-    self.length = 0
-
-  def prepare(self, data): 
-    self.length = len(data)
-    self._data = data
-
-
-  def hasNext(self):
-    return self.curse < self.length 
-    
-    
-  def __next__(self):
-    r = self._data[self.curse]
-    self.curse += 1   
-    return r
-
-  def __str__(self):
-    b = ''
-    while(self.hasNext()):
-      e = self.__next__()
-      #for e in r:
-      b += str(e)
-      b += ', '
-    return b
-    
     
     
 #from events import *
@@ -326,30 +290,4 @@ class StreamIterator(DataIterator):
 ##print(str(len(pit._childIts)))
 #print(str(pit))
 
-########################################
-#eStream = [
-#CreateContext(0, 0, "Global"),
-#CreateContext(0, 5, "Score"),
-#CreateContext(5, 6, "Dancer"),
-#CreateContext(5, 7, "Dancer"),
-#MergeProperty(0, "performer", "Bacup"),
-#MergeProperty(0, "style", "clog"),
-#MergeProperty(0, "tempo", 120),
-#MergeProperty(0, "title", "Coconutters"),
-#MergeProperty(0, "beatsPerBar", 4),
-#MergeProperty(0, "dancers", 3),
-#MergeProperty(0, "date", None),
-#MomentStart(1),
-#DanceEvent(6, "clap", 1, []),
-#DanceEvent(7, "clap", 1, []),
-#MomentEnd(),
-#MomentStart(2),
-#DanceEvent(6, "clap", 1, ['overhead']),
-#DanceEvent(7, "clap", 1, ['overhead']),
-#MomentEnd(),
-#Finish()
-#]
 
-#it = StreamIterator()
-#it.prepare(eStream)
-#print(str(it))

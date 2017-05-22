@@ -7,10 +7,15 @@ import argparse
 import sys
 
 import SourceIterators
+import EventIterators
 import ExpandIterator
 
 from ConsoleStreamReporter import ConsoleStreamReporter
 import chains
+
+from contexts import GlobalContext
+
+
 
 #from JSON import JSONPrintGenerator
 #from Python import PythonBuilder
@@ -34,19 +39,27 @@ def getContextData(args, reporter):
   inPath = args.infile
   if (inPath.endswith('.dnc')):
     #assuming a compiled event file
-    print('not implemented?')
+    #print('not implemented?')
+    ctx = GlobalContext()
+    it = EventIterators.EventIteratorFile(args.infile)
+    ctx.prepareForEventSteamData(it)
+    return ctx
+    
   elif (inPath.endswith('.dn')):
     # assuming a parsable file
     with open(inPath, 'r', encoding=args.codec) as f:
       srcAsLines = f.readlines()
+    #? maybe better with SourceIteratorFile
+    #? build ExpandIterator in? To parser? 
     sit = SourceIterators.StringIterator(args.infile, srcAsLines)
-    #it = MetaAssertIterator.MetaAssertIterator(sit, r)
     it = ExpandIterator.ExpandIterator(sit, reporter)
+    #? Parser not here, it's irrelevant. Build into GlobalContext?
     p = Parser(it, reporter)
     p.parse()
     ctx = p.ast()
-    ctx.prepareAsParsedData()
+    ctx.prepareAsParsedData(inPath)
     return ctx
+
   else:
     printError("file has no dancer extension ('.dnc', '.dn'): {0}".format(infile))
 

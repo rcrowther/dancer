@@ -4,7 +4,7 @@
 
 
 from events import *
-
+from EventIterators import EventIterator, EventIteratorFile
 import Timer
 
 # Not for threads (you know it)
@@ -94,9 +94,43 @@ class Context():
   def isLeaf(self):
     return (len(self.children) == 0)
 
+
+  ## parse data actions ##
   def prepareAsParsedData():
     pass
+
+
+  ## event stream actions ##
+  def createChildContext(self, event):
+    assert(isinstance(event, CreateContext))
+    assert(event.newTyp != 'Global')
+    ctx = None
+    tpe = event.newTyp
+    if (tpe == 'Score'):
+      ctx = ScoreContext()
+    if (tpe == 'Dancer'):
+      ctx = DancerContext()
+    #if (tpe == 'DancerGroup'):
+      #ctx = DancerGroup()
+    ctx.uid = event.newId
+    self.appendChild(ctx)
+    # print('Child appended contextType: {0}: id:{1}'.format(oldId))
+
+  def deleteChildContext(self, event):
+    assert(isinstance(event, DeleteContext))
+    oldId = event.oldId
+    broken = False
+    for idx, e in enumerate(self.children):
+      if (e.oldId == oldId):
+        del (self.children[idx])
+        broken = True
+        break
+    #! should be warning report
+    if(not broken):
+      print('Child to delete not found parent name: {0} : parentId: {1} : id to remove: {2}'.format(self.name, self.uid, oldId))
     
+
+  ## toEvent returns ##    
   def _toPropertyEvents(self, b):
     for k, v in self.properties.items():
       e = MergeProperty(self.uid, k, v)
@@ -162,6 +196,7 @@ class Context():
     b.append(str(self.properties))
 
 
+  ## Printers ##
   def addChildren(self, b):
     b.append(', [')
     first = True
@@ -185,6 +220,8 @@ class Context():
   def __str__(self):
     return "".join(self.addString([]))  
     
+
+
 
 class DummyContext(Context):
   '''
@@ -285,33 +322,33 @@ class GlobalContext(Context):
     #self.it = self.score.it
 
 
-    
-  def prepareAsParsedData(self):
+  ## parse data actions ##
+  def prepareAsParsedData(self, srcName):
     # sets up parse data iterators
     # must be called when data in place
     assert(len(self.children) == 1)
     #recurse
     for c in self.children:
       c.prepareAsParsedData()
-    self.it = ParseCompileIterator()
+    self.it = ParseCompileIterator(srcName)
     de = self.toDeleteEvents()
     de.append(Finish())
     ctxEvents = self.toCreateEvents()
     ctxEvents.extend(self.toPropertyEvents())
     self.it.prepare(0, [ctxEvents, de, self.children[0].it])
 
-  # build the events from parsed data
-  #! write down?
-  #! not complete, moments need writing
-  #! so need an assembly iterator...
-  #! test this
-  #def writeIteratorToFile(self, filePath):
-    #self.prepareAsParsedData()
-    #events = []
-    #while(self.it.hasNext()):
-      #events.extend(self.__next__())
-    #return events
+
+
+  ## event stream actions ##
+    #self.createChildContext(event)
+  def prepareForEventSteamData(self, eventIterator):
+    # sets up stream data iterator
+    assert( isinstance(eventIterator, EventIterator) )
+    assert( not(self.children) )
+    self.it = eventIterator
+
     
+  ## chain processing actions ##
   def setChainAs(self, chain):
     self.processors = chain
 
@@ -322,7 +359,7 @@ class GlobalContext(Context):
     for p in self.processors:
       p.before(self.properties)
     while(self.it.hasNext()):
-      e = self.it.__next__()
+      e = self.it.next()
       for p in self.processors:
          p.process(self.properties, e)
     for p in self.processors:
