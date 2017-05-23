@@ -75,7 +75,7 @@ class Dispatcher():
         print('Dispatcher: dispatcher child, attempted delete failed: contextId:'.format(contextId))
             
   ## listener registration
-  def startSayingTo(self, eventClass, listener):
+  def startSayingTo(self, listener, eventClass):
     '''
     @klass event class
     '''
@@ -86,7 +86,7 @@ class Dispatcher():
       self.listeners[eventClass].append(listener)
     #listener.dispatchers.append(self)
     
-  def stopSayingTo(self, eventClass, listener):
+  def stopSayingTo(self, listener, eventClass):
     xc = self.listeners.get(eventClass)
     if (not xc):
       print('Dispatcher: delete hearer, event class not recognised: ' + eventClass)

@@ -131,8 +131,8 @@ class Context():
     ctx.dispatcher = Dispatcher(ctx.uid)
     self.dispatcher.startSayingToDispatcher(ctx.dispatcher)
     # new context can hear context creation
-    ctx.dispatcher.startSayingTo('CreateContext', ctx.createChildContext)
-    ctx.dispatcher.startSayingTo('DeleteContext', ctx.deleteChildContext)
+    ctx.dispatcher.startSayingTo(ctx.createChildContext, 'CreateContext')
+    ctx.dispatcher.startSayingTo(ctx.deleteChildContext, 'DeleteContext')
 
     
   def deleteChildContext(self, event):
@@ -369,7 +369,8 @@ class GlobalContext(Context):
     #]
     # Set this on ititialization
     self.dispatcher = Dispatcher(0)
-    self.dispatcher.startSayingTo('CreateContext', self.createChildContext)
+    self.dispatcher.startSayingTo(self.createChildContext, 'CreateContext')
+    self.dispatcher.startSayingTo(self.deleteChildContext, 'DeleteContext')
 
 
 
@@ -417,6 +418,10 @@ class GlobalContext(Context):
       p.after(self.properties)
 
   ## dispatch building ###
+  def runIteratorToDispachBuilders(self):
+    while(self.it.hasNext()):
+      e = self.it.next()
+      self.dispatcher.say(e)
 
 
 
@@ -474,23 +479,23 @@ from iterators import *
 #print(str(g.properties))
 
 ## Event-driven building ##
-events = [
-CreateContext(0, 2, "Score"),
-CreateContext(2, 3, "Dancer"),
-CreateContext(2, 4, "Dancer")
-]
+#events = [
+#CreateContext(0, 2, "Score"),
+#CreateContext(2, 3, "Dancer"),
+#CreateContext(2, 4, "Dancer")
+#]
 
-dEvents = [
-DeleteContext(0, 2),
-DeleteContext(2, 3),
-DeleteContext(2, 4),
-]
+#dEvents = [
+#DeleteContext(0, 2),
+#DeleteContext(2, 3),
+#DeleteContext(2, 4),
+#]
 
-g = GlobalContext() 
-for e in events:
-  g.dispatcher.say(e)
-print(str(g))
+#g = GlobalContext() 
+#for e in events:
+  #g.dispatcher.say(e)
+#print(str(g))
 
-for e in dEvents:
-  g.dispatcher.say(e)
-print(str(g))
+#for e in dEvents:
+  #g.dispatcher.say(e)
+#print(str(g))

@@ -29,7 +29,12 @@ Moment is irrelevant. so the tail,
 : last command in a list of events
 
 
- it should not appear 
-
 == As text
-When written to a text file
+When written to a text file, each event should be on a line
+
+== Differences to  LilyPond
+
+~ Moment 0 is pre
+: Lillypond moment zero is the first Music
+~ DeleteContext
+: includes parent information

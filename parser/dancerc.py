@@ -93,7 +93,7 @@ def doSomething(args):
         print('bytecode Not enabled. Help!') 
 
       if (form == 'pdf'):
-        #ctx.prepareDispatchers()
+        ctx.runIteratorToDispachBuilders()
 
         print('pdf Not enabled. Help!') 
         
