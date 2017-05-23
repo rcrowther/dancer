@@ -39,16 +39,16 @@ def getContextData(args, reporter):
   inPath = args.infile
   if (inPath.endswith('.dnc')):
     #assuming a compiled event file
-    #print('not implemented?')
     ctx = GlobalContext()
     it = EventIterators.EventIteratorFile(args.infile)
     ctx.prepareForEventSteamData(it)
     return ctx
     
   elif (inPath.endswith('.dn')):
-    # assuming a parsable file
+    # assuming a parsable Dancer file
     with open(inPath, 'r', encoding=args.codec) as f:
       srcAsLines = f.readlines()
+    #! Needs a concept and so tidy-up. this is no good.
     #? maybe better with SourceIteratorFile
     #? build ExpandIterator in? To parser? 
     sit = SourceIterators.StringIterator(args.infile, srcAsLines)
@@ -93,7 +93,8 @@ def doSomething(args):
         print('bytecode Not enabled. Help!') 
 
       if (form == 'pdf'):
-        
+        #ctx.prepareDispatchers()
+
         print('pdf Not enabled. Help!') 
         
       printInfo('written: {0}'.format(args.outfile))

@@ -103,12 +103,24 @@ class DeleteContext(Event):
   '''
   @contextId the id of the context
   '''
-  def __init__(self,  contextId):
+  def __init__(self,  contextId, oldId):
     Event.__init__(self, contextId)
+    self._oldId = oldId
+ 
+    
+  @property
+  def oldId(self):
+    return self._oldId
+
+  @oldId.setter
+  def oldId(self, oldId):
+    self._oldId = oldId
+
 
   def extendString(self, b):
     b.append(str(self.contextId))
-
+    b.append(', ')
+    b.append(str(self.oldId))
 
 
 

@@ -107,7 +107,7 @@ class EventIteratorFile(EventIterator):
     elif (line.startswith('DeleteContext')):
       params = line[13:]
       p = params[1:-2] #.split(', ')
-      event = DeleteContext(p[0])
+      event = DeleteContext(p[0], p[1])
     elif (line.startswith('MergeProperty')):
       params = line[13:]
       p = params[1:-2].split(', ')
@@ -171,6 +171,6 @@ from events import *
 #it = EventIteratorList(eventList)
 #print(str(it))
 
-inPath = '../test/test.dnc'
-it = EventIteratorFile(inPath)
-print(str(it))
+#inPath = '../test/test.dnc'
+#it = EventIteratorFile(inPath)
+#print(str(it))

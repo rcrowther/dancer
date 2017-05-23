@@ -2,7 +2,7 @@
 
 
 
-
+#! Need a IteratorFile
 class StringIterator:
     '''
     Creates an iterator from a collection of lines.

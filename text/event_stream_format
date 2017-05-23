@@ -1,0 +1,35 @@
+= Event stream format
+Events are classed,
+
+CreateContext
+DeleteContext
+MergeProperty
+DeleteProperty
+MomentStart
+MomentEnd
+DanceEvent
+Finish
+
+
+== File start
+Moment 0 is assumed to be previous to anything happening. So the head,
+- Assumes moment 0,
+: ...so requires no wrap in MomentStart/MomentEnd
+- should contain no DanceEvent(s)
+: not an error, but ignored. Ignoring is not guarenteed
+- Will conclude on MomentStart(1)
+
+== File end
+Moment is irrelevant. so the tail,
+- Assumes no moment
+: ...so requires no wrap in MomentStart/MomentEnd
+- should contain no DanceEvent(s)
+: not an error, but ignored. Ignoring is not guarenteed
+- Must conclude on a Finish
+: last command in a list of events
+
+
+ it should not appear 
+
+== As text
+When written to a text file
