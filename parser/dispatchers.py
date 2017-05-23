@@ -35,10 +35,11 @@ class Dispatcher():
   '''
   #! what are these classes to Lillypond?
   #? We need to distribute to contexts...
-  def __init__(self, contextId):
+  def __init__(self, context):
     self.listeners = {}
     self.childDispatchers = []
-    self.contextId = contextId
+    self.context = context
+    self.contextId = context.uid
     
   def say(self, event):
     # Say to children first
@@ -59,7 +60,7 @@ class Dispatcher():
       else:
         print('<Dispatched {0}>'.format(eventClass) )
         for listener in self.listeners[eventClass]:
-          listener(event)
+          listener(self.context, event)
   
   ## child dispatcher registration
   def startSayingToDispatcher(self, dispatcher):
@@ -118,50 +119,50 @@ class Dispatcher():
     return s
 
 #x
-class DispatcherContext():
-  '''
-  Dispatch to contexts
-  Used in GlobalContext  
-  '''
-  #! what are these classes to Lillypond?
-  #? We need to distribute to contexts...
-  def __init__(self):
-    self.hearers = {}
+#class DispatcherContext():
+  #'''
+  #Dispatch to contexts
+  #Used in GlobalContext  
+  #'''
+  ##! what are these classes to Lillypond?
+  ##? We need to distribute to contexts...
+  #def __init__(self):
+    #self.hearers = {}
     
-  def say(self, event):
-    targetContext = event.contextId
-    if(not targetContext in self.hearers):
-      print('ContextDispatcher: not listening: contextId:{0} : event: {1}'.format(targetContext, event))
-    else:
-      print('<ContextDispatched {0}>'.format(event) )
-      self.hearers[targetContext].say(event)
+  #def say(self, event):
+    #targetContext = event.contextId
+    #if(not targetContext in self.hearers):
+      #print('ContextDispatcher: not listening: contextId:{0} : event: {1}'.format(targetContext, event))
+    #else:
+      #print('<ContextDispatched {0}>'.format(event) )
+      #self.hearers[targetContext].say(event)
 
         
-  def startSayingTo(self, contextId, hearer):
-    '''
-    @klass event class
-    '''
-    ll = self.hearers.get(contextId)
-    if (not ll):
-      self.hearers[contextId] = hearer
-    hearer.dispatchers = self
+  #def startSayingTo(self, contextId, hearer):
+    #'''
+    #@klass event class
+    #'''
+    #ll = self.hearers.get(contextId)
+    #if (not ll):
+      #self.hearers[contextId] = hearer
+    #hearer.dispatchers = self
     
-  def stopSayingTo(self, contextId):
-    lId = self.hearers.get(contextId)
-    if (not lId):
-      print('DispatcherContext: delete context id not recognised: ' + str(contextId))
-    else:   
-      del( self.hearers[contextId] )
+  #def stopSayingTo(self, contextId):
+    #lId = self.hearers.get(contextId)
+    #if (not lId):
+      #print('DispatcherContext: delete context id not recognised: ' + str(contextId))
+    #else:   
+      #del( self.hearers[contextId] )
 
-  def __str__(self):
-    s = 'DispatcherContext('
-    for k, v in self.hearers.items():
-      s += ", "
-      s += "'"
-      s += str(k)
-      s += "'"
-    s += ')'
-    return s
+  #def __str__(self):
+    #s = 'DispatcherContext('
+    #for k, v in self.hearers.items():
+      #s += ", "
+      #s += "'"
+      #s += str(k)
+      #s += "'"
+    #s += ')'
+    #return s
 
     
 #from events import *

@@ -30,6 +30,9 @@ http://lilypond.org/doc/v2.18/Documentation/extending/internal-music-representat
 
 Probably made from callbacks in Lily-parser.yy (a BISON parser). The callbacks go to scm/ly-syntax-constructors.scm, which makes lists with fake contexts built from lists themselves.
 
+Where does the parser make events? This makes a big difference, interleaved events make much easier.
+
+The model is the only straighforward item. Global->Score->StaffGroups->Staves, all contexts. So we got those as objects. Whre this gets to make event sequences?
 
 === Iteration
 global_contxt contains run_iterator_on_me(), the key method.
@@ -63,15 +66,35 @@ Where the datatype 'event'?
 === Engraving
 We know engravers sit in stave information.
 
-We also know that engravers carry info like what note type, directions, etc. Engravers generate objects, which have no generic name, but the objects can be found by the engraver in lilly/. These objects do include some x/y details like how high to relatively sit on a stave.
+We know that the 'cc' versions, not labeled engraver, inherit from 'grob.cc'. grobs have relative x/y positions, relative to a parent. Some grobs are groups of other grobs. It seems that a grob can either be in a vertical group or not, and can find that out.
+
+- Guesses
+'stencil' seems to be 'how to draw an effect'. As opposed to writing a glyph.
+extents are width/height
+spanner: "Some objects are horizontally spanned between objects.  For example, slurs, beams, ties, etc."
+
+- Unknown
+skyline? Max extend of everything, including children? Kinda ..."A skyline is a sequence of non-overlapping buildings". That did not help.
+What exactly the measurements are? Someting, even relative? y can be 'lines', for notes at least?
+How to force fixed widths
+Where are they anchored
+
+The connection between grobs and engravers is obscure. 
+
+Engravers can be found by the *-engraver in lilly/. Engravers often carry a process_music() or a create-*() function. These seem to grab generality properties like "middleCPosition", so perhaps are generating grobs? They seem to be the interface between contexts and grobs, whereas the '.cc' grob cotains the full properties and methodolgy of the grob. *-engravers do little besides, say, set the staff-position.
+
+ 'item.cc' is dull, aside from showing that 'item' inhertors have visible sizes so affect spacing.
+
+Where exact x/y positions are set is obscure. As is where properties like xExtent for width are set? Maybe from font metrics? In 'rest.cc' it seems the position is set by consulting a base grob property 'staff-position'?
+
 
 Engraving seems to take place in several places. Is that what 'dispatcher' is for, engraving per context? But why, if we have an event list?
 
-What is notable is that the 'staff' context proceszs list (see below), only seems to chuse note types, etc. Whereas the 'score' context process list has  "Timing_translator",, "Default_bar_line_engraver"
+What is notable is that the 'staff' context process list (see below), only seems to chuse note types, etc. Whereas the 'score' context process list has  "Timing_translator", "Default_bar_line_engraver" etc.
 
 bars get numbered. 
 
-I thnk the parser makes events directly. This makes a big difference, the iterators only need to move across events. But we do seem to get a score object with contexts. So we got those as objects, but with event sequences as input.
+
 
 
 TODO: Number bars?test for lengths?
@@ -120,9 +143,12 @@ for dancer
 So we need to add time and dancer id, while interlacing.
 We need specific renderers for text and animation.
 
-Like Lillypond, we could maybe use having these two different results fro a flexible phase structure, like lillypond's engraver/performance split.
+Like Lilypond, we could maybe use having these two different results fro a flexible phase structure, like lillypond's engraver/performance split.
 
-engraver-init.ly
+engraver-init.ly:
+in declarations-init.ly
+in init.ly
+in lily/lily-parsr-scheme.cc
 
 Score:
 

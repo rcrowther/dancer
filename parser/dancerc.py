@@ -12,6 +12,7 @@ import ExpandIterator
 
 from ConsoleStreamReporter import ConsoleStreamReporter
 import chains
+import gChains
 
 from contexts import GlobalContext
 
@@ -94,6 +95,8 @@ def doSomething(args):
 
       if (form == 'pdf'):
         ctx.runIteratorToDispachBuilders()
+        ctx.setChainAs(gChains.Dancer)
+        ctx.runGraphicsChain()
 
         print('pdf Not enabled. Help!') 
         

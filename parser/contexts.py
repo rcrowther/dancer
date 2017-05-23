@@ -56,10 +56,14 @@ class Context():
     # Used to dispatch events to builder classes
     self.dispatcher = None
     
+    # hanger for lists of graphic objects
+    self.gList = []
+    
     # properties could be on the Context object
     # but I don't want this too Python
     # general. This one general and written to streams
     self.properties = {}
+    
     # internal. Used for temp properties, not persited 
     # by event streams
     self._props = {}
@@ -80,7 +84,7 @@ class Context():
     self.properties[k] = v
 
   def containsProperty(self, k):
-    return (self.properties[k] == None)
+    return (self.properties.get(k) == None)
 
   def readProperty(self, k):
     return self.properties[k]
@@ -90,7 +94,24 @@ class Context():
     
   def deleteProperty(self, k):
     del self.properties[k]
+
+  ## props ##
+  def mergeProp(self, k, v):
+    self._props[k] = v
+
+  def containsProp(self, k):
+    return (self._props.get(k) == None)
+
+  def readProp(self, k):
+    return self._props[k]
+
+  def readPropOption(self, k):
+    return self._props.get(k)
     
+  def deleteProp(self, k):
+    del self._props[k]
+        
+        
   def appendChild(self, v):
     '''
     This accessor allows us to reimplement if necessary.
@@ -112,7 +133,8 @@ class Context():
 
     
   ## Dispatch methods ##
-  def createChildContext(self, event):
+  # @ctx stub parameter to satisfy dispatch callback 
+  def createChildContext(self, ctx, event):
     assert(isinstance(event, CreateContext))
     assert(event.newType != 'Global')
     ctx = None
@@ -128,14 +150,14 @@ class Context():
     # print('Child appended contextType: {0}: id:{1}'.format(oldId))
     
     # set up the dispatcher
-    ctx.dispatcher = Dispatcher(ctx.uid)
+    ctx.dispatcher = Dispatcher(ctx)
     self.dispatcher.startSayingToDispatcher(ctx.dispatcher)
     # new context can hear context creation
     ctx.dispatcher.startSayingTo(ctx.createChildContext, 'CreateContext')
     ctx.dispatcher.startSayingTo(ctx.deleteChildContext, 'DeleteContext')
 
-    
-  def deleteChildContext(self, event):
+  # @ctx stub parameter to satisfy dispatch callback 
+  def deleteChildContext(self, ctx, event):
     assert(isinstance(event, DeleteContext))
     oldId = event.oldId
     broken = False
@@ -291,7 +313,7 @@ class DummyContext(Context):
 class DancerContext(Context):
   def __init__(self):
     Context.__init__(self, uid(), 'Dancer')
-    #self.dispatcher = Dispatcher() 
+
 
   def prepareAsParsedData(self):
     self.it = ParsedDanceeventIterator()
@@ -368,7 +390,7 @@ class GlobalContext(Context):
     #p.process
     #]
     # Set this on ititialization
-    self.dispatcher = Dispatcher(0)
+    self.dispatcher = Dispatcher(self)
     self.dispatcher.startSayingTo(self.createChildContext, 'CreateContext')
     self.dispatcher.startSayingTo(self.deleteChildContext, 'DeleteContext')
 
@@ -424,6 +446,13 @@ class GlobalContext(Context):
       self.dispatcher.say(e)
 
 
+  def runGraphicsChain(self):
+    for p in self.processors:
+      p.before(self)
+    # cant happen because this creates/deletes contexts
+    # so creating needs to load the appropriate process queue
+    # then run init...
+    #self.runIteratorToDispachBuilders()
 
 ## Tests ##
 from events import *
