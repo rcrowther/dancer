@@ -8,6 +8,7 @@ from dispatchers import *
 
 from EventIterators import EventIterator, EventIteratorFile
 import Timer
+import gChains
 
 # Not for threads (you know it)
 _uid = 1
@@ -129,9 +130,16 @@ class Context():
     pass
 
 
-  ## event stream actions ##
-
-    
+  ## chain processing actions ##
+  def _initializeChain(self):
+    for p in self.processors:
+      p.before(self)
+      
+  def _finalizeChain(self):
+    for p in self.processors:
+      p.after(self)
+      
+      
   ## Dispatch methods ##
   # @ctx stub parameter to satisfy dispatch callback 
   def createChildContext(self, ctx, event):
@@ -155,6 +163,10 @@ class Context():
     # new context can hear context creation
     ctx.dispatcher.startSayingTo(ctx.createChildContext, 'CreateContext')
     ctx.dispatcher.startSayingTo(ctx.deleteChildContext, 'DeleteContext')
+    
+    # initialise the chain (speakTo hearers)
+    self._initializeChain()
+
 
   # @ctx stub parameter to satisfy dispatch callback 
   def deleteChildContext(self, ctx, event):
@@ -173,6 +185,9 @@ class Context():
       # we found and deleted a context.
       # remove deleted context from this dispatcher
       self.dispatcher.stopSayingToDispatcher(oldId)
+    #? need to
+    # finalize the chain (dont speak to old context)
+    # self._finaliseChain(self)
 
 
   ## toEvent returns ##    
@@ -305,20 +320,25 @@ class DummyContext(Context):
   ## Dispatchers ##
    
     
-    
-    
+
+ 
+ 
     
 #? A Dancer can not create a child context
 #? but has a dispatcher?
 class DancerContext(Context):
   def __init__(self):
     Context.__init__(self, uid(), 'Dancer')
+    self.processors = gChains.Dancer
 
 
   def prepareAsParsedData(self):
     self.it = ParsedDanceeventIterator()
     self.it.prepare(self.uid, self.children)
 
+
+
+    
   ## dispatch building ###
 
 
@@ -326,11 +346,20 @@ class DancerContext(Context):
     print("DancerContext" + "error, no child context")
 
 
-
+ 
+ 
+    
+#class DancerGroupContext(Context):
+#  def __init__(self):
+#    Context.__init__(self, uid(), 'DancerGroup')
+ 
+ 
+ 
       
 class ScoreContext(Context):
   def __init__(self):
     Context.__init__(self, uid(), 'Score')
+    self.processors = gChains.Score
 
 
   def prepareAsParsedData(self):
@@ -340,7 +369,8 @@ class ScoreContext(Context):
     self.it = ChildContextIterator()
     self.it.prepare(self.uid, [ctx.it for ctx in self.children])
 
-
+    
+    
   def _delete(self, lst, uid):
     i = 0
     l = len(lst)
@@ -377,18 +407,24 @@ class ScoreContext(Context):
 class GlobalContext(Context):
   def __init__(self):
     Context.__init__(self, 0, 'Global')
+    
+    #! is what?
     self.outStream = []
-    #self.score = Score()
-    #self.it = self.score.it
+    
     #! A lot not right
     #! how to output results from a process phase? In the phase?
     #! howto initially load phases?
     #!
-    self.processors  = []
-    #p = Build(self)
-    #self.processors  = [
-    #p.process
-    #]
+    # Currently hard-set by
+    # - runIteratorToContextDispatcher
+    # - runIteratorToGlobalChain
+    # Underlying context chains are pre-set to graphic process chains.
+    # These are never used unless the iterator is fed to the dispatcher,
+    # runIteratorToDispacher()
+    #
+    self.processors = []
+
+
     # Set this on ititialization
     self.dispatcher = Dispatcher(self)
     self.dispatcher.startSayingTo(self.createChildContext, 'CreateContext')
@@ -423,36 +459,30 @@ class GlobalContext(Context):
 
     
   ## chain processing actions ##
-  def setChainAs(self, chain):
+    
+  #! runIteratorToGlobalChain
+  def runIteratorToGlobalChain(self, chain):
     self.processors = chain
-
-  #! should we process events singly? Probably yes?
-  #! this will not work for parser-sourced events with no moments?
-  #! how to return events to te stream. This isnt. Do we need deletions?
-  def runProcessChain(self):
-    for p in self.processors:
-      p.before(self.properties)
+    self._initializeChain()
     while(self.it.hasNext()):
       e = self.it.next()
       for p in self.processors:
-         p.process(self.properties, e)
-    for p in self.processors:
-      p.after(self.properties)
+         p.process(self, e)
+    self._finalizeChain()
 
   ## dispatch building ###
-  def runIteratorToDispachBuilders(self):
+  def runIteratorToContextDispatcher(self):
+    self.processors = gChains.Global
+    self._initializeChain()
     while(self.it.hasNext()):
       e = self.it.next()
       self.dispatcher.say(e)
+    # currently no finalize?
 
 
-  def runGraphicsChain(self):
-    for p in self.processors:
-      p.before(self)
-    # cant happen because this creates/deletes contexts
-    # so creating needs to load the appropriate process queue
-    # then run init...
-    #self.runIteratorToDispachBuilders()
+
+
+
 
 ## Tests ##
 from events import *
@@ -504,7 +534,7 @@ from iterators import *
 #g.children.append(s)
 #g.prepareAsParsedData()
 ##print(str(g.it))
-#g.runProcessChain()
+#g.runIteratorToGlobalChain()
 #print(str(g.properties))
 
 ## Event-driven building ##

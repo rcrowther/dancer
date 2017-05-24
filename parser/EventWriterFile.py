@@ -5,14 +5,16 @@ import os
 
 
 
-def before(properties):
-  assert(properties.get('outfile') != None)
-  properties['fileHandle'] = open(properties['outfile'], 'w') # encoding=properties['outfileEncoding']) 
+def before(ctx):
+  fp = ctx.readPropOption('outfile')
+  assert(fp != None)
+  h = open(fp, 'w') # encoding=properties['outfileEncoding']) 
+  ctx.mergeProp('fileHandle', h) 
   
-def process(properties, e):
-  properties['fileHandle'].write(str(e))
-  properties['fileHandle'].write('\n')
+def process(ctx, e):
+  ctx.readProp('fileHandle').write(str(e))
+  ctx.readProp('fileHandle').write('\n')
   
-def after(properties):
-  properties['fileHandle'].close()
-  del (properties['fileHandle'])
+def after(ctx):
+  ctx.readProp('fileHandle').close()
+  ctx.deleteProp('fileHandle')

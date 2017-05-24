@@ -70,16 +70,14 @@ def doSomething(args):
     ctx = getContextData(args, r)
     
     if (args.print):
-      ctx.setChainAs(chains.EventsToConsole)
-      ctx.runProcessChain()
+      ctx.runIteratorToGlobalChain(chains.EventsToConsole)
     else:
       form = args.format
       
       if (form == 'events'):
         args.outfile = args.outfile + '.dnc'
-        ctx.mergeProperty('outfile', args.outfile)
-        ctx.setChainAs(chains.EventsToFile)
-        ctx.runProcessChain()
+        ctx.mergeProp('outfile', args.outfile)
+        ctx.runIteratorToGlobalChain(chains.EventsToFile)
   
       if (form == 'json'):
         args.outfile = args.outfile + '.json'
@@ -94,9 +92,7 @@ def doSomething(args):
         print('bytecode Not enabled. Help!') 
 
       if (form == 'pdf'):
-        ctx.runIteratorToDispachBuilders()
-        ctx.setChainAs(gChains.Dancer)
-        ctx.runGraphicsChain()
+        ctx.runIteratorToContextDispatcher()
 
         print('pdf Not enabled. Help!') 
         
