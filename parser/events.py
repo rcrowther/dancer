@@ -25,7 +25,8 @@ EventTypeToString = { v: k for (k, v) in EventType.items()}
 class Event():
   '''
   Where relevant, context id is the parent. For property events, is the
-  local context id.
+  local context id. It always exists, but where can be implied, is not
+  printed.
   @contextId unique id of the context
   '''
   def __init__(self, contextId):
@@ -67,6 +68,8 @@ class CreateContext(Event):
   @newType is currently a string 'Score', 'Dancer' etc.
   '''
   def __init__(self, contextId, newId, newType):
+    assert(isinstance(contextId, int))
+    assert(isinstance(newId, int))
     Event.__init__(self, contextId)
     self._newId = newId
     self._newType = newType
@@ -103,7 +106,9 @@ class DeleteContext(Event):
   '''
   @contextId the id of the context
   '''
-  def __init__(self,  contextId, oldId):
+  def __init__(self, contextId, oldId):
+    assert(isinstance(contextId, int))
+    assert(isinstance(oldId, int))
     Event.__init__(self, contextId)
     self._oldId = oldId
  
@@ -129,6 +134,7 @@ class MergeProperty(Event):
   @contextId the local context (not the parent of the context)
   '''
   def __init__(self, contextId, key, value):
+    assert(isinstance(contextId, int))
     Event.__init__(self, contextId)
     self._key = key
     self._value = value
@@ -164,6 +170,7 @@ class DeleteProperty(Event):
   @contextId the local context (not the parent of the context)
   '''
   def __init__(self, contextId, key):
+    assert(isinstance(contextId, int))
     Event.__init__(self, contextId)
     self._key = key
     
@@ -194,6 +201,7 @@ class MomentStart(Event):
   @moment int, for now
   '''
   def __init__(self, moment):
+    assert(isinstance(moment, int))
     Event.__init__(self, 0)
     self._moment = moment
     
@@ -229,6 +237,8 @@ class DanceEvent(Event):
   @contextId the parent context
   '''  
   def __init__(self, contextId, name, duration, params):
+    assert(isinstance(contextId, int))
+    assert(isinstance(duration, int))
     Event.__init__(self, contextId)
     self._name = name
     self._duration = duration

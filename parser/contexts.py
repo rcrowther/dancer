@@ -145,6 +145,7 @@ class Context():
   def createChildContext(self, ctx, event):
     assert(isinstance(event, CreateContext))
     assert(event.newType != 'Global')
+    print('create context...')
     ctx = None
     tpe = event.newType
     if (tpe == 'Score'):
@@ -165,7 +166,7 @@ class Context():
     ctx.dispatcher.startSayingTo(ctx.deleteChildContext, 'DeleteContext')
     
     # initialise the chain (speakTo hearers)
-    self._initializeChain()
+    ctx._initializeChain()
 
 
   # @ctx stub parameter to satisfy dispatch callback 
@@ -268,6 +269,32 @@ class Context():
 
 
   ## Printers ##
+  
+  ## Glist ##
+  def addGListChildren(self, b):
+    first = True
+    for e in self.children:
+      if (first):
+        first = False
+      else:
+        b.append(", ")
+      e.addGListString(b)
+    
+  def addGListString(self, b):
+    b.append(self.entitySuffix)    
+    b.append('(')
+    for e in self.gList:
+      b.append(', ')
+      b.append(str(e))      
+    self.addGListChildren(b)
+    #b.append(str(self.children))
+    b.append(')')
+    return b
+        
+  def gListToString(self):
+    return "".join(self.addGListString([]))  
+
+  ## Context printer ##
   def addChildren(self, b):
     b.append(', [')
     first = True
@@ -476,6 +503,7 @@ class GlobalContext(Context):
     self._initializeChain()
     while(self.it.hasNext()):
       e = self.it.next()
+      #print(str(e))
       self.dispatcher.say(e)
     # currently no finalize?
 

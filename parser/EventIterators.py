@@ -4,7 +4,7 @@
 
 
 
-
+#x
 class EventIterator():
   '''
   Iterate over event data.
@@ -103,23 +103,23 @@ class EventIteratorFile(EventIterator):
       params = line[13:]
       p = params[1:-2].split(', ')
       #print('@'.join(p))
-      event = CreateContext(p[0], p[1], p[2][1:-1])
+      event = CreateContext(int(p[0]), int(p[1]), p[2][1:-1])
     elif (line.startswith('DeleteContext')):
       params = line[13:]
-      p = params[1:-2] #.split(', ')
-      event = DeleteContext(p[0], p[1])
+      p = params[1:-2].split(', ')
+      event = DeleteContext(int(p[0]), int(p[1]))
     elif (line.startswith('MergeProperty')):
       params = line[13:]
       p = params[1:-2].split(', ')
-      event = MergeProperty(p[0], p[1][1:-1], p[2])
+      event = MergeProperty(int(p[0]), p[1][1:-1], p[2])
     elif (line.startswith('DeleteProperty')):
       params = line[14:]
       p = params[1:-2].split(', ')
-      event = DeleteProperty(p[0], p[1][1:-1])
+      event = DeleteProperty(int(p[0]), p[1][1:-1])
     elif (line.startswith('MomentStart')):
       params = line[11:]
       p = params[1:-2].split(', ')
-      event = MomentStart(p[0])
+      event = MomentStart(int(p[0]))
     elif (line.startswith('MomentEnd')):
       #params = line[14:]
       #p = params[1:-1].split(', ')
@@ -127,7 +127,7 @@ class EventIteratorFile(EventIterator):
     elif (line.startswith('DanceEvent')):
       params = line[10:]
       p = params[1:-2].split(', ')
-      event = DanceEvent(p[0], p[1][1:-1], p[2], p[3])
+      event = DanceEvent(int(p[0]), p[1][1:-1], int(p[2]), p[3])
     elif (line.startswith('Finish')):
       #params = line[14:]
       #p = params[1:-1].split(', ')

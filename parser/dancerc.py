@@ -93,8 +93,8 @@ def doSomething(args):
 
       if (form == 'pdf'):
         ctx.runIteratorToContextDispatcher()
-
-        print('pdf Not enabled. Help!') 
+        print('gList:')
+        print(ctx.gListToString()) 
         
       printInfo('written: {0}'.format(args.outfile))
     print(r.summaryString())

@@ -46,6 +46,9 @@ class Dispatcher():
     # unless the event is for this id
     #? unfortunately, this will bubble event down branches terminated
     #? by irrelevant contexts?
+    # only for debug logging, otherwise information overload.
+    #print('dispatcher{0}: recieved : forwarding:{1} : event: {2}'.format(self.contextId, event.contextId != self.contextId, event))
+
     if (event.contextId != self.contextId):
       for e in self.childDispatchers:
         e.say(event)
