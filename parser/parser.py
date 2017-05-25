@@ -6,6 +6,7 @@ import os
 import argparse
 import sys
 from events import *
+from eventStructs import *
 from contexts import *
 
 from Position import Position, NoPosition
@@ -24,14 +25,6 @@ from Position import Position, NoPosition
 # Most others: context properties or children 
 # None : no body should be present
 
-def functionHandlerDummy(context, name, posParams, namedParams):
-  print('dummy function handler: ' + name)
-  return None
-  
-def functionHandlerGlobalProperties(context, name, posParams, namedParams):
-  for k, v in namedParams:
-    context.properties[k] = v
-  return None
    
 
 
@@ -75,52 +68,10 @@ def functionHandlerCreateSubcontext(context, name, posParams, namedParams):
    
 #acceptedFunctionsDummy = AcceptedFunctionsDummy()
 
-   
-acceptedFunctionsGlobal = {
-"init" : functionHandlerGlobalProperties,
-"about" : functionHandlerGlobalProperties,
-"score" : functionHandlerCreateSubcontext
-} 
 
-acceptedFunctionsSimultaneous = {
-#"score" : functionHandlerCreateSubcontext,
-"dancer" : functionHandlerCreateSubcontext,
-#! for now
-"dancerGroup" : functionHandlerCreateSubcontext
-} 
+ 
 
-
-def functionHandlerMergeProperty(context, name, posParams, namedParams):
-  print('merge property function handler: ' + name)
-  context.appendChild(MergeProperty(context.uid, name, posParams[0]))
-  return None
-
-  
-    
-def functionHandlerRepeat(context, name, posParams, namedParams):
-  #print('dummy function handler: ' + name)
-  # Stash, just stash until see alternatives?
-  return context
-
-def functionHandlerAlternative(context, name, posParams, namedParams):
-  #print('dummy function handler: ' + name)
-  return context
-  
-acceptedFunctionsInstructions = {
-"beatsPerBar" : functionHandlerMergeProperty,
-"tempo" : functionHandlerMergeProperty,
-"repeat" : functionHandlerRepeat,
-"seenRepeat" : functionHandlerDummy,
-"alternative" : functionHandlerAlternative,
-"endBar" : functionHandlerDummy
-} 
-
-#! not parsing positional parameters
-#! need a resolverIterator to remove functions from instruction lists?
-#! otheerwise they screw JSON representation, and maybe other bytecode?
-#! scores cannot accept staffs as bodies. 
-#! Positional, or named?
-#! 
+#! not parsing all positional parameters
 class Parser:
     '''
    Generates a parser-based DanceEvent form,
@@ -151,25 +102,35 @@ class Parser:
         self.namedParamsStash = []
         self.globalExp = GlobalContext()
 
-
-    def parse(self):
-        # ...prime
-        self._next()
-        # let's go
-        self.root()
+       
+        self.acceptedFunctionsGlobal = {
+          "init" : self.functionHandlerSetContextProperties,
+          "about" : self.functionHandlerSetContextProperties,
+          "score" : self.functionHandlerCreateSubcontext
+          } 
         
-    def ast(self):
-      return self.globalExp
-    
-    def toEvents(self):
-      b = []
-      b.extend(self.globalExp.toCreateEvents())
-      b.append(MomentStart(0))
-      #? not sure trigger by dancer? This is a big clump of startup properties.
-      #? by iteration? here for now.
-      b.extend(self.globalExp.toPropertyEvents())
-      return b 
-      
+        self.acceptedFunctionsSimultaneous = {
+          #"score" : functionHandlerCreateSubcontext,
+          "dancer" : self.functionHandlerCreateSubcontext,
+          #? for now
+          "dancerGroup" : self.functionHandlerCreateSubcontext
+          } 
+        
+        self.acceptedFunctionsInstructions = {
+          "beatsPerBar" : self.functionHandlerBeatsPerBarEvent,
+          "tempo" : self.functionHandlerTempoEvent,
+          "repeat" : self.functionHandlerRepeat,
+          "seenRepeat" : self.functionHandlerDummy,
+          "alternative" : self.functionHandlerAlternative,
+          "endBar" : self.functionHandlerDummy
+          } 
+
+
+
+
+
+    ################ Utility handlers ##################
+
     def error(self, rule, msg, withPosition):
         pos = Position(self.it.srcName, self.it.lineCount, 0) if withPosition else NoPosition 
         self.reporter.error(rule + ': ' + msg, pos)
@@ -187,29 +148,115 @@ class Parser:
     def expectedError(self, msg):
         self.error("Expected {0} but found '{1}'".format(msg, tokenToString[self.tok]), True)
       
+      
+    def strToInt(self, s):
+      assert(isinstance(s, str))
+      v = None
+      try:
+          v = int(s)
+      except ValueError:
+        self.error('', 'Value not parsable as an integer', True)
+      return v
+    
+    def strToIntWithDefault(self, s, default):
+      assert(isinstance(s, str))
+      assert(isinstance(default, int))
+      return self.strToInt(s) if v else default
+      
+    def getParam(self, lst, idx):
+      assert(isinstance(lst, list))
+      assert(isinstance(idx, int))
+      if (not (idx < len(lst))):
+        self.error('', 'Expected a parameter : atPosition: {0}'.format(idx), True)
+      return lst[idx]
+      
+      
+
+
+      
+    ################ Function handlers ##################
+
+    def functionHandlerDummy(self, context, name, posParams, namedParams):
+      print('dummy function handler: ' + name)
+      return None
+
+   
+    def functionHandlerCreateSubcontext(self, context, name, posParams, namedParams):
+      print('new context for' + context.name)
+      newCtx = None
+      if (name == 'score'):
+        newCtx = ScoreContext()
+      if (name == 'dancerGroup'):
+        newCtx = DancerContext()
+      elif (name == 'dancer'):
+        newCtx = DancerContext()
+      context.appendChild(newCtx)
+      return newCtx
+      
+    def functionHandlerSetContextProperties(self, context, name, posParams, namedParams):
+      for k, v in namedParams:
+        context.properties[k] = v
+      return None
+  
+    def functionHandlerTempoEvent(self, context, name, posParams, namedParams):
+      #print('merge property function handler: ' + name)
+      p = self.getParam(posParams, 0)
+      v = self.strToInt(p)
+      context.appendChild(DanceEvent(context.uid, TempoChangeStruct(v)))
+      return None
+    
+    def functionHandlerBeatsPerBarEvent(self, context, name, posParams, namedParams):
+      #print('merge property function handler: ' + name)
+      p = self.getParam(posParams, 0)
+      v = self.strToInt(p)
+      context.appendChild(DanceEvent(context.uid, BeatsPerBarChangeStruct(v)))
+      return None  
+
+        
+    def functionHandlerRepeat(self, context, name, posParams, namedParams):
+      print('unimplemented handler for Repeat')
+      # Stash, just stash until see alternatives?
+      return context
+    
+    def functionHandlerAlternative(self, context, name, posParams, namedParams):
+      print('unimplemented handler for Repeat Alternative')
+      return context
+
+
+
+
+
+    ################# Parsing #########################
+
+    def parse(self):
+        # ...prime
+        self._next()
+        # let's go
+        self.root()
+        
+    def ast(self):
+      return self.globalExp
+    
+    #! dont do this here. just call this and ast
+    #! resultExp()
+    def toEvents(self):
+      b = []
+      b.extend(self.globalExp.toCreateEvents())
+      b.append(MomentStart(0))
+      #? not sure trigger by dancer? This is a big clump of startup properties.
+      #? by iteration? here for now.
+      b.extend(self.globalExp.toPropertyEvents())
+      return b 
+
+
+
     def _next(self):
         #self._prevLineNo = self.it.lineCount
         n = self.it.__next__()
         self.line = n
         if (self._stashVarLines):
           self.varLineStash.append(n)
-       
-    ## Callbacks ##
 
-            
-
-    def variableOpenCB(self, name):
-      #print('variable name...')
-      #print(name)  
-      pass    
-            
-    def variableCloseCB(self, tpe):
-      #print('variable type...')
-      #print(str(tpe))  
-      pass 
-
-         
-         
          
                   
     ## Rules ##
@@ -261,7 +308,7 @@ class Parser:
           # - accepts functions
           # - but not simultaneousInstructions
           if(not(
-            self.functionCall(context, acceptedFunctionsInstructions)
+            self.functionCall(context, self.acceptedFunctionsInstructions)
             or self.comment()
             or self.plainInstruction(context)
           )):
@@ -272,7 +319,43 @@ class Parser:
         self._next()
       return commit
       
+    def danceEvent(self, context, name, duration, params):
+      s = None
+      if (
+      name == 'r'
+      or name == 'repeat'
+      or name == 'mergeProp'
+      or name == 'deleteProp'
+      or name == 'skip' 
+      ):
+        #if (name == 'manymove'):
+        #  s = ManyMoveStruct(structs)
+        if (name == 'r'):
+          s = RestStruct(duration)
+        if (name == 'repeat'):
+          s = RepeatStruct(duration, params)
+        if (name == 'mergeProp'):
+          s = PropertyMergeStruct(k, v)
+        if (name == 'deleteProp'):
+          s = PropertyDeleteStruct(k)
+        if (name == 'skip'):
+          s = NothingStruct(params)
+          
+        ## dealt with from function callbacks
+        #if (name == 'beatsPerBar'):
+        #  s = BeatsPerBarChangeStruct(params)
+        #if (name == 'tempo'):
+        #  s = TempoChangeStruct(params)
+      else:
+        # Can't test for the zillions of move event names, so make a 
+        # move. 
+        #? any structural tests?
+        #self.error('plainInstruction', 'Code line not recognised', True)
+        s = MoveStruct(name, duration, params)
+      context.appendChild(DanceEvent(context.uid, s))       
+
       
+            
     def plainInstruction(self, context):
       commit = self.line[0].isalpha()
       if (commit):
@@ -280,6 +363,7 @@ class Parser:
         name = p[0]      
           
         # split name and durations
+        # durations may not be present (tempo changes, etc.)
         i = len(name) - 1
         while(i >= 0 and name[i].isdigit()):
           i -= 1
@@ -287,9 +371,11 @@ class Parser:
           self.error('plainInstruction', 'An instruction name can not be all digits', True)
         i += 1
         
-        duration = name[i:]
-        if (not duration):
-          duration = 1
+        durationStr = name[i:]
+        duration = 1
+        if (durationStr):
+          duration = int(durationStr)
+          
           
         name = name[:i]
         
@@ -297,7 +383,8 @@ class Parser:
         if (len(p) > 1):
           params = p[1:]
           
-        context.appendChild(DanceEvent(context.uid, name, duration, params))
+        #context.appendChild(DanceEvent(context.uid, name, duration, params))
+        e = self.danceEvent(context, name, duration, params)
         
         self._next()
       return commit
@@ -315,7 +402,7 @@ class Parser:
         while (True):
           if(not(
           self.simultaneousInstructions(context)
-          or self.functionCall(context, acceptedFunctionsInstructions)
+          or self.functionCall(context, self.acceptedFunctionsInstructions)
           or self.comment()
           or self.plainInstruction(context)
           )):
@@ -342,7 +429,7 @@ class Parser:
         
         while (True):
           if(not(
-            self.functionCall(context, acceptedFunctionsSimultaneous)
+            self.functionCall(context, self.acceptedFunctionsSimultaneous)
             or self.comment()
           )):
             self.error('simultaneousFunctionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
@@ -461,7 +548,7 @@ class Parser:
         while(True):
           if(not(
             self.comment()
-            or self.functionCall(globalExp, acceptedFunctionsGlobal)
+            or self.functionCall(globalExp, self.acceptedFunctionsGlobal)
             # this last. Has only alphabetic test, reacts to most lines
             #or self.variable()          
           )):
@@ -480,24 +567,24 @@ class Parser:
 
 
 # Test
-#from SourceIterators import StringIterator
-##import ExpandIterator
-#from ConsoleStreamReporter import ConsoleStreamReporter
+from SourceIterators import StringIterator
+from ConsoleStreamReporter import ConsoleStreamReporter
+#import ExpandIterator
 
-#p = '../test/test.dn'
-#with open(p, 'r') as f:
-    #srcAsLines = f.readlines()
+p = '../test/expanded_test.dn'
+with open(p, 'r') as f:
+    srcAsLines = f.readlines()
     
-#r = ConsoleStreamReporter()
-#sit = StringIterator(p, srcAsLines)
-##it = ExpandIterator.ExpandIterator(sit, r)
+r = ConsoleStreamReporter()
+sit = StringIterator(p, srcAsLines)
+#it = ExpandIterator.ExpandIterator(sit, r)
 
-#p = Parser(sit, r)
+p = Parser(sit, r)
 
-#p.parse()
+p.parse()
 
-#print(str(p.ast()))
+print(str(p.ast()))
 
-#xe = p.toEvents()
-#for e in xe:
-  #print(str(e))
+xe = p.toEvents()
+for e in xe:
+  print(str(e))

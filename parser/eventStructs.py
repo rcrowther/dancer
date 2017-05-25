@@ -11,6 +11,7 @@ class MoveStruct(EventStruct):
   def __init__(self, name, duration, params):
     assert(isinstance(name, str))
     assert(isinstance(duration, int))
+    assert(isinstance(params, list))
     self.name = name
     self.duration = duration
     self.params = params
@@ -20,9 +21,8 @@ class MoveStruct(EventStruct):
     b.append(self.name)
     b.append('", ')
     b.append(str(self.duration))
-    b.append(', "')
+    b.append(', ')
     b.append(str(self.params))
-    b.append('"')
 
 
 
@@ -32,7 +32,7 @@ class ManyMoveStruct(EventStruct):
   This can be expressed by the input language,
   '''
   def __init__(self, moveStructs):
-    #assert(isinstance(duration, int))
+    #assert(isinstance(moveStructs, list))
     self.moveStructs = moveStructs
     
   def extendString(self, b):
@@ -51,13 +51,17 @@ class RestStruct(EventStruct):
 
     
 class RepeatStruct(EventStruct):
-  def __init__(self, duration, alternatives):
+  def __init__(self, duration, params):
     assert(isinstance(duration, int))
+    assert(isinstance(params, str))
     self.duration = duration
+    self.params = params
 
   def extendString(self, b):
     b.append(str(self.duration))
-    
+    b.append(', "')
+    b.append(str(self.params))
+    b.append('"')    
     
     
 class PropertyMergeStruct(EventStruct):
@@ -118,8 +122,10 @@ class NothingStruct(EventStruct):
     
     
 ## test
-#print(str(MoveStruct('clap', 2, 'above')))
+#print(str(MoveStruct('clap', 2, ['above'])))
+##print(str(ManyMoveStruct()))
 #print(str(RestStruct(32)))
+##print(str(RepeatStruct(32, '4')))
 #print(str(PropertyMergeStruct('fig', '5')))
 #print(str(PropertyDeleteStruct('fig')))
 #print(str(NothingStruct(6)))
