@@ -127,7 +127,7 @@ class EventIteratorFile(EventIterator):
     elif (line.startswith('DanceEvent')):
       params = line[10:]
       p = params[1:-2].split(', ')
-      event = DanceEvent(int(p[0]), p[1][1:-1], int(p[2]), p[3])
+      event = DanceEvent(int(p[0]), int(p[1]), p[2][1:-1], int(p[3]), p[4])
     elif (line.startswith('Finish')):
       #params = line[14:]
       #p = params[1:-1].split(', ')

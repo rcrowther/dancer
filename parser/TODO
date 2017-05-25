@@ -23,16 +23,18 @@ lily.scm seems to handle taking these lists and running them, somehow?
 scm/define-music-types joins data to a delivery code, and mentions iterator construction.
 
 
-=== Triggering and building a model
+=== Triggering and building a model, parsing
 
 We know music is a list,
 http://lilypond.org/doc/v2.18/Documentation/extending/internal-music-representation
 
-Probably made from callbacks in Lily-parser.yy (a BISON parser). The callbacks go to scm/ly-syntax-constructors.scm, which makes lists with fake contexts built from lists themselves.
+Probably made from callbacks in Lily-parser.yy (a BISON parser). The callbacks go to scm/ly-syntax-constructors.scm, which makes lists with abstract? contexts built from lists themselves.
+
+The parser is confused by mentioning 'events'. The parser does not make an 'event stream'. The parser is making a stream of Scheme 'SCM' representations of objects. The 'events' mentioned in the parser are a subcategory of a Music Event (as opposed to a Context, PropertyChange etc. in an event stream). The subcategory events are defined in scm/define-music-types.scm (along with an iterator for the data).
 
 Where does the parser make events? This makes a big difference, interleaved events make much easier.
 
-The model is the only straighforward item. Global->Score->StaffGroups->Staves, all contexts. So we got those as objects. Whre this gets to make event sequences?
+The model is the only straighforward item. Like this, Global->Score->StaffGroups->Staves, all these objects at base are contexts. So we got those as objects. Whre this gets to make event sequences?
 
 === Iteration
 global_contxt contains run_iterator_on_me(), the key method.

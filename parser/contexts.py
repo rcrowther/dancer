@@ -270,7 +270,7 @@ class Context():
 
   ## Printers ##
   
-  ## Glist ##
+  ### Glist ###
   def addGListChildren(self, b):
     first = True
     for e in self.children:
@@ -281,20 +281,28 @@ class Context():
       e.addGListString(b)
     
   def addGListString(self, b):
-    b.append(self.entitySuffix)    
+    b.append(self.entitySuffix)   
+    b.append(str(self.uid))    
+ 
     b.append('(')
+    first = True
     for e in self.gList:
-      b.append(', ')
+      if (first):
+        first = False
+      else:
+        b.append("-")
       b.append(str(e))      
     self.addGListChildren(b)
     #b.append(str(self.children))
     b.append(')')
     return b
         
+  #? This is a tricky print, as the lists may be very long.
+  #? Undecided about the best way to go, but needed, for sure.
   def gListToString(self):
     return "".join(self.addGListString([]))  
 
-  ## Context printer ##
+  ### Context printer ###
   def addChildren(self, b):
     b.append(', [')
     first = True

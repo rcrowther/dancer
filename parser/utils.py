@@ -9,6 +9,29 @@ def multilineToString(text):
     return text[:cut] + '...' if (idx != -1) else text
 
 
+class SimplePrint():
+  def entitySuffix(self):
+    return type(self).__name__
+
+  def extendString(self, b):
+    pass
+    
+  def addString(self, b):
+    b.append(self.entitySuffix())
+    b.append('(')
+    self.extendString(b)
+    b.append(')')
+    return b
+    
+  def __str__(self):
+    '''
+    String representation of this class.
+    The representation is valid constructor code.
+    '''
+    return "".join(self.addString([]))
+
+
+
 class StdPrint():
     '''
     '''

@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
-#from enum import Enum
+#from enums import danceEventClasses, danceEventClassesToString
+
+from utils import SimplePrint
 
 
 # Why a type property? A hangover from C++, and also because I don't
@@ -21,7 +23,7 @@ EventTypeToString = { v: k for (k, v) in EventType.items()}
   
 #! use the word *Event, or not?
 #! context is sometimes the parent when relevent, or surrounding self.
-
+#! use SimplePrint
 class Event():
   '''
   Where relevant, context id is the parent. For property events, is the
@@ -30,6 +32,7 @@ class Event():
   @contextId unique id of the context
   '''
   def __init__(self, contextId):
+    assert(isinstance(contextId, int))
     self.entitySuffix = type(self).__name__
     self._contextId = contextId
 
@@ -68,8 +71,8 @@ class CreateContext(Event):
   @newType is currently a string 'Score', 'Dancer' etc.
   '''
   def __init__(self, contextId, newId, newType):
-    assert(isinstance(contextId, int))
     assert(isinstance(newId, int))
+    assert(isinstance(newType, str))
     Event.__init__(self, contextId)
     self._newId = newId
     self._newType = newType
@@ -107,7 +110,6 @@ class DeleteContext(Event):
   @contextId the id of the context
   '''
   def __init__(self, contextId, oldId):
-    assert(isinstance(contextId, int))
     assert(isinstance(oldId, int))
     Event.__init__(self, contextId)
     self._oldId = oldId
@@ -134,7 +136,8 @@ class MergeProperty(Event):
   @contextId the local context (not the parent of the context)
   '''
   def __init__(self, contextId, key, value):
-    assert(isinstance(contextId, int))
+    assert(isinstance(key, str))
+    assert(isinstance(value, str))
     Event.__init__(self, contextId)
     self._key = key
     self._value = value
@@ -170,7 +173,7 @@ class DeleteProperty(Event):
   @contextId the local context (not the parent of the context)
   '''
   def __init__(self, contextId, key):
-    assert(isinstance(contextId, int))
+    assert(isinstance(key, str))
     Event.__init__(self, contextId)
     self._key = key
     
@@ -234,49 +237,38 @@ class MomentEnd(Event):
         
 class DanceEvent(Event):
   '''
+  The klass sub-categorises DanceEvents. Usually it will suggest an
+  engraver.
+  struct is held as an int. See enums.danceEventClasses for toString.
   @contextId the parent context
+  @struct data for dance events. This is a sub-class, see EventStructs.
   '''  
-  def __init__(self, contextId, name, duration, params):
-    assert(isinstance(contextId, int))
-    assert(isinstance(duration, int))
+  def __init__(self, contextId, struct):
+    assert(isinstance(struct, EventStruct))
     Event.__init__(self, contextId)
-    self._name = name
-    self._duration = duration
-    self._params = params
+    self._struct = struct
 
-    
-  @property
-  def name(self):
-    return self._name
-    
-  @name.setter
-  def name(self, name):
-    self._name = name
-    
-  @property
-  def duration(self):
-    return self._duration
 
-  @duration.setter
-  def duration(self, duration):
-    self._duration = duration
-    
   @property
-  def params(self):
-    return self._params
+  def struct(self):
+    return self._struct
+    
+  @struct.setter
+  def klass(self, struct):
+    self._struct = struct
+        
 
-  @params.setter
-  def params(self, params):
-    self._params = params
 
   def extendString(self, b):
     b.append(str(self.contextId))
     b.append(', "')
-    b.append(self.name)
-    b.append('", ')
-    b.append(str(self.duration))
-    b.append(', ')
-    b.append(str(self.params))
+    b.append(str(self.struct))
+    #b.append(', "')
+    #b.append(self.name)
+    #b.append('", ')
+    #b.append(str(self.duration))
+    #b.append(', ')
+    #b.append(str(self.params))
 
 
 class Finish(Event):

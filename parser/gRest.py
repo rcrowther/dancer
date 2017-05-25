@@ -5,9 +5,15 @@ class Rest(GraphicData):
   '''
   '''
   def __init__(self, duration):
+    GraphicData.__init__(self)
     # duration changes the rest shape
     self.duration = duration
-    self.minWidth = 4
+    
+    self.width = 0.5
+    if (self.duration > 1):
+      self.width = 1
+    #self.minWidth = self.width
+    
     #self.style = style
     self.staffPosition = -3 
     

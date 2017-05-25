@@ -6,8 +6,9 @@ class DanceMove(GraphicData):
   Style unused, but could be several things?
   '''
   def __init__(self, text, duration):
+    GraphicData.__init__(self)
     self.text = text
-    # duration changes the move style
+    # duration can change the print style
     self.duration = duration
     #self.style = style
   
@@ -17,9 +18,13 @@ class DanceMove(GraphicData):
       font = 'italic'
     return font
     
-
+  def __str__(self):
+    return "{0}".format(self.text)
+    
+    
     
 def before(ctx):
+  #?! damm. A rest is a DanceMove?
   ctx.dispatcher.startSayingTo(process, 'DanceEvent')
 
 def process(ctx, event):
