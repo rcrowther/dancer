@@ -2,6 +2,7 @@
 
 #from enums import danceEventClasses, danceEventClassesToString
 
+from eventStructs import EventStruct
 from utils import SimplePrint
 
 
@@ -163,8 +164,9 @@ class MergeProperty(Event):
     b.append(str(self.contextId))
     b.append(', "')
     b.append(self.key)
-    b.append('", ')
+    b.append('", "')
     b.append(str(self.value))          
+    b.append('"')
 
 
 
@@ -237,9 +239,9 @@ class MomentEnd(Event):
         
 class DanceEvent(Event):
   '''
-  The klass sub-categorises DanceEvents. Usually it will suggest an
-  engraver.
-  struct is held as an int. See enums.danceEventClasses for toString.
+  The struct sub-categorises DanceEvents. Usually its name will suggest
+  an engraver.
+  structs are found in eventStructs.
   @contextId the parent context
   @struct data for dance events. This is a sub-class, see EventStructs.
   '''  
@@ -261,7 +263,7 @@ class DanceEvent(Event):
 
   def extendString(self, b):
     b.append(str(self.contextId))
-    b.append(', "')
+    b.append(', ')
     b.append(str(self.struct))
     #b.append(', "')
     #b.append(self.name)
@@ -284,16 +286,22 @@ class Finish(Event):
   def moment(self, moment):
     self._moment = moment
     
-#e = CreateContext(4, 'staff')
-#print(str(e))
+    
+#from eventStructs import *
 
-#e = DeleteContext('context')
+#e = CreateContext(0, 1, 'staff')
 #print(str(e))
-#e = MergeProperty('context', 'indent-stave', 2)
+#e = DeleteContext(0, 1)
 #print(str(e))
-#e = MomentStart('context', 'moment')
+#e = MergeProperty(1, 'indent-stave', '2')
+#print(str(e))
+#e = DeleteProperty(1, 'indent-stave')
+#print(str(e))
+#e = MomentStart(9)
+#print(str(e)) 
+#e = MomentEnd()
 #print(str(e))        
-#e = DanceEvent('context', 'clap', 2, 'above')
+#e = DanceEvent(3, (MoveStruct('clap', 2, 'above')))
 #print(str(e))
 #e = Finish()
 #print(str(e))

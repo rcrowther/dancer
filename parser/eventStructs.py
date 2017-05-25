@@ -70,9 +70,10 @@ class PropertyMergeStruct(EventStruct):
   def extendString(self, b):
     b.append('"')
     b.append(self.k)
-    b.append('", ')
+    b.append('", "')
     b.append(str(self.v))
-            
+    b.append('"')
+
             
             
 class PropertyDeleteStruct(EventStruct):
@@ -117,10 +118,10 @@ class NothingStruct(EventStruct):
     
     
 ## test
-print(str(MoveStruct('clap', 2, 'above')))
-print(str(RestStruct(32)))
-print(str(PropertyMergeStruct('fig', '5')))
-print(str(PropertyDeleteStruct('fig')))
-print(str(NothingStruct(6)))
-print(str(BeatsPerBarChangeStruct(2)))
-print(str(TempoChangeStruct(62)))
+#print(str(MoveStruct('clap', 2, 'above')))
+#print(str(RestStruct(32)))
+#print(str(PropertyMergeStruct('fig', '5')))
+#print(str(PropertyDeleteStruct('fig')))
+#print(str(NothingStruct(6)))
+#print(str(BeatsPerBarChangeStruct(2)))
+#print(str(TempoChangeStruct(62)))
