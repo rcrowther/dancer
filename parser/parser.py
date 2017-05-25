@@ -298,9 +298,8 @@ class Parser:
     def simultaneousInstructions(self, context):
       commit = (self.line[0] == '<')
       if (commit):
-        #print('simultaneousInstructions ' + str(self._prevLineNo))
-        context.appendChild(MomentStart(-3))
-        
+        #print('simultaneousInstructions ' + str(self._prevLineNo))  
+        buildingContext = BuildingContext(context.uid)  
         self._next()
 
         while(self.line[0] != '>'):
@@ -308,14 +307,14 @@ class Parser:
           # - accepts functions
           # - but not simultaneousInstructions
           if(not(
-            self.functionCall(context, self.acceptedFunctionsInstructions)
+            self.functionCall(buildingContext, self.acceptedFunctionsInstructions)
             or self.comment()
-            or self.plainInstruction(context)
+            or self.plainInstruction(buildingContext)
           )):
             self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
 
-        context.appendChild(MomentEnd())
-        
+        context.appendChild(DanceEvent(context.uid, SimultaneousEventsStruct
+(buildingContext.children)))
         self._next()
       return commit
       
@@ -371,6 +370,7 @@ class Parser:
           self.error('plainInstruction', 'An instruction name can not be all digits', True)
         i += 1
         
+        #! protect
         durationStr = name[i:]
         duration = 1
         if (durationStr):
@@ -424,7 +424,7 @@ class Parser:
       if (commit):
         if(not context):
           self.error('simultaneousFunctionBody', 'Not expecting a body?', True)
-        
+       
         self._next()
         
         while (True):
@@ -529,8 +529,12 @@ class Parser:
         if (len(p) < 2):
           self.error('variable', 'Expected name to assign to?', True)
         self.currentVarName = p[1]
+        
+        #? try this instead,
+        #buildingContext = BuildingContext(context.uid)  
         self.varLineStash = []
         self._stashVarLines = True
+        
         self._next()
         if (not (
           #? this covers all we need and allow?

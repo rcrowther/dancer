@@ -56,7 +56,11 @@ class ParsedDanceeventIterator(DataIterator):
   '''
   Iterates a parsed event list.
   use prepare() to set data and contextId
-  used in DancerContext
+  Returns pending duration, then a clutch of calls. These clutches are 
+  based on finding events in input which have real uration (property 
+  changes, tempo signals and similar activity are bundled into the 
+  current clutch)
+  Used after parsing, in a DancerContext, iterating parsed dancemove data.
   '''
   # This has parser-based form to account for.
   # - MomentEvents are dummies to mark simutaneous operation.
@@ -68,7 +72,7 @@ class ParsedDanceeventIterator(DataIterator):
   # - Finish does not appear
   # No premoment instructions exist.
   # Due to Python's error throwing, finish is hard to catch here.
-  # So chain length is monitored.
+  # So, currently, chain length is monitored.
   # PendingMoment can not be resolved without caching.
   
   def __init__(self):
@@ -97,33 +101,62 @@ class ParsedDanceeventIterator(DataIterator):
 
     if (self.curse < self.length):
       e = self._data[self.curse]
-      
-      # cache property events
-      while(isinstance(e, MergeProperty) or isinstance(e, DeleteProperty)):
+
+      while (not(isinstance(e, DanceEvent) and e.struct.hasInputDuration)):
         self.cache.append(e)
         self.curse += 1 
-        e = self._data[self.curse]          
-
-      if (isinstance(e, DanceEvent)):
-        self.cache = [e]
-        self._pendingMomentIncrement = int(e.duration) 
-      else:
-        # handle simultaneous form
-        # skip moment start
-        self.cache = []
-        self.curse += 1
         e = self._data[self.curse]
-        longest = 0          
-        while(not isinstance(e, MomentEnd)):
-          if (isinstance(e, DanceEvent) and int(e.duration) > longest):
-            longest = e.duration
-          self.cache.append(e)
-          self.curse += 1
-          e = self._data[self.curse]  
+        
+      # even if simultaneous, has a length
+      if (not(isinstance(e.struct, SimultaneousEventsStruct))):
+        # it's just a move
+        self.cache.append(e)
+        self._pendingMomentIncrement = e.struct.duration 
+      else:
+        xe = e.struct.events
+        longest = 0
+        for e in xe:
+          if (
+            isinstance(e, DanceEvent) 
+            and e.struct.hasInputDuration
+            and int(e.struct.duration) > longest
+            ):
+            longest = e.struct.duration
+          #self.cache.append(e)
         self._pendingMomentIncrement = longest 
+
+        # empty the simultaneous mark data in
+        self.cache.extend(xe)
+
+                
+      ##? assume properties come first
+      ## cache property events
+      #while(isinstance(e, MergeProperty) or isinstance(e, DeleteProperty)):
+        #self.cache.append(e)
+        #self.curse += 1 
+        #e = self._data[self.curse]          
+
+      #if (isinstance(e, DanceEvent) and isinstance(e.struct, MoveStruct)):
+        #self.cache = [e]
+        #self._pendingMomentIncrement = int(e.duration) 
+      #else:
+        ## MomentStart, signalling simultaneous form
+        ## handle simultaneous form
+        ## skip moment start
+        #self.cache = []
+        #self.curse += 1
+        #e = self._data[self.curse]
+        #longest = 0          
+        #while(not isinstance(e, MomentEnd)):
+          #if (isinstance(e, DanceEvent) and int(e.duration) > longest):
+            #longest = e.duration
+          #self.cache.append(e)
+          #self.curse += 1
+          #e = self._data[self.curse]  
+        #self._pendingMomentIncrement = longest 
     else:
       if (not self.cache):
-        # kill. the test means this will not run until the last cached 
+        # kill. the above test means this will not run until the last cached 
         # entry is returned by __next__
         self._pendingMomentIncrement = 0 
         self._pendingMoment = MOMENT_EXHAUSTED    
@@ -137,8 +170,10 @@ class ParsedDanceeventIterator(DataIterator):
 class ChildContextIterator(DataIterator):
   '''
   Interlaces events from child iterators by Moment.
-  use prepare() to set data and contextId
-  used in intermediade contexts like ScoreContext.
+  has pendingMoment, and returns clutches of events, like 
+  ParsedDanceeventIterator, which should be children to this.
+  Use prepare() to set data and contextId
+  Used on parsed data, in intermediade contexts like ScoreContext.
   '''
   def __init__(self):
     DataIterator.__init__(self)
@@ -210,9 +245,9 @@ from EventIterators import EventIterator
 # Aside from the prepare(), this is an EventIterator 
 class ParseCompileIterator(EventIterator):
   '''
-  Inserts Moment events from pending calls.
+  Inserts Moment events into a stream, working from pendingMoments calls.
   Can prepend and append extra events.
-  Reduces clutches  of events to a steady stream of single events.
+  Reduces clutches of events to a steady stream of single events.
   use prepare() to set data and contextId
   used at base in GlobalContext.
   '''
@@ -268,9 +303,10 @@ class ParseCompileIterator(EventIterator):
     
     
 #from events import *
+#from eventStructs import *
 
-#stream1 = [DanceEvent(6, "clap", 1, []), DanceEvent(6, "clap", 1, ['overhead']), DanceEvent(6, "step", 1, ['west']), MomentStart(-3), DanceEvent(6, "cross", 1, ['legs']), DanceEvent(6, "cross", 1, ['hands']), MomentEnd(), MomentStart(-3), DanceEvent(6, "jump", 1, ['south']), DanceEvent(6, "hands", 1, ['ears']), MomentEnd(), DanceEvent(6, "bend", 1, ['knees']), DanceEvent(6, "slap", 1, ['other']), DanceEvent(6, "slap", 2, ['knees']), DanceEvent(6, "twirl", 1, ['right']), DanceEvent(6, "split", 1, ['knees']), DanceEvent(6, "turn", 1, ['west']), MergeProperty(6, "beatsPerBar", 3), MergeProperty(6, "tempo", 80), DanceEvent(6, "kick", 1, ['low'])]
-#stream2 = [DanceEvent(4, "clap", 1, []), DanceEvent(4, "clap", 1, ['overhead']), DanceEvent(4, "step", 1, ['west']), MomentStart(-3), DanceEvent(4, "cross", 1, ['legs']), DanceEvent(4, "cross", 1, ['hands']), MomentEnd(), MomentStart(-3), DanceEvent(4, "jump", 1, ['south']), DanceEvent(4, "hands", 1, ['ears']), MomentEnd(), DanceEvent(4, "r", 6, []), DanceEvent(4, "swipe", 2, ['low']), DanceEvent(4, "jump", 1, ['spot'])]
+#stream1 = [DanceEvent(3, MoveStruct("clap", 1, [])), DanceEvent(3, MoveStruct("clap", 1, ['overhead'])), DanceEvent(3, MoveStruct("step", 1, ['west'])), DanceEvent(3, SimultaneousEventsStruct([DanceEvent(3, MoveStruct("cross", 1, ['legs'])), DanceEvent(3, MoveStruct("cross", 1, ['hands']))])), DanceEvent(3, SimultaneousEventsStruct([DanceEvent(3, MoveStruct("jump", 1, ['south'])), DanceEvent(3, MoveStruct("hands", 1, ['ears']))])), DanceEvent(3, MoveStruct("bend", 1, ['knees'])), DanceEvent(3, MoveStruct("slap", 1, ['other'])), DanceEvent(3, MoveStruct("slap", 2, ['knees'])), DanceEvent(3, MoveStruct("twirl", 1, ['right'])), DanceEvent(3, MoveStruct("split", 1, ['knees'])), DanceEvent(3, MoveStruct("turn", 1, ['west'])), DanceEvent(3, BeatsPerBarChangeStruct(3)), DanceEvent(3, TempoChangeStruct(80)), DanceEvent(3, MoveStruct("kick", 1, ['low']))]
+#stream2 =  [DanceEvent(4, MoveStruct("clap", 1, [])), DanceEvent(4, MoveStruct("clap", 1, ['overhead'])), DanceEvent(4, MoveStruct("step", 1, ['west'])), DanceEvent(4, SimultaneousEventsStruct([DanceEvent(4, MoveStruct("cross", 1, ['legs'])), DanceEvent(4, MoveStruct("cross", 1, ['hands']))])), DanceEvent(4, SimultaneousEventsStruct([DanceEvent(4, MoveStruct("jump", 1, ['south'])), DanceEvent(4, MoveStruct("hands", 1, ['ears']))])), DanceEvent(4, RestStruct(6)), DanceEvent(4, MoveStruct("swipe", 2, ['low'])), DanceEvent(4, MoveStruct("jump", 1, ['spot']))]
 
 
 #it1 = ParsedDanceeventIterator()
@@ -278,12 +314,12 @@ class ParseCompileIterator(EventIterator):
 #it2 = ParsedDanceeventIterator()
 #it2.prepare(5, stream2)
 ##print(str(it.length))
-##print(str(it))
+##print(str(it1))
 
 #cit = ChildContextIterator()
 #cit.prepare(8, [it1, it2])
-##print(str(it.length))
-##print(str(cit))
+###print(str(it.length))
+#print(str(cit))
 
 #pit = ParseCompileIterator()
 #pit.prepare(0, [[CreateContext(0, 0, 'Global')], [Finish()], cit])

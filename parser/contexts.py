@@ -18,6 +18,39 @@ def uid():
   _uid += 1
   return _uid
    
+
+#! should be base for other contexts
+class BuildingContext(SimplePrint):
+  '''
+  A context which is no  more than children.
+  Used in the parser, for gathering parsed instructions.
+  For these urposes, the uid should be set to the current context uid.
+  '''
+  def __init__(self, uid):
+    self.children = []  
+    self.uid = uid
+  
+  def appendChild(self, v):
+    '''
+    This accessor allows us to reimplement if necessary.
+    Notably, DummyContext, which has no tree-building needs,
+    disables this method.
+    '''
+    self.children.append(v)
+    
+  def extendString(self, b):
+    b.append(', [')
+    first = True
+    for e in self.children:
+      if (first):
+        first = False
+      else:
+        b.append(", ")
+      e.addString(b)
+    b.append(']')
+    
+    
+    
 #! need error reporting
 #! contexts need to be able to toEvents their own
 #! build creation events. For use from parsing. 
