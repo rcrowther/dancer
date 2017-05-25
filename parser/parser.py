@@ -228,25 +228,26 @@ class Parser:
 
     ################# Parsing #########################
 
+    #! do by auto?
     def parse(self):
         # ...prime
         self._next()
         # let's go
         self.root()
         
-    def ast(self):
+    def result(self):
       return self.globalExp
     
     #! dont do this here. just call this and ast
     #! resultExp()
-    def toEvents(self):
-      b = []
-      b.extend(self.globalExp.toCreateEvents())
-      b.append(MomentStart(0))
-      #? not sure trigger by dancer? This is a big clump of startup properties.
-      #? by iteration? here for now.
-      b.extend(self.globalExp.toPropertyEvents())
-      return b 
+    #def toEvents(self):
+      #b = []
+      #b.extend(self.globalExp.toCreateEvents())
+      #b.append(MomentStart(0))
+      ##? not sure trigger by dancer? This is a big clump of startup properties.
+      ##? by iteration? here for now.
+      #b.extend(self.globalExp.toPropertyEvents())
+      #return b 
 
 
 
@@ -571,24 +572,21 @@ class Parser:
 
 
 # Test
-from SourceIterators import StringIterator
-from ConsoleStreamReporter import ConsoleStreamReporter
-#import ExpandIterator
+#from SourceIterators import StringIterator
+#from ConsoleStreamReporter import ConsoleStreamReporter
+##import ExpandIterator
 
-p = '../test/expanded_test.dn'
-with open(p, 'r') as f:
-    srcAsLines = f.readlines()
+#p = '../test/expanded_test.dn'
+#with open(p, 'r') as f:
+    #srcAsLines = f.readlines()
     
-r = ConsoleStreamReporter()
-sit = StringIterator(p, srcAsLines)
-#it = ExpandIterator.ExpandIterator(sit, r)
+#r = ConsoleStreamReporter()
+#sit = StringIterator(p, srcAsLines)
+##it = ExpandIterator.ExpandIterator(sit, r)
 
-p = Parser(sit, r)
+#p = Parser(sit, r)
 
-p.parse()
+#p.parse()
 
-print(str(p.ast()))
+#print(str(p.ast()))
 
-xe = p.toEvents()
-for e in xe:
-  print(str(e))

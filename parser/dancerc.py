@@ -56,8 +56,9 @@ def getContextData(args, reporter):
     it = ExpandIterator.ExpandIterator(sit, reporter)
     #? Parser not here, it's irrelevant. Build into GlobalContext?
     p = Parser(it, reporter)
+    # This seems
     p.parse()
-    ctx = p.ast()
+    ctx = p.result()
     ctx.prepareAsParsedData(inPath)
     return ctx
 

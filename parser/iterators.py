@@ -2,6 +2,7 @@
 
 
 from events import *
+from eventStructs import *
 import sys
 
 

@@ -125,9 +125,18 @@ class EventIteratorFile(EventIterator):
       #p = params[1:-1].split(', ')
       event = MomentEnd()
     elif (line.startswith('DanceEvent')):
-      params = line[10:]
-      p = params[1:-2].split(', ')
-      event = DanceEvent(int(p[0]), int(p[1]), p[2][1:-1], int(p[3]), p[4])
+      #params = line[10:]
+      # only get the first param...
+      p = line[11:-2].split(', ', 1)
+      contextId = int(p[0])
+      # The rest is for the structure
+      struct = p[1]
+      structName, structParamsStr = struct.split('(', 1)
+      structParams = structParamsStr[:-1].split(', ')
+      #?! This horror show tempts me to drop string delimiters entirely?
+      structParams[0] = structParams[0].strip('\'"')
+      struct = toEventStruct(structName, structParams)
+      event = DanceEvent(contextId, struct)
     elif (line.startswith('Finish')):
       #params = line[14:]
       #p = params[1:-1].split(', ')
@@ -143,7 +152,7 @@ class EventIteratorFile(EventIterator):
     
 ########################################
 from events import *
-
+from eventStructs import toEventStruct
 
 #eventList = [
 #CreateContext(0, 0, "Global"),

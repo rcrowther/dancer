@@ -4,6 +4,15 @@ from utils import SimplePrint
 
 
 class EventStruct(SimplePrint):
+  '''
+  The purpose of hasInputDuration: Events and EventStructs are built 
+  directly from the parser. At that point, after the parse, we need to
+  know which of the commands a user is summing, or should be summing,
+  to make bars. Then we can tell if they intended a dance moment.
+  
+  The GlobalContext iterator, a ParseCompileIterator, makes sense of
+  this by wrapping in momentStart/MomentEnd calls.
+  '''
   pass
   
 
@@ -41,7 +50,6 @@ class ManyMoveStruct(EventStruct):
     b.append(str(self.moveStructs))
 
 
-# is
 class RestStruct(EventStruct):
   def __init__(self, duration):
     assert(isinstance(duration, int))
@@ -67,7 +75,7 @@ class RepeatStruct(EventStruct):
     b.append(str(self.params))
     b.append('"')    
     
-    
+
 class PropertyMergeStruct(EventStruct):
   def __init__(self, k, v):
     assert(isinstance(k, str))
@@ -117,9 +125,22 @@ class TempoChangeStruct(EventStruct):
 
   def extendString(self, b):
     b.append(str(self.tempo))
-    
-    
 
+
+def toEventStruct(s, p):
+  if (s == 'MoveStruct'): return MoveStruct(p[0], int(p[1]), eval(p[2]))
+  elif (s == 'ManyMoveStruct'): return ManyMoveStruct(eval(p[0]))
+  elif (s == 'RestStruct'): return RestStruct(int(p[0]))
+  elif (s == 'RepeatStruct'): return RepeatStruct(int(p[0]), eval(p[1]))
+  elif (s == 'PropertyMergeStruct'): return PropertyMergeStruct(p[0], p[1])
+  elif (s == 'PropertyDeleteStruct'): return PropertyDeleteStruct(p[0])
+  elif (s == 'BeatsPerBarChangeStruct'): return BeatsPerBarChangeStruct(int(p[0]))
+  elif (s == 'TempoChangeStruct'): return TempoChangeStruct(int(p[0]))
+  elif (s == 'NothingStruct'): return NothingStruct(int(p[0]))
+  else:
+    print('unrecognised eventStruct: name{0}'.format(s))
+    
+    
 class NothingStruct(EventStruct):
   def __init__(self, duration):
     assert(isinstance(duration, int))
