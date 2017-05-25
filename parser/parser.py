@@ -6,7 +6,7 @@ import os
 import argparse
 import sys
 from events import *
-from eventStructs import *
+#from eventStructs import *
 from contexts import *
 
 from Position import Position, NoPosition
@@ -202,14 +202,14 @@ class Parser:
       #print('merge property function handler: ' + name)
       p = self.getParam(posParams, 0)
       v = self.strToInt(p)
-      context.appendChild(DanceEvent(context.uid, TempoChangeStruct(v)))
+      context.appendChild(TempoChangeEvent(context.uid, v))
       return None
     
     def functionHandlerBeatsPerBarEvent(self, context, name, posParams, namedParams):
       #print('merge property function handler: ' + name)
       p = self.getParam(posParams, 0)
       v = self.strToInt(p)
-      context.appendChild(DanceEvent(context.uid, BeatsPerBarChangeStruct(v)))
+      context.appendChild(BeatsPerBarChangeEvent(context.uid, v))
       return None  
 
         
@@ -314,8 +314,7 @@ class Parser:
           )):
             self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
 
-        context.appendChild(DanceEvent(context.uid, SimultaneousEventsStruct
-(buildingContext.children)))
+        context.appendChild(SimultaneousEventsEvent(buildingContext.children))
         self._next()
       return commit
       
@@ -331,15 +330,15 @@ class Parser:
         #if (name == 'manymove'):
         #  s = ManyMoveStruct(structs)
         if (name == 'r'):
-          s = RestStruct(duration)
+          s = RestEvent(context.uid, duration)
         if (name == 'repeat'):
-          s = RepeatStruct(duration, params)
-        if (name == 'mergeProp'):
-          s = PropertyMergeStruct(k, v)
-        if (name == 'deleteProp'):
-          s = PropertyDeleteStruct(k)
+          s = RepeatEvent(context.uid, duration, params)
+        #if (name == 'mergeProp'):
+        #  s = PropertyMergeStruct(context.uid, k, v)
+        #if (name == 'deleteProp'):
+        #  s = PropertyDeleteStruct(context.uid, k)
         if (name == 'skip'):
-          s = NothingStruct(params)
+          s = NothingEvent(context.uid, params)
           
         ## dealt with from function callbacks
         #if (name == 'beatsPerBar'):
@@ -351,8 +350,8 @@ class Parser:
         # move. 
         #? any structural tests?
         #self.error('plainInstruction', 'Code line not recognised', True)
-        s = MoveStruct(name, duration, params)
-      context.appendChild(DanceEvent(context.uid, s))       
+        s = MoveEvent(context.uid, name, duration, params)
+      context.appendChild(s)       
 
       
             
@@ -588,5 +587,5 @@ class Parser:
 
 #p.parse()
 
-#print(str(p.ast()))
+#print(str(p.result()))
 

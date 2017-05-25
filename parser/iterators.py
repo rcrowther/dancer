@@ -2,7 +2,7 @@
 
 
 from events import *
-from eventStructs import *
+#from eventStructs import *
 import sys
 
 
@@ -103,31 +103,30 @@ class ParsedDanceeventIterator(DataIterator):
     if (self.curse < self.length):
       e = self._data[self.curse]
 
-      while (not(isinstance(e, DanceEvent) and e.struct.hasInputDuration)):
+      while (not(e.hasInputDuration)):
         self.cache.append(e)
         self.curse += 1 
         e = self._data[self.curse]
         
       # even if simultaneous, has a length
-      if (not(isinstance(e.struct, SimultaneousEventsStruct))):
+      if (not(isinstance(e, SimultaneousEventsEvent))):
         # it's just a move
         self.cache.append(e)
-        self._pendingMomentIncrement = e.struct.duration 
+        self._pendingMomentIncrement = e.duration 
       else:
-        xe = e.struct.events
+        xe = e.events
         longest = 0
-        for e in xe:
+        for ee in xe:
           if (
-            isinstance(e, DanceEvent) 
-            and e.struct.hasInputDuration
-            and int(e.struct.duration) > longest
+            ee.hasInputDuration
+            and ee.duration > longest
             ):
-            longest = e.struct.duration
-          #self.cache.append(e)
+            longest = ee.duration
+          self.cache.append(ee)
         self._pendingMomentIncrement = longest 
 
         # empty the simultaneous mark data in
-        self.cache.extend(xe)
+        #self.cache.extend(xe)
 
                 
       ##? assume properties come first
@@ -304,22 +303,21 @@ class ParseCompileIterator(EventIterator):
     
     
 #from events import *
-#from eventStructs import *
 
-#stream1 = [DanceEvent(3, MoveStruct("clap", 1, [])), DanceEvent(3, MoveStruct("clap", 1, ['overhead'])), DanceEvent(3, MoveStruct("step", 1, ['west'])), DanceEvent(3, SimultaneousEventsStruct([DanceEvent(3, MoveStruct("cross", 1, ['legs'])), DanceEvent(3, MoveStruct("cross", 1, ['hands']))])), DanceEvent(3, SimultaneousEventsStruct([DanceEvent(3, MoveStruct("jump", 1, ['south'])), DanceEvent(3, MoveStruct("hands", 1, ['ears']))])), DanceEvent(3, MoveStruct("bend", 1, ['knees'])), DanceEvent(3, MoveStruct("slap", 1, ['other'])), DanceEvent(3, MoveStruct("slap", 2, ['knees'])), DanceEvent(3, MoveStruct("twirl", 1, ['right'])), DanceEvent(3, MoveStruct("split", 1, ['knees'])), DanceEvent(3, MoveStruct("turn", 1, ['west'])), DanceEvent(3, BeatsPerBarChangeStruct(3)), DanceEvent(3, TempoChangeStruct(80)), DanceEvent(3, MoveStruct("kick", 1, ['low']))]
-#stream2 =  [DanceEvent(4, MoveStruct("clap", 1, [])), DanceEvent(4, MoveStruct("clap", 1, ['overhead'])), DanceEvent(4, MoveStruct("step", 1, ['west'])), DanceEvent(4, SimultaneousEventsStruct([DanceEvent(4, MoveStruct("cross", 1, ['legs'])), DanceEvent(4, MoveStruct("cross", 1, ['hands']))])), DanceEvent(4, SimultaneousEventsStruct([DanceEvent(4, MoveStruct("jump", 1, ['south'])), DanceEvent(4, MoveStruct("hands", 1, ['ears']))])), DanceEvent(4, RestStruct(6)), DanceEvent(4, MoveStruct("swipe", 2, ['low'])), DanceEvent(4, MoveStruct("jump", 1, ['spot']))]
+#stream1 =  [MoveEvent(3, 'clap', 1, []), MoveEvent(3, 'clap', 1, ['overhead']), MoveEvent(3, 'step', 1, ['west']), SimultaneousEventsEvent([MoveEvent(3, 'cross', 1, ['legs']), MoveEvent(3, 'cross', 1, ['hands'])]), SimultaneousEventsEvent([MoveEvent(3, 'jump', 1, ['south']), MoveEvent(3, 'hands', 1, ['ears'])]), MoveEvent(3, 'bend', 1, ['knees']), MoveEvent(3, 'slap', 1, ['other']), MoveEvent(3, 'slap', 2, ['knees']), MoveEvent(3, 'twirl', 1, ['right']), MoveEvent(3, 'split', 1, ['knees']), MoveEvent(3, 'turn', 1, ['west']), BeatsPerBarChangeEvent(3, 3), TempoChangeEvent(3, 80), MoveEvent(3, 'kick', 1, ['low'])]
+#stream2 =  [MoveEvent(4, 'clap', 1, []), MoveEvent(4, 'clap', 1, ['overhead']), MoveEvent(4, 'step', 1, ['west']), SimultaneousEventsEvent([MoveEvent(4, 'cross', 1, ['legs']), MoveEvent(4, 'cross', 1, ['hands'])]), SimultaneousEventsEvent([MoveEvent(4, 'jump', 1, ['south']), MoveEvent(4, 'hands', 1, ['ears'])]), RestEvent(4, 6), MoveEvent(4, 'swipe', 2, ['low']), MoveEvent(4, 'jump', 1, ['spot'])]
 
 
 #it1 = ParsedDanceeventIterator()
 #it1.prepare(4, stream1)
 #it2 = ParsedDanceeventIterator()
 #it2.prepare(5, stream2)
-##print(str(it.length))
-##print(str(it1))
+###print(str(it.length))
+##print(str(it2))
 
 #cit = ChildContextIterator()
 #cit.prepare(8, [it1, it2])
-###print(str(it.length))
+####print(str(it.length))
 #print(str(cit))
 
 #pit = ParseCompileIterator()

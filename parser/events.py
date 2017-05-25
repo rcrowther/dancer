@@ -2,7 +2,7 @@
 
 #from enums import danceEventClasses, danceEventClassesToString
 
-from eventStructs import EventStruct
+#from eventStructs import EventStruct
 from utils import SimplePrint
 
 
@@ -25,7 +25,7 @@ EventTypeToString = { v: k for (k, v) in EventType.items()}
 #! use the word *Event, or not?
 #! context is sometimes the parent when relevent, or surrounding self.
 #! use SimplePrint
-class Event():
+class Event(SimplePrint):
   '''
   Where relevant, context id is the parent. For property events, is the
   local context id. It always exists, but where can be implied, is not
@@ -34,7 +34,7 @@ class Event():
   '''
   def __init__(self, contextId):
     assert(isinstance(contextId, int))
-    self.entitySuffix = type(self).__name__
+    self.hasInputDuration = False
     self._contextId = contextId
 
     
@@ -45,23 +45,6 @@ class Event():
   @contextId.setter
   def contextId(self, contextId):
     self._contextId = contextId
-    
-  def extendString(self, b):
-    pass
-    
-  def addString(self, b):
-    b.append(self.entitySuffix)
-    b.append('(')
-    self.extendString(b)
-    b.append(')')
-    return b
-    
-  def __str__(self):
-    '''
-    String representation of this class.
-    The representation is valid constructor code.
-    '''
-    return "".join(self.addString([]))
     
         
     
@@ -75,6 +58,7 @@ class CreateContext(Event):
     assert(isinstance(newId, int))
     assert(isinstance(newType, str))
     Event.__init__(self, contextId)
+    self.hasInputDuration = False
     self._newId = newId
     self._newType = newType
  
@@ -113,6 +97,7 @@ class DeleteContext(Event):
   def __init__(self, contextId, oldId):
     assert(isinstance(oldId, int))
     Event.__init__(self, contextId)
+    self.hasInputDuration = False
     self._oldId = oldId
  
     
@@ -140,6 +125,7 @@ class MergeProperty(Event):
     assert(isinstance(key, str))
     assert(isinstance(value, str))
     Event.__init__(self, contextId)
+    self.hasInputDuration = False
     self._key = key
     self._value = value
     
@@ -162,11 +148,10 @@ class MergeProperty(Event):
           
   def extendString(self, b):
     b.append(str(self.contextId))
-    b.append(', "')
+    b.append(', ')
     b.append(self.key)
-    b.append('", "')
+    b.append(', ')
     b.append(str(self.value))          
-    b.append('"')
 
 
 
@@ -177,6 +162,7 @@ class DeleteProperty(Event):
   def __init__(self, contextId, key):
     assert(isinstance(key, str))
     Event.__init__(self, contextId)
+    self.hasInputDuration = False
     self._key = key
     
   @property
@@ -189,9 +175,8 @@ class DeleteProperty(Event):
           
   def extendString(self, b):
     b.append(str(self.contextId))
-    b.append(', "')
+    b.append(', ')
     b.append(self.key)
-    b.append('"')
 
     
     
@@ -208,6 +193,7 @@ class MomentStart(Event):
   def __init__(self, moment):
     assert(isinstance(moment, int))
     Event.__init__(self, 0)
+    self.hasInputDuration = False
     self._moment = moment
     
   @property
@@ -230,6 +216,7 @@ class MomentEnd(Event):
   '''
   def __init__(self):
     Event.__init__(self, 0)
+    self.hasInputDuration = False
 
     
   def extendString(self, b):
@@ -237,45 +224,41 @@ class MomentEnd(Event):
         
         
         
-class DanceEvent(Event):
-  '''
-  The struct sub-categorises DanceEvents. Usually its name will suggest
-  an engraver.
-  structs are found in eventStructs.
-  @contextId the parent context
-  @struct data for dance events. This is a sub-class, see EventStructs.
-  '''  
-  def __init__(self, contextId, struct):
-    assert(isinstance(struct, EventStruct))
-    Event.__init__(self, contextId)
-    self._struct = struct
+#class DanceEvent(Event):
+  #'''
+  #The struct sub-categorises DanceEvents. Usually its name will suggest
+  #an engraver.
+  #structs are found in eventStructs.
+  #@contextId the parent context
+  #@struct data for dance events. This is a sub-class, see EventStructs.
+  #'''  
+  #def __init__(self, contextId, struct):
+    #assert(isinstance(struct, EventStruct))
+    #Event.__init__(self, contextId)
+    #self._struct = struct
 
 
-  @property
-  def struct(self):
-    return self._struct
+  #@property
+  #def struct(self):
+    #return self._struct
     
-  @struct.setter
-  def klass(self, struct):
-    self._struct = struct
+  #@struct.setter
+  #def klass(self, struct):
+    #self._struct = struct
         
 
 
-  def extendString(self, b):
-    b.append(str(self.contextId))
-    b.append(', ')
-    b.append(str(self.struct))
-    #b.append(', "')
-    #b.append(self.name)
-    #b.append('", ')
-    #b.append(str(self.duration))
+  #def extendString(self, b):
+    #b.append(str(self.contextId))
     #b.append(', ')
-    #b.append(str(self.params))
+    #b.append(str(self.struct))
+
 
 
 class Finish(Event):
   def __init__(self):
     Event.__init__(self, 0)
+    self.hasInputDuration = False
     self._moment = -2
 
   @property
@@ -287,6 +270,183 @@ class Finish(Event):
     self._moment = moment
     
     
+
+########################## Dancer events ###############################
+
+
+class MoveEvent(Event):
+  def __init__(self,  contextId,  name, duration, params):
+    assert(isinstance(name, str))
+    assert(isinstance(duration, int))
+    assert(isinstance(params, list))
+    Event.__init__(self, contextId)
+    self.hasInputDuration = True
+    self.name = name
+    self.duration = duration
+    self.params = params
+    
+  def extendString(self, b):
+    b.append(str(self.contextId))
+    b.append(", '")
+    b.append(self.name)
+    b.append("', ")
+    b.append(str(self.duration))
+    b.append(', ')
+    b.append(str(self.params))
+
+
+
+class ManyMoveEvent(Event):
+  '''
+  When one dancer performs many moves at the same time  e.g. clap/jump.
+  This can be expressed by the input language,
+  '''
+  def __init__(self, contextId, moveEvents):
+    #assert(isinstance(moveEvents, list))
+    Event.__init__(self, contextId)
+    self.hasInputDuration = False
+    self.moveEvents = moveEvents
+    
+  def extendString(self, b):
+    b.append(str(self.contextId))
+    b.append(', ')
+    b.append(str(self.moveEvents))
+
+
+class RestEvent(Event):
+  def __init__(self, contextId, duration):
+    assert(isinstance(duration, int))
+    Event.__init__(self, contextId)
+    self.hasInputDuration = True
+    self.duration = duration
+
+  def extendString(self, b):
+    b.append(str(self.contextId))
+    b.append(', ')
+    b.append(str(self.duration))
+
+
+    
+class RepeatEvent(Event):
+  def __init__(self, contextId, duration, params):
+    assert(isinstance(duration, int))
+    assert(isinstance(params, list))
+    Event.__init__(self, contextId)
+    self.hasInputDuration = False
+    self.duration = duration
+    self.params = params
+
+  def extendString(self, b):
+    b.append(str(self.contextId))
+    b.append(', ')
+    b.append(str(self.duration))
+    b.append(', "')
+    b.append(str(self.params))
+    b.append('"')    
+    
+
+    
+    
+class BeatsPerBarChangeEvent(Event):
+  def __init__(self, contextId, count):
+    assert(isinstance(count, int))
+    Event.__init__(self, contextId)
+    self.hasInputDuration = False
+    self.count = count
+
+  def extendString(self, b):
+    b.append(str(self.contextId))
+    b.append(', ')
+    b.append(str(self.count))
+    
+    
+    
+class TempoChangeEvent(Event):
+  def __init__(self, contextId, tempo):
+    assert(isinstance(tempo, int))
+    Event.__init__(self, contextId)
+    self.hasInputDuration = False
+    self.tempo = tempo
+
+  def extendString(self, b):
+    b.append(str(self.contextId))
+    b.append(', ')
+    b.append(str(self.tempo))
+
+
+    
+class NothingEvent(Event):
+  def __init__(self, contextId, duration):
+    assert(isinstance(duration, int))
+    Event.__init__(self, contextId)
+    self.hasInputDuration = True
+    self.duration = duration
+
+  def extendString(self, b):
+    b.append(str(self.contextId))
+    b.append(', ')
+    b.append(str(self.duration))
+  
+
+    
+class SimultaneousEventsEvent(Event):
+  '''
+  This event is used only in building an event stream from the
+  parser. It constructs 'twig' branches holding the simultaneous 
+  events.
+  The iterators resolve the twigs first into batches of events, ten into
+  events surrounded by MomentStart and MomentEnd, for printing, writing 
+  down, etc. 
+  '''
+  def __init__(self, events):
+    #assert(isinstance(duration, int))
+    assert(isinstance(events, list))
+    Event.__init__(self, -1)
+    self.hasInputDuration = True
+    #self.duration = duration
+    self.events = events
+    
+  def extendString(self, b):
+    b.append('[')
+    first = True
+    for e in self.events:
+      if (first):
+        first = False
+      else:
+        b.append(", ")
+      b.append(str(e)) 
+    b.append(']')
+    #b.append(str(self.duration)) 
+    
+
+
+def toEvent(s, p):
+  '''
+  Cheap and shoddy text to class.
+  
+  '''
+  if (s == 'CreateContext'): return CreateContext(int(p[0]), int(p[1]), p[2])
+  elif (s == 'DeleteContext'): return DeleteContext(int(p[0]), int(p[1]))
+  elif (s == 'MergeProperty'): return MergeProperty(int(p[0]), p[1], p[2])
+  elif (s == 'DeleteProperty'): return DeleteProperty(int(p[0]), p[1])
+  elif (s == 'MomentStart'): return MomentStart(int(p[0]))
+  elif (s == 'MomentEnd'): return MomentEnd()
+    #elif (s == 'DanceEvent'): return DanceEvent(eval(p[0]))
+  elif (s == 'Finish'): return Finish()
+  elif (s == 'MoveEvent'): return MoveEvent(int(p[0]), p[1], int(p[2]), eval(p[3]))
+  elif (s == 'ManyMoveEvent'): return ManyMoveEvent(int(p[0]), eval(p[0]))
+  elif (s == 'RestEvent'): return RestEvent(int(p[0]), int(p[1]))
+  elif (s == 'RepeatEvent'): return RepeatEvent(int(p[0]), eval(p[1]))
+  #elif (s == 'PropertyMergeEvent'): return PropertyMergeEvent(p[0], p[1])
+  #elif (s == 'PropertyDeleteEvent'): return PropertyDeleteEvent(p[0])
+  elif (s == 'BeatsPerBarChangeEvent'): return BeatsPerBarChangeEvent(int(p[0]), int(p[0]))
+  elif (s == 'TempoChangeEvent'): return TempoChangeEvent(int(p[0]), int(p[0]))
+  elif (s == 'NothingEvent'): return NothingEvent(int(p[0]))
+  else:
+    print('unrecognised event: name{0}'.format(s))
+    
+    
+### Test ###
 #from eventStructs import *
 
 #e = CreateContext(0, 1, 'staff')
@@ -301,7 +461,17 @@ class Finish(Event):
 #print(str(e)) 
 #e = MomentEnd()
 #print(str(e))        
-#e = DanceEvent(3, (MoveStruct('clap', 2, 'above')))
-#print(str(e))
+##e = DanceEvent(3, (MoveStruct('clap', 2, 'above')))
+##print(str(e))
 #e = Finish()
 #print(str(e))
+
+#print(str(MoveEvent(3, 'clap', 2, ['above'])))
+##print(str(ManyMoveEvent()))
+#print(str(RestEvent(3, 32)))
+#print(str(RepeatEvent(3, 4, [])))
+##print(str(PropertyMergeEvent('fig', '5')))
+##print(str(PropertyDeleteEvent('fig')))
+#print(str(NothingEvent(3, 6)))
+#print(str(BeatsPerBarChangeEvent(3, 2)))
+#print(str(TempoChangeEvent(3, 62)))

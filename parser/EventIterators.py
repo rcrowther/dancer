@@ -100,49 +100,50 @@ class EventIteratorFile(EventIterator):
     params = None
     event = None
     if (line.startswith('CreateContext')):
-      params = line[13:]
-      p = params[1:-2].split(', ')
+      p = line[14:-2].split(', ')
       #print('@'.join(p))
       event = CreateContext(int(p[0]), int(p[1]), p[2][1:-1])
     elif (line.startswith('DeleteContext')):
-      params = line[13:]
-      p = params[1:-2].split(', ')
-      event = DeleteContext(int(p[0]), int(p[1]))
+      p = line[14:-2].split(', ')
+      event = toEvent('DeleteContext', p)
     elif (line.startswith('MergeProperty')):
-      params = line[13:]
-      p = params[1:-2].split(', ')
-      event = MergeProperty(int(p[0]), p[1][1:-1], p[2])
+      p = line[14:-2].split(', ')
+      event = toEvent('MergeProperty', p)
     elif (line.startswith('DeleteProperty')):
-      params = line[14:]
-      p = params[1:-2].split(', ')
-      event = DeleteProperty(int(p[0]), p[1][1:-1])
+      p = line[15:-2].split(', ')
+      event = toEvent('DeleteProperty', p)
     elif (line.startswith('MomentStart')):
-      params = line[11:]
-      p = params[1:-2].split(', ')
-      event = MomentStart(int(p[0]))
+      p = line[12:-2].split(', ')
+      event = toEvent('MomentStart', p)
     elif (line.startswith('MomentEnd')):
-      #params = line[14:]
-      #p = params[1:-1].split(', ')
       event = MomentEnd()
-    elif (line.startswith('DanceEvent')):
-      #params = line[10:]
-      # only get the first param...
-      p = line[11:-2].split(', ', 1)
-      contextId = int(p[0])
-      # The rest is for the structure
-      struct = p[1]
-      structName, structParamsStr = struct.split('(', 1)
-      structParams = structParamsStr[:-1].split(', ')
-      #?! This horror show tempts me to drop string delimiters entirely?
-      structParams[0] = structParams[0].strip('\'"')
-      struct = toEventStruct(structName, structParams)
-      event = DanceEvent(contextId, struct)
     elif (line.startswith('Finish')):
-      #params = line[14:]
-      #p = params[1:-1].split(', ')
       event = Finish()
+    elif (line.startswith('MoveEvent')):
+      p = line[10:-2].split(', ') 
+      # horror show to remove commas
+      p[1] = p[1].strip('\'"')
+      event = toEvent('MoveEvent', p)
+    #elif (line.startswith('ManyMoveEvent')):
+     # p = line[10:-2].split(', ') 
+      #event = toEvent('ManyMoveEvent', p)
+    elif (line.startswith('RestEvent')):
+      p = line[10:-2].split(', ') 
+      event = toEvent('RestEvent', p)
+    elif (line.startswith('RepeatEvent')):
+      p = line[12:-2].split(', ') 
+      event = toEvent('RepeatEvent', p)
+    elif (line.startswith('BeatsPerBarChangeEvent')):
+      p = line[23:-2].split(', ') 
+      event = toEvent('BeatsPerBarChangeEvent', p)
+    elif (line.startswith('TempoChangeEvent')):
+      p = line[17:-2].split(', ') 
+      event = toEvent('TempoChangeEvent', p)
+    elif (line.startswith('NothingEvent')):
+      p = line[13:-2].split(', ') 
+      event = toEvent('NothingEvent', p)
     else:
-      print('Eventparser: unrecognised text input:'.format(line))
+      print('Eventparser: unrecognised text input: {0}'.format(line))
     return event
     
   def next(self): 
@@ -152,7 +153,7 @@ class EventIteratorFile(EventIterator):
     
 ########################################
 from events import *
-from eventStructs import toEventStruct
+#from eventStructs import toEventStruct
 
 #eventList = [
 #CreateContext(0, 0, "Global"),
