@@ -40,7 +40,7 @@ def getContextData(args, reporter):
   inPath = args.infile
   if (inPath.endswith('.dnc')):
     #assuming a compiled event file
-    ctx = GlobalContext()
+    ctx = GlobalContext(reporter)
     it = EventIterators.EventIteratorFile(args.infile)
     ctx.prepareForEventSteamData(it)
     return ctx
@@ -97,6 +97,10 @@ def doSomething(args):
         print('gList:')
         print(ctx.gListToString()) 
         
+      if (form == 'stats'):
+        ctx.setStatisticsChain()
+        ctx.runIteratorToContextDispatcher()
+
       printInfo('written: {0}'.format(args.outfile))
     print(r.summaryString())
 
@@ -127,7 +131,7 @@ def main(argv):
     parser.add_argument('-f', '--format', 
         help="Output format. 'events' is the default, a compiled input.",
         default='events',
-        choices=('events', 'json', 'bytecode', 'pdf')
+        choices=('events', 'json', 'bytecode', 'pdf', 'stats')
         )
 
     parser.add_argument('-p', '--print',

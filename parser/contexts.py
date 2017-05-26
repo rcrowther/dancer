@@ -8,7 +8,7 @@ from dispatchers import *
 
 from EventIterators import EventIterator, EventIteratorFile
 
-import gChains
+import gChains, chains
 
 # Not for threads (you know it)
 _uid = 1
@@ -65,7 +65,7 @@ class Context():
   configuration.
   
   '''
-  def __init__(self, uid, name):
+  def __init__(self, uid, name, reporter):
     self.entitySuffix = type(self).__name__
 
     self._name = name
@@ -73,6 +73,7 @@ class Context():
     # events. Both children, both iterable, though. 
     self.children = []
     self.uid = uid
+    self.reporter = reporter
     
     '''
     Every context can process it's input stream.
@@ -167,7 +168,8 @@ class Context():
   def _initializeChain(self):
     for p in self.processors:
       p.before(self)
-      
+     
+  #? needed? useful? 
   def _finalizeChain(self):
     for p in self.processors:
       p.after(self)
@@ -182,9 +184,9 @@ class Context():
     ctx = None
     tpe = event.newType
     if (tpe == 'Score'):
-      ctx = ScoreContext()
+      ctx = ScoreContext(self.reporter)
     if (tpe == 'Dancer'):
-      ctx = DancerContext()
+      ctx = DancerContext(self.reporter)
     #if (tpe == 'DancerGroup'):
       #ctx = DancerGroup()
     ctx.uid = event.newId
@@ -373,8 +375,8 @@ class DummyContext(Context):
   data.
   So appendChild is passed.
   '''
-  def __init__(self):
-    Context.__init__(self, -1, 'Dummy')
+  def __init__(self, reporter):
+    Context.__init__(self, -1, 'Dummy', reporter)
   
   #! all these actions should generate errors
   def appendChild(self, v):
@@ -399,8 +401,8 @@ class DummyContext(Context):
 #? A Dancer can not create a child context
 #? but has a dispatcher?
 class DancerContext(Context):
-  def __init__(self):
-    Context.__init__(self, uid(), 'Dancer')
+  def __init__(self, reporter):
+    Context.__init__(self, uid(), 'Dancer', reporter)
     self.processors = gChains.Dancer
 
 
@@ -429,8 +431,8 @@ class DancerContext(Context):
  
       
 class ScoreContext(Context):
-  def __init__(self):
-    Context.__init__(self, uid(), 'Score')
+  def __init__(self, reporter):
+    Context.__init__(self, uid(), 'Score', reporter)
     self.processors = gChains.Score
 
 
@@ -477,8 +479,8 @@ class ScoreContext(Context):
 
     
 class GlobalContext(Context):
-  def __init__(self):
-    Context.__init__(self, 0, 'Global')
+  def __init__(self, reporter):
+    Context.__init__(self, 0, 'Global', reporter)
     
     #! is what?
     self.outStream = []
@@ -503,6 +505,13 @@ class GlobalContext(Context):
     self.dispatcher.startSayingTo(self.deleteChildContext, 'DeleteContext')
 
 
+  ## Alt chains ##
+  
+  def setStatisticsChain(self):
+    self.processors = chains.GlobalStatistics
+
+  def setGraphicsChain(self):
+    self.processors = gChains.Global
 
   ## parse data actions ##
   def prepareAsParsedData(self, srcName):
@@ -544,7 +553,6 @@ class GlobalContext(Context):
 
   ## dispatch building ###
   def runIteratorToContextDispatcher(self):
-    self.processors = gChains.Global
     self._initializeChain()
     while(self.it.hasNext()):
       e = self.it.next()

@@ -1,4 +1,4 @@
-import EventWriterFile, EventWriterConsole
+import EventWriterFile, EventWriterConsole, lTimer, lStatistics
 
 EventsToFile = [
   EventWriterFile
@@ -7,3 +7,9 @@ EventsToFile = [
 EventsToConsole = [
   EventWriterConsole
   ] 
+
+
+GlobalStatistics = [
+lTimer,
+lStatistics
+]
