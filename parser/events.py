@@ -273,7 +273,11 @@ class Finish(Event):
 
 ########################## Dancer events ###############################
 
-
+#class DisplayDance(Event):
+  #def __init__(self):
+    #Event.__init__(self, 0)
+    #self.hasInputDuration = False
+    
 class MoveEvent(Event):
   def __init__(self,  contextId,  name, duration, params):
     assert(isinstance(name, str))
@@ -287,9 +291,9 @@ class MoveEvent(Event):
     
   def extendString(self, b):
     b.append(str(self.contextId))
-    b.append(", '")
+    b.append(", ")
     b.append(self.name)
-    b.append("', ")
+    b.append(", ")
     b.append(str(self.duration))
     b.append(', ')
     b.append(str(self.params))

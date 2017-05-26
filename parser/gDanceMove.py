@@ -1,34 +1,30 @@
-from gData import GraphicData
+from gData import TextData
+from enums import FontStyle
 
-
-class DanceMove(GraphicData):
+class DanceMove(TextData):
   '''
   Style unused, but could be several things?
   '''
   def __init__(self, text, duration):
-    GraphicData.__init__(self)
-    self.text = text
+    TextData.__init__(self, text)
     # duration can change the print style
-    self.duration = duration
-    #self.style = style
-  
-  def font(self):
-    font = 'normal'
-    if (self.duration > 1):
-      font = 'italic'
-    return font
-    
-  def __str__(self):
-    return "{0}".format(self.text)
+    #self.duration = duration
+    if (duration > 1):
+      self.fontStyle = FontStyle.Italic
+    self.yOffset = 0.25
+
+
+
     
     
     
 def before(ctx):
   #?! damm. A rest is a DanceMove?
-  ctx.dispatcher.startSayingTo(process, 'DanceEvent')
+  ctx.dispatcher.startSayingTo(process, 'MoveEvent')
 
 def process(ctx, event):
   # adapt text to include params?
+  #print('ne...')
   txt = event.name
   gd = DanceMove(txt, event.duration)
   ctx.gList.append(gd)  

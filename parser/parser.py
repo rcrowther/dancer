@@ -6,7 +6,6 @@ import os
 import argparse
 import sys
 from events import *
-#from eventStructs import *
 from contexts import *
 
 from Position import Position, NoPosition
@@ -284,7 +283,7 @@ class Parser:
     def namedParameters(self):
       self.namedParamsStash = []
       while(self.line[0] == ':'):
-        p = self.line.split()
+        p = self.line.split(1)
         name = p[0][1:]
         if (len(p) > 2):
             self.error('namedParameters', 'A parameter appears to have more than one value?', True)          
@@ -459,6 +458,8 @@ class Parser:
             posParams = parts[1:]
             self._next()
             self.namedParameters()
+            for p in namedParamsStash:
+              context.mergeProperty(p[0], p[1])
 
             bodyMountPoint = handler(context, name, posParams, self.namedParamsStash)
             

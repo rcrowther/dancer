@@ -1,4 +1,4 @@
-import gDanceMove, gBarline
+import gDanceMove, gBarline, lTimer
 
 Dancer = [
   gDanceMove
@@ -13,5 +13,5 @@ Score = [
 ]
 
 Global = [
-
+lTimer
 ]

@@ -120,9 +120,7 @@ class EventIteratorFile(EventIterator):
     elif (line.startswith('Finish')):
       event = Finish()
     elif (line.startswith('MoveEvent')):
-      p = line[10:-2].split(', ') 
-      # horror show to remove commas
-      p[1] = p[1].strip('\'"')
+      p = line[10:-2].split(', ')
       event = toEvent('MoveEvent', p)
     #elif (line.startswith('ManyMoveEvent')):
      # p = line[10:-2].split(', ') 

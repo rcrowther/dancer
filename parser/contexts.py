@@ -7,7 +7,7 @@ from events import *
 from dispatchers import *
 
 from EventIterators import EventIterator, EventIteratorFile
-import Timer
+
 import gChains
 
 # Not for threads (you know it)
@@ -118,7 +118,7 @@ class Context():
     self.properties[k] = v
 
   def containsProperty(self, k):
-    return (self.properties.get(k) == None)
+    return (self.properties.get(k) != None)
 
   def readProperty(self, k):
     return self.properties[k]
@@ -134,7 +134,7 @@ class Context():
     self._props[k] = v
 
   def containsProp(self, k):
-    return (self._props.get(k) == None)
+    return (self._props.get(k) != None)
 
   def readProp(self, k):
     return self._props[k]
@@ -205,6 +205,10 @@ class Context():
   # @ctx stub parameter to satisfy dispatch callback 
   def deleteChildContext(self, ctx, event):
     assert(isinstance(event, DeleteContext))
+    #if (self.containsProp('displayDance')):
+    print('context glist:\n' + self.gListToString())
+
+      
     oldId = event.oldId
     broken = False
     for idx, e in enumerate(self.children):
