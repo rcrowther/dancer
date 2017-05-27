@@ -11,6 +11,7 @@ class DanceMove(TextData):
     #self.duration = duration
     if (duration > 1):
       self.fontStyle = FontStyle.Italic
+    # push down a little
     self.yOffset = 0.25
 
 

@@ -46,7 +46,7 @@ class GraphicData():
     
     
     # The above positioning is not natural for a user. Nor experienced
-    # like an API user.
+    # user like an API user.
     # They must sum the size of the printing with the extensions
     # They can use these instead, then setExtents()
     self.width = 1
@@ -87,9 +87,10 @@ class StencilData(GraphicData):
   '''
   render info is _x, _y,
   '''
-  def __init__(self, stencil):
+  def __init__(self, stencilName, stencilStyle):
     GraphicData.__init__(self)
-    self.stencil = stencil
+    self.stencilName = stencilName
+    self.stencilStyle = stencilStyle
     
   def __str__(self):
     return "{0}".format(type(self.stencil)._name__)

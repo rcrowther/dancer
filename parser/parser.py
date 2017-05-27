@@ -99,7 +99,7 @@ class Parser:
 
         # namedParams gathering
         self.namedParamsStash = []
-        self.globalExp = GlobalContext()
+        self.globalExp = GlobalContext(reporter)
 
        
         self.acceptedFunctionsGlobal = {
@@ -121,7 +121,8 @@ class Parser:
           "repeat" : self.functionHandlerRepeat,
           "seenRepeat" : self.functionHandlerDummy,
           "alternative" : self.functionHandlerAlternative,
-          "endBar" : self.functionHandlerDummy
+          "bar" : self.functionHandlerBarline,
+          "skip" : self.functionHandlerDummy
           } 
 
 
@@ -184,11 +185,11 @@ class Parser:
       print('new context for' + context.name)
       newCtx = None
       if (name == 'score'):
-        newCtx = ScoreContext()
+        newCtx = ScoreContext(self.reporter)
       if (name == 'dancerGroup'):
-        newCtx = DancerContext()
+        newCtx = DancerContext(self.reporter)
       elif (name == 'dancer'):
-        newCtx = DancerContext()
+        newCtx = DancerContext(self.reporter)
       context.appendChild(newCtx)
       return newCtx
       
@@ -221,7 +222,12 @@ class Parser:
       print('unimplemented handler for Repeat Alternative')
       return context
 
-
+    def functionHandlerBarline(self, context, name, posParams, namedParams):
+      p = self.getParam(posParams, 0)
+      print('barline function handler: ' + str(p))
+      context.appendChild(BarlineEvent(context.uid, p))
+      print('ctx:' + str(context))
+      return None
 
 
 
@@ -258,9 +264,19 @@ class Parser:
           self.varLineStash.append(n)
 
          
+         
                   
     ## Rules ##
-    
+
+    def barlineMark(self, context):
+      if (self.line[0] == '.'):
+        context.appendChild(BarlineEvent(context.uid, ''))
+        # if not empty, carry on with the line
+        self.line = self.line[1:].lstrip()
+        # If empty, move along
+        if (not  self.line):
+          self._next()
+
     def comment(self):
         commit = (self.line[0] == "#")
         if(commit):
@@ -283,7 +299,7 @@ class Parser:
     def namedParameters(self):
       self.namedParamsStash = []
       while(self.line[0] == ':'):
-        p = self.line.split(1)
+        p = self.line.split(maxsplit=1)
         name = p[0][1:]
         if (len(p) > 2):
             self.error('namedParameters', 'A parameter appears to have more than one value?', True)          
@@ -325,6 +341,7 @@ class Parser:
       or name == 'mergeProp'
       or name == 'deleteProp'
       or name == 'skip' 
+      or name == 'bar' 
       ):
         #if (name == 'manymove'):
         #  s = ManyMoveStruct(structs)
@@ -338,7 +355,8 @@ class Parser:
         #  s = PropertyDeleteStruct(context.uid, k)
         if (name == 'skip'):
           s = NothingEvent(context.uid, params)
-          
+        if (name == 'bar'):
+          s = BarlineEvent(context.uid, params)          
         ## dealt with from function callbacks
         #if (name == 'beatsPerBar'):
         #  s = BeatsPerBarChangeStruct(params)
@@ -400,7 +418,8 @@ class Parser:
         
         while (True):
           if(not(
-          self.simultaneousInstructions(context)
+          self.barlineMark(context)
+          or self.simultaneousInstructions(context)
           or self.functionCall(context, self.acceptedFunctionsInstructions)
           or self.comment()
           or self.plainInstruction(context)
@@ -458,7 +477,7 @@ class Parser:
             posParams = parts[1:]
             self._next()
             self.namedParameters()
-            for p in namedParamsStash:
+            for p in self.namedParamsStash:
               context.mergeProperty(p[0], p[1])
 
             bodyMountPoint = handler(context, name, posParams, self.namedParamsStash)
@@ -485,7 +504,8 @@ class Parser:
         
         while (True):
           if(not(
-          self.simultaneousInstructions(context)
+          self.barlineMark(context)
+          or self.simultaneousInstructions(context)
           or self.variableFunctionCall(context)
           or self.comment()
           or self.plainInstruction(context)
@@ -539,7 +559,7 @@ class Parser:
         self._next()
         if (not (
           #? this covers all we need and allow?
-          self.variableFunctionBody(DummyContext())
+          self.variableFunctionBody(DummyContext(self.reporter))
         )):
           self.error('variable', 'Variable must contain an understandable unit of code, currently anything allowed in a function body', True)
         self._stashVarLines = False
@@ -553,6 +573,7 @@ class Parser:
         while(True):
           if(not(
             self.comment()
+            #or self.barlineMark()
             or self.functionCall(globalExp, self.acceptedFunctionsGlobal)
             # this last. Has only alphabetic test, reacts to most lines
             #or self.variable()          

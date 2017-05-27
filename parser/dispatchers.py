@@ -2,21 +2,21 @@
 
 
 # A hearer looks like this...
-#class Hearer():
-  #def __init__(self):
-    #self.dispatchers = []
+
+#def before(self, ctx):
+  #ctx.dispatcher.startSayingTo(process, 'MomentStart')
+
   
-  #def hear(self, event):
-    #print('  hearer heard event: ' + str(event))
+#def hear(self, ctx, event):
+  #print('  hearer heard event: ' + str(event))
     
 #def hear(self, event):
 #    print('  hearer heard event: ' + str(event))
       
-#? are we interested in listening to other dispatchers?
-#? needs prioritising
+#? Seems to me better if event dispatching bubbles down, lower 
+#? context ids firing first. Needs prioritising. 
+#? But they do, due to the order of build? ensure?
 #? printers
-#? probably be useful if listeners can unregister themselves 
-#! i.e. have a reference here.
 class Dispatcher():
   '''
   Simple dispatcher for events.

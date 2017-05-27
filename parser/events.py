@@ -8,19 +8,19 @@ from utils import SimplePrint
 
 # Why a type property? A hangover from C++, and also because I don't
 # want to be too Python.
-EventType = {
-  'CreateContext': 1,
-  'DeleteContext': 2,
-  'MergeProperty': 3,
-  'DeleteProperty': 4,
-  'MomentStart': 5,
-  'MomentEnd': 6,
-  'DanceEvent': 7,
-  'Finish': 8
-}
+#EventType = {
+  #'CreateContext': 1,
+  #'DeleteContext': 2,
+  #'MergeProperty': 3,
+  #'DeleteProperty': 4,
+  #'MomentStart': 5,
+  #'MomentEnd': 6,
+  #'DanceEvent': 7,
+  #'Finish': 8
+#}
 
 
-EventTypeToString = { v: k for (k, v) in EventType.items()}
+#EventTypeToString = { v: k for (k, v) in EventType.items()}
   
 #! use the word *Event, or not?
 #! context is sometimes the parent when relevent, or surrounding self.
@@ -390,9 +390,12 @@ class NothingEvent(Event):
     b.append(str(self.contextId))
     b.append(', ')
     b.append(str(self.duration))
+
+
   
 
-    
+########################## Internal events ###############################
+  
 class SimultaneousEventsEvent(Event):
   '''
   This event is used only in building an event stream from the
@@ -403,11 +406,9 @@ class SimultaneousEventsEvent(Event):
   down, etc. 
   '''
   def __init__(self, events):
-    #assert(isinstance(duration, int))
     assert(isinstance(events, list))
     Event.__init__(self, -1)
     self.hasInputDuration = True
-    #self.duration = duration
     self.events = events
     
   def extendString(self, b):
@@ -424,10 +425,23 @@ class SimultaneousEventsEvent(Event):
     
 
 
+class BarlineEvent(Event):
+  def __init__(self, contextId, style):
+    assert(isinstance(style, str))
+    Event.__init__(self, contextId)
+    self.style = style
+
+  def extendString(self, b):
+    b.append(str(self.contextId))
+    b.append(", '")
+    b.append(self.style)    
+    b.append("'")
+    
+    
 def toEvent(s, p):
   '''
   Cheap and shoddy text to class.
-  
+  No internal events.  
   '''
   if (s == 'CreateContext'): return CreateContext(int(p[0]), int(p[1]), p[2])
   elif (s == 'DeleteContext'): return DeleteContext(int(p[0]), int(p[1]))
@@ -446,6 +460,7 @@ def toEvent(s, p):
   elif (s == 'BeatsPerBarChangeEvent'): return BeatsPerBarChangeEvent(int(p[0]), int(p[0]))
   elif (s == 'TempoChangeEvent'): return TempoChangeEvent(int(p[0]), int(p[0]))
   elif (s == 'NothingEvent'): return NothingEvent(int(p[0]))
+  elif (s == 'BarlineEvent'): return BarlineEvent(int(p[0]))
   else:
     print('unrecognised event: name{0}'.format(s))
     
