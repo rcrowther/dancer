@@ -566,8 +566,8 @@ class GlobalContext(Context):
 
 
 ## Tests ##
-from events import *
-from iterators import *
+#from events import *
+#from iterators import *
 
 
 #d1 = DancerContext()

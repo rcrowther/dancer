@@ -38,7 +38,8 @@ class ExpandIterator():
 
     def isVarToExpand(self, line):
         foundExpansion = False
-        forTest = (line[0] == '\\')
+        # needs protection against trailing empty lines
+        forTest = (line and line[0] == '\\')
         if(forTest):
           name = line[1:].rstrip()
           m = self.varMap.get(name)
@@ -78,7 +79,7 @@ class ExpandIterator():
 
 #from ConsoleStreamReporter import ConsoleStreamReporter
 
-#p = '../test/test'
+#p = '../test/test.dn'
 #with open(p, 'r') as f:
     #srcAsLines = f.readlines()
     
@@ -90,5 +91,5 @@ class ExpandIterator():
 #for l in it:
   #print(str(it.lineCount) + ' ' + l)
 
-#print('map:')
+#print('variable map:')
 #print(it.varMap)

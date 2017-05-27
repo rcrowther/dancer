@@ -268,17 +268,35 @@ class Parser:
                   
     ## Rules ##
 
+    #def barlineMark(self, context):
+      #if (self.line[0] == '.'):
+        #context.appendChild(BarlineEvent(context.uid, ''))
+        ## if not empty, carry on with the line
+        #self.line = self.line[1:].lstrip()
+        ## If empty, move along
+        #if (not  self.line):
+          #self._next()
+
     def barlineMark(self, context):
-      if (self.line[0] == '.'):
+      commit = (not self.line)
+      if (commit):
         context.appendChild(BarlineEvent(context.uid, ''))
-        # if not empty, carry on with the line
-        self.line = self.line[1:].lstrip()
-        # If empty, move along
-        if (not  self.line):
-          self._next()
+        self._next()
+      return commit
+      
+    def emptyLine(self):
+      '''
+      Skip empty lines, where barlines are not used.
+      Used within variable parsing and Flobal/Root contexts. 
+      '''
+      commit = (not self.line)
+      if (commit):
+        self._next()
+      return commit
 
     def comment(self):
-        commit = (self.line[0] == "#")
+        # needs protection against empty lines
+        commit = (self.line and self.line[0] == "#")
         if(commit):
           txt = ''
           if(len(self.line) > 1 and self.line[1] == "#"):
@@ -298,7 +316,8 @@ class Parser:
 
     def namedParameters(self):
       self.namedParamsStash = []
-      while(self.line[0] == ':'):
+      # needs protection against trailing empty lines
+      while(self.line and self.line[0] == ':'):
         p = self.line.split(maxsplit=1)
         name = p[0][1:]
         if (len(p) > 2):
@@ -318,16 +337,19 @@ class Parser:
         buildingContext = BuildingContext(context.uid)  
         self._next()
 
-        while(self.line[0] != '>'):
           #? some form of body 
           # - accepts functions
           # - but not simultaneousInstructions
-          if(not(
-            self.functionCall(buildingContext, self.acceptedFunctionsInstructions)
-            or self.comment()
+        while(
+            self.comment()
+            or self.emptyLine()
+            or self.functionCall(buildingContext, self.acceptedFunctionsInstructions)
             or self.plainInstruction(buildingContext)
-          )):
-            self.error('simultaneousInstructions', 'Code line not recognised as a function, plain instruction, or a comment', True)
+          ):
+          pass
+          
+        if(self.line[0] != '>'):          
+          self.error('simultaneousInstructions', 'Seems to be end of instructions, but no angle bracket close?', True)
 
         context.appendChild(SimultaneousEventsEvent(buildingContext.children))
         self._next()
@@ -409,24 +431,26 @@ class Parser:
 
     # bodyMountPoint
     def functionBody(self, context):
-      commit = (self.line[0] == '{')
+      # needs protection against trailing empty lines
+      commit = (self.line and self.line[0] == '{')
       if (commit):
         if(not context):
           self.error('functionBody', 'Not expecting a body?', True)
           
         self._next()
         
-        while (True):
-          if(not(
-          self.barlineMark(context)
-          or self.simultaneousInstructions(context)
-          or self.functionCall(context, self.acceptedFunctionsInstructions)
-          or self.comment()
-          or self.plainInstruction(context)
-          )):
-            self.error('functionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
-          if (self.line[0] == '}'):
-            break
+        while (
+            self.comment()
+            or self.barlineMark(context)
+            or self.simultaneousInstructions(context)
+            or self.functionCall(context, self.acceptedFunctionsInstructions)
+            or self.plainInstruction(context)
+          ):
+          pass
+        #  self.info('ow', True)
+        #  print(self.line)
+        if (self.line[0] != '}'):
+            self.error('functionBody', 'Seems to be end of instructions allowed, but no curly bracket close?', True)
            
         self._next()
       return commit
@@ -445,19 +469,20 @@ class Parser:
        
         self._next()
         
-        while (True):
-          if(not(
-            self.functionCall(context, self.acceptedFunctionsSimultaneous)
-            or self.comment()
-          )):
-            self.error('simultaneousFunctionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
-          if (
-            len(self.line) > 1 
-            and self.line[0] == '>' 
-            and self.line[1] == '>'
+        while (
+            self.comment()
+            or self.emptyLine()
+            or self.functionCall(context, self.acceptedFunctionsSimultaneous)
           ):
-            break
-            
+          pass
+          
+        if (not(
+          len(self.line) > 1 
+          and self.line[0] == '>' 
+          and self.line[1] == '>'
+        )):
+          self.error('simultaneousFunctionBody', 'Seems to be end of instructions allowed, but no double angle bracket close?', True)
+           
         self._next()
       return commit
         
@@ -497,22 +522,24 @@ class Parser:
     #  Sadly, we do need to modify this, or it will go hunting for 
     # specific acceptedFunction's.
     def variableFunctionBody(self, context):
-      commit = (self.line[0] == '{')
+      self.info('ow', True)
+      #print(self._next() )
+      commit = (self.line and self.line[0] == '{')
       if (commit):
         
         self._next()
         
-        while (True):
-          if(not(
-          self.barlineMark(context)
+        while (
+          #self.barlineMark(context)
+          self.comment()
+          or self.emptyLine()
           or self.simultaneousInstructions(context)
           or self.variableFunctionCall(context)
-          or self.comment()
           or self.plainInstruction(context)
-          )):
-            self.error('variableFunctionBody', 'Code line not recognised as a function, plain instruction, simultaneousInstruction, or a comment', True)
-          if (self.line[0] == '}'):
-            break
+          ):
+          pass
+        if (self.line[0] != '}'):
+          self.error('variableFunctionBody', 'Seems to be end of instructions allowed in a variable, but no bracket close?', True)
            
         self._next()
       return commit
@@ -544,7 +571,8 @@ class Parser:
     # Must drop level name-checking for functions,
     # ...we have no idea on the level of the functions 
     def variable(self):
-      commit = (self.line[0] == '=')
+      # needs protection against empty lines
+      commit = (self.line and self.line[0] == '=')
       if (commit):
         p = self.line.split()
         if (len(p) < 2):
@@ -562,6 +590,7 @@ class Parser:
           self.variableFunctionBody(DummyContext(self.reporter))
         )):
           self.error('variable', 'Variable must contain an understandable unit of code, currently anything allowed in a function body', True)
+          
         self._stashVarLines = False
         self.varLineStash.pop()
       return commit
@@ -572,13 +601,14 @@ class Parser:
     def rootSeq(self, globalExp):
         while(True):
           if(not(
-            self.comment()
             #or self.barlineMark()
+            self.comment()
+            or self.emptyLine()
             or self.functionCall(globalExp, self.acceptedFunctionsGlobal)
             # this last. Has only alphabetic test, reacts to most lines
             #or self.variable()          
           )):
-            self.error('root sequence', 'Must contain an understandable unit of code, currently a comment, variable, or function call', True)
+            self.error('root sequence', 'Must contain an understandable unit of code, currently a comment or function call', True)
 
 
     def root(self):
