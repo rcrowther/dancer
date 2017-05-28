@@ -7,6 +7,7 @@ from events import *
 from dispatchers import *
 
 from EventIterators import EventIterator, EventIteratorFile
+from iterators import ParsedDanceeventIterator, ChildContextIterator, ParseCompileIterator
 
 import gChains, chains
 
@@ -331,7 +332,7 @@ class Context():
       else:
         b.append("-")
       b.append(str(e))      
-    self.addGListChildren(b)
+    #self.addGListChildren(b)
     #b.append(str(self.children))
     b.append(')')
     return b

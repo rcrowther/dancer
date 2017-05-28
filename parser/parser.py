@@ -522,7 +522,7 @@ class Parser:
     #  Sadly, we do need to modify this, or it will go hunting for 
     # specific acceptedFunction's.
     def variableFunctionBody(self, context):
-      self.info('ow', True)
+      #self.info('ow', True)
       #print(self._next() )
       commit = (self.line and self.line[0] == '{')
       if (commit):
