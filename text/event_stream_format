@@ -32,6 +32,40 @@ Moment is irrelevant. so the tail,
 == As text
 When written to a text file, each event should be on a line
 
+
+== Example
+CreateContext(0, 2, "Score")
+CreateContext(2, 3, "Dancer")
+CreateContext(2, 4, "Dancer")
+MergeProperty(0, performer, Bacup)
+MergeProperty(0, title, Coconutters)
+MergeProperty(0, style, clog)
+MergeProperty(0, beatsPerBar, 4)
+MergeProperty(0, dancers, 3)
+MergeProperty(0, date, )
+MergeProperty(0, tempo, 120)
+MergeProperty(2, dancerName, Albert)
+MomentStart(1)
+BarlineEvent(3, '')
+MoveEvent(3, clap, 1, [])
+BarlineEvent(4, '')
+MoveEvent(4, clap, 1, [])
+MomentEnd()
+MomentStart(2)
+MoveEvent(3, clap, 1, ['overhead'])
+MoveEvent(4, clap, 1, ['overhead'])
+MomentEnd()
+MomentStart(3)
+...
+MomentEnd()
+MomentStart(27)
+BarlineEvent(3, 'end')
+MomentEnd()
+DeleteContext(2, 3)
+DeleteContext(2, 4)
+DeleteContext(0, 2)
+Finish()
+
 == Differences to  LilyPond
 
 ~ Moment 0 is pre

@@ -224,9 +224,9 @@ class Parser:
 
     def functionHandlerBarline(self, context, name, posParams, namedParams):
       p = self.getParam(posParams, 0)
-      print('barline function handler: ' + str(p))
+      #print('barline function handler: ' + str(p))
       context.appendChild(BarlineEvent(context.uid, p))
-      print('ctx:' + str(context))
+      #print('ctx:' + str(context))
       return None
 
 
@@ -325,7 +325,9 @@ class Parser:
         if (len(p) < 2):
           self.namedParamsStash.append([name, ''])
         else:
-          self.namedParamsStash.append([name, p[1]])
+          # as only one split, need to strip the newline
+          # and trailing whitespace from the param.
+          self.namedParamsStash.append([name, p[1].rstrip()])
         self._next()
 
 
@@ -334,7 +336,7 @@ class Parser:
       commit = (self.line[0] == '<')
       if (commit):
         #print('simultaneousInstructions ' + str(self._prevLineNo))  
-        buildingContext = BuildingContext(context.uid)  
+        buildingContext = ContextBase(context.uid, self.reporter)  
         self._next()
 
           #? some form of body 

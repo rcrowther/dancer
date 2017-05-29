@@ -10,6 +10,13 @@ EventsToConsole = [
 
 
 GlobalStatistics = [
-lTimer,
-lStatistics
+#lTimer,
+#lStatistics
 ]
+
+
+Statistics = {
+'Dancer' : [lTimer],
+'Score' : [],
+'Global' : []
+}

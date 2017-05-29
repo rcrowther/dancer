@@ -10,14 +10,14 @@ def multilineToString(text):
 
 
 class SimplePrint():
-  def entitySuffix(self):
+  def entityName(self):
     return type(self).__name__
 
   def extendString(self, b):
     pass
     
   def addString(self, b):
-    b.append(self.entitySuffix())
+    b.append(self.entityName())
     b.append('(')
     self.extendString(b)
     b.append(')')

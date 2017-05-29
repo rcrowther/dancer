@@ -98,7 +98,7 @@ def doSomething(args):
         print(ctx.gListToString()) 
         
       if (form == 'stats'):
-        ctx.setStatisticsChain()
+        ctx.setChains(chains.Statistics)
         ctx.runIteratorToContextDispatcher()
 
       printInfo('written: {0}'.format(args.outfile))

@@ -7,7 +7,7 @@ from events import *
 from dispatchers import *
 
 from EventIterators import EventIterator, EventIteratorFile
-from iterators import ParsedDanceeventIterator, ChildContextIterator, ParseCompileIterator
+from iterators import ParsedEventIterator, ChildContextIterator2, ClutchToStreamIterator, ParseIterator, ParsedDanceeventIterator, ChildContextIterator, ParseCompileIterator
 
 import gChains, chains
 
@@ -21,25 +21,36 @@ def uid():
    
 
 #! should be base for other contexts
-class BuildingContext(SimplePrint):
+class ContextBase(SimplePrint):
   '''
-  A context which is no  more than children.
-  Used in the parser, for gathering parsed instructions.
-  For these urposes, the uid should be set to the current context uid.
+  A context with children and a few utilities.
+  Used standalone in the parser, for gathering parsed instructions.
+  For these purposes, the uid should be set to the current context uid.
   '''
-  def __init__(self, uid):
+  def __init__(self, uid, reporter):
     self.children = []  
     self.uid = uid
-  
+    self.reporter = reporter
+    
+    # properties could be on the Context object
+    # but I don't want this too Python
+    # general. This one general and written to streams
+    self.properties = {}
+    #entityName()
+    
   def appendChild(self, v):
     '''
     This accessor allows us to reimplement if necessary.
     Notably, DummyContext, which has no tree-building needs,
     disables this method.
     '''
-    self.children.append(v)
+    self.children.append(v)    
+
     
   def extendString(self, b):
+    b.append(str(self.uid))
+    b.append(', ')
+    b.append(str(self.properties))
     b.append(', [')
     first = True
     for e in self.children:
@@ -49,12 +60,153 @@ class BuildingContext(SimplePrint):
         b.append(", ")
       e.addString(b)
     b.append(']')
+
+
+    
+class IterableContext(ContextBase):
+    # The iterator can be
+    # building from source AST
+    # - child MoveEvents
+    # - child context iterators
+    # or from an event stream
+  def __init__(self, uid, reporter):
+    ContextBase.__init__(self, uid, reporter)
+    self.it = None
     
     
+  ## toEvent returns ##    
+  def _toPropertyEvents(self, b):
+    for k, v in self.properties.items():
+      e = MergeProperty(self.uid, k, v)
+      b.append(e)
+    for child in self.children:
+      # contexts are the first in a child list, so breaking is ok.
+      # ...and spares us iterting every DanceMove child
+      if (isinstance(child, Context)):
+        child._toPropertyEvents(b)
+      else:
+        break
+    return b
+    
+
+  #! merge with property events
+  def _toCreateEvents(self, parentId, b):
+    '''
+    Top-down, for saner creation
+    '''
+    # ignore the top global, it will already exist to build the rest
+    # of the tree. Not putting in the stream means sparing us nasty
+    # detection when processing streams.
+    if (self.uid != 0):
+      #! tmp
+      e = CreateContext(parentId, self.uid, self.entityName())
+      #e = CreateContext(parentId, self.uid, self.name)
+      b.append(e)
+    for child in self.children:
+      # contexts are the first in a child list, so breaking is ok.
+      # ...and spares us iterting every DanceMove child
+      if (isinstance(child, Context)):
+        child._toCreateEvents(self.uid, b)
+      else:
+        break
+    return b
+    
+
+  def _toDeleteEvents(self, parentId, b):
+    '''
+    Bottom-up, for saner destruction
+    '''
+    for child in self.children:
+      # contexts are the first in a child list, so breaking is ok.
+      # ...and spares us iterting every DanceMove child
+      if (isinstance(child, Context)):
+        child._toDeleteEvents(self.uid, b)
+      else:
+        break
+        
+    # ignore the top GlobalContext, it can not delete itself 
+    # (not in Python).
+    # Not putting in the stream means sparing us nasty
+    # detection when processing streams.
+    if (self.uid != 0):
+      e = DeleteContext(parentId, self.uid)
+      b.append(e)
+    return b
+
+
+
+class DancerNode(IterableContext):
+  def __init__(self, uid, reporter):
+    IterableContext.__init__(self, uid, reporter)
+    self.it = ParsedEventIterator(self)
+
+  def appendChild(self, v):
+    reporter.error('DancerNode: Can not add context to dancernodes {0}'.format(v))
+    
+  def extendString(self, b):
+    b.append(str(self.uid))
+    b.append(', ')
+    b.append(str(self.properties))
+    b.append(', [<stream children count:')
+    b.append(str(len(self.children)))
+    b.append('>]')
+
+   
+    
+class ScoreNode(IterableContext):
+  def __init__(self, uid, reporter):
+    IterableContext.__init__(self, uid, reporter)
+    self.it = ChildContextIterator2(self)
+
+  def appendChild(self, v):
+    assert(isinstance(v, IterableContext))
+    self.children.append(v)
+    
+    
+    
+class GlobalNode(IterableContext):
+  def __init__(self, uid, reporter):
+    IterableContext.__init__(self, uid, reporter)
+    self.it = ClutchToStreamIterator(self)     
+    
+  def appendChild(self, v):
+    assert(not len(self.children) > 1)
+    #recurse
+    #for c in self.children:
+    #  c.prepareAsParsedData()
+    self.children.append(v)
+
+  def toCreateEvents(self):
+    '''
+    Should only be called on Global, or parents are undetermined?
+    '''
+    return self._toCreateEvents(0, [])
+
+  def toPropertyEvents(self):
+    return self._toPropertyEvents([])
+        
+
+  def toDeleteEvents(self):
+    '''
+    Should only be called on Global, or parents are undetermined?
+    '''
+    return self._toDeleteEvents(0, [])
+    
+
+
+
+
+
+
+
+########################################################          
+#class Context(BuildingContext):
+#    reporter
     
 #! need error reporting
 #! contexts need to be able to toEvents their own
-#! build creation events. For use from parsing. 
+#! build creation events. For use from parsing.
+#! name is ContextSubclass? 
 class Context():
   '''
   Every context knows the iterator it will use if it needs one. 
@@ -65,6 +217,7 @@ class Context():
   its own iterator. Due to the compilation, this is a simple
   configuration.
   
+  @name context name as lowercase string
   '''
   def __init__(self, uid, name, reporter):
     self.entitySuffix = type(self).__name__
@@ -84,7 +237,7 @@ class Context():
     
     # The iterator can be
     # building from source AST
-    # - child danceevents
+    # - child MoveEvents
     # - child context iterators
     # or from an event stream
     self.it = None
@@ -166,6 +319,8 @@ class Context():
 
 
   ## chain processing actions ##
+
+          
   def _initializeChain(self):
     for p in self.processors:
       p.before(self)
@@ -193,7 +348,14 @@ class Context():
     ctx.uid = event.newId
     self.appendChild(ctx)
     # print('Child appended contextType: {0}: id:{1}'.format(oldId))
-    
+
+    # initialise the chain (speakTo hearers)
+    ctx.chainData = self.chainData
+    ctx.processors = ctx.chainData[self.name]
+    # initialize
+    for p in ctx.processors: 
+      p.before(ctx)
+          
     # set up the dispatcher
     ctx.dispatcher = Dispatcher(ctx)
     self.dispatcher.startSayingToDispatcher(ctx.dispatcher)
@@ -201,8 +363,7 @@ class Context():
     ctx.dispatcher.startSayingTo(ctx.createChildContext, 'CreateContext')
     ctx.dispatcher.startSayingTo(ctx.deleteChildContext, 'DeleteContext')
     
-    # initialise the chain (speakTo hearers)
-    ctx._initializeChain()
+
 
 
   # @ctx stub parameter to satisfy dispatch callback 
@@ -411,6 +572,7 @@ class DancerContext(Context):
     self.it = ParsedDanceeventIterator()
     self.it.prepare(self.uid, self.children)
 
+  ## chain processing actions ##
 
 
     
@@ -504,7 +666,13 @@ class GlobalContext(Context):
     self.dispatcher = Dispatcher(self)
     self.dispatcher.startSayingTo(self.createChildContext, 'CreateContext')
     self.dispatcher.startSayingTo(self.deleteChildContext, 'DeleteContext')
-
+    
+    '''
+    Processing chain data is held here.
+    When a context for processing is built, it referrs to
+    here to find the chains it must load and initialize.
+    '''
+    self.chainData = []
 
   ## Alt chains ##
   
@@ -541,7 +709,18 @@ class GlobalContext(Context):
 
     
   ## chain processing actions ##
-    
+  def setChains(self, chainData):
+    '''
+    @data map of contextname->list(processors)
+    '''
+    print('set chains...' + str(self.uid))
+    self.chainData = chainData
+    # load (self) global context data
+    self.processors = self.chainData['Global']
+    # initialize
+    for p in self.processors: 
+      p.before(self)
+      
   #! runIteratorToGlobalChain
   def runIteratorToGlobalChain(self, chain):
     self.processors = chain
@@ -567,7 +746,7 @@ class GlobalContext(Context):
 
 
 ## Tests ##
-#from events import *
+from events import *
 #from iterators import *
 
 
@@ -604,8 +783,8 @@ class GlobalContext(Context):
 
 ## Parse building ##  
 
-#stream1 = [DanceEvent(6, "clap", 1, []), DanceEvent(6, "clap", 1, ['overhead']), DanceEvent(6, "step", 1, ['west']), MomentStart(-3), DanceEvent(6, "cross", 1, ['legs']), DanceEvent(6, "cross", 1, ['hands']), MomentEnd(), MomentStart(-3), DanceEvent(6, "jump", 1, ['south']), DanceEvent(6, "hands", 1, ['ears']), MomentEnd(), DanceEvent(6, "bend", 1, ['knees']), DanceEvent(6, "slap", 1, ['other']), DanceEvent(6, "slap", 2, ['knees']), DanceEvent(6, "twirl", 1, ['right']), DanceEvent(6, "split", 1, ['knees']), DanceEvent(6, "turn", 1, ['west']), MergeProperty(6, "beatsPerBar", 3), MergeProperty(6, "tempo", 80), DanceEvent(6, "kick", 1, ['low'])]
-#stream2 = [DanceEvent(4, "clap", 1, []), DanceEvent(4, "clap", 1, ['overhead']), DanceEvent(4, "step", 1, ['west']), MomentStart(-3), DanceEvent(4, "cross", 1, ['legs']), DanceEvent(4, "cross", 1, ['hands']), MomentEnd(), MomentStart(-3), DanceEvent(4, "jump", 1, ['south']), DanceEvent(4, "hands", 1, ['ears']), MomentEnd(), DanceEvent(4, "r", 6, []), DanceEvent(4, "swipe", 2, ['low']), DanceEvent(4, "jump", 1, ['spot'])]
+stream1 = [MoveEvent(6, "clap", 1, []), MoveEvent(6, "clap", 1, ['overhead']), MoveEvent(6, "step", 1, ['west']), SimultaneousEventsEvent( [MoveEvent(6, "cross", 1, ['legs']), MoveEvent(6, "cross", 1, ['hands'])]), SimultaneousEventsEvent([MoveEvent(6, "jump", 1, ['south']), MoveEvent(6, "hands", 1, ['ears'])]), MoveEvent(6, "bend", 1, ['knees']), MoveEvent(6, "slap", 1, ['other']), MoveEvent(6, "slap", 2, ['knees']), MoveEvent(6, "twirl", 1, ['right']), MoveEvent(6, "split", 1, ['knees']), MoveEvent(6, "turn", 1, ['west']), MergeProperty(6, "beatsPerBar", "3"), MergeProperty(6, "tempo", "80"), MoveEvent(6, "kick", 1, ['low'])]
+stream2 = [MoveEvent(4, "clap", 1, []), MoveEvent(4, "clap", 1, ['overhead']), MoveEvent(4, "step", 1, ['west']), SimultaneousEventsEvent( [MoveEvent(4, "cross", 1, ['legs']), MoveEvent(4, "cross", 1, ['hands'])]), SimultaneousEventsEvent([MoveEvent(4, "jump", 1, ['south']), MoveEvent(4, "hands", 1, ['ears'])]), MoveEvent(4, "r", 6, []), MoveEvent(4, "swipe", 2, ['low']), MoveEvent(4, "jump", 1, ['spot'])]
 #d1 = DancerContext()
 #d1.children.extend(stream1)
 #d2 = DancerContext()
@@ -640,3 +819,34 @@ class GlobalContext(Context):
 #for e in dEvents:
   #g.dispatcher.say(e)
 #print(str(g))
+###############################################################
+
+from ConsoleStreamReporter import ConsoleStreamReporter
+r = ConsoleStreamReporter()
+
+n1 = DancerNode(3, r)
+n1.children.extend(stream1)
+#print(str(n1))
+#print(str(n1.it))
+
+n2 = DancerNode(4, r)
+n2.children.extend(stream2)
+#print(str(n2))
+#print(str(n2.it))
+
+sn = ScoreNode(2, r)
+#sn.children.append(n1)
+#sn.children.append(n2)
+sn.children.extend([n1, n2])
+
+#print(str(ns))
+#print(str(sn.it))
+
+gn = GlobalNode(2, r)
+gn.children.append(sn)
+
+#print(str(gn.it))
+
+#pi = ParseIterator(gn, [gn.toCreateEvents()], [Finish()])
+pi = ParseIterator(gn, [MomentEnd()], [Finish()])
+print(str(pi))

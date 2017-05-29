@@ -27,7 +27,7 @@ class DataIterator():
   
   def pendingMoment(self):
     '''
-    Should be repeatedly callable without side effects
+    leaf iterators should be repeatedly callable without side effects.
     Should return MOMENT_EXHAUSTED when done 
     '''
     pass
@@ -53,6 +53,7 @@ class DataIterator():
 
 #? This is a big messy method?
 #! error and stats report. Bar counts, validationn?
+#x
 class ParsedDanceeventIterator(DataIterator):
   '''
   Iterates a parsed event list.
@@ -137,8 +138,98 @@ class ParsedDanceeventIterator(DataIterator):
 
         
 
+class ParsedEventIterator(DataIterator):
+  '''
+  Iterates a parsed event list.
+  use prepare() to set data and contextId
+  Returns pending duration, then a clutch of calls. These clutches are 
+  based on finding events in input which have real uration (property 
+  changes, tempo signals and similar activity are bundled into the 
+  current clutch)
+  Used after parsing, in a DancerContext, iterating parsed dancemove data.
+  '''
+  # This has parser-based form to account for.
+  # - MomentEvents are dummies to mark simutaneous operation.
+  # - *Property events may appear. Like the input language, these
+  # are associated with following events. Not marked as simultaneous.
+  # - DanceEvent is a step in time.
+  # No Finish and no end is marked to the DanceEvent chain. 
+  # - *Context does not appear at all.
+  # - Finish does not appear
+  # No premoment instructions exist.
+  # Due to Python's error throwing, finish is hard to catch here.
+  # So, currently, chain length is monitored.
+  # PendingMoment can not be resolved without caching.
+  
+  def __init__(self, context):
+    #assert(context == DancerContext)
+    DataIterator.__init__(self)
+    self._data = None
+    # No before material in a parsed list. First moment is one..
+    self._pendingMoment = 1
+    self._pendingIncrement = 0
+    self.curse = 0
+    self.cache = []
+    self.stepped = False
+    self.contextId = context.uid
+    self.context = context
 
 
+  def stepForward(self):
+    if (not self.stepped):
+      self.cache = []
+  
+      # get material
+      try:
+        # skip until some event with length appears      
+        while (True):
+          e = self.context.children[self.curse]
+          self.curse += 1 
+          if(not(e.hasInputDuration)):
+            self.cache.append(e)
+          else:
+            break
+    
+  
+        if (not(isinstance(e, SimultaneousEventsEvent))):
+          # a move
+          self.cache.append(e)
+          self._pendingIncrement = e.duration 
+        else:
+          # simultaneous
+          xe = e.events
+          
+          # find longest event in there
+          longest = 0
+          for ee in xe:
+            if (
+              ee.hasInputDuration
+              and ee.duration > longest
+              ):
+              longest = ee.duration
+            self.cache.append(ee)
+          self._pendingIncrement = longest 
+  
+      except IndexError:
+        # exhaused data.
+        # set directly. 
+        self._pendingMoment = MOMENT_EXHAUSTED    
+      
+      
+    
+    
+  def pendingMoment(self):
+    self.stepForward()
+    self.stepped = True
+    return self._pendingMoment 
+                 
+  def __next__(self):
+    self._pendingMoment += self._pendingIncrement
+    self.stepped = False
+    return self.cache
+
+
+#x
 class ChildContextIterator(DataIterator):
   '''
   Interlaces events from child iterators by Moment.
@@ -210,10 +301,81 @@ class ChildContextIterator(DataIterator):
     return events
 
 
+class ChildContextIterator2(DataIterator):
+  '''
+  Interlaces events from child iterators by Moment.
+  Has pendingMoment, and returns clutches of events, like 
+  ParsedDanceeventIterator.
+  Use prepare() to set data and contextId
+  pendingMoment() can not be called twice.
+  Used on parsed data, in intermediate contexts like ScoreContext
+  or Staff Group.
+  '''
+  def __init__(self, context):
+    DataIterator.__init__(self)
+    self.pendingIterators = []
+    self._pendingMoment = MOMENT_EXHAUSTED
+    self.stepped = False
+    self.contextId = context.uid
+    self.context = context
 
 
-from EventIterators import EventIterator
+  def _deleteChild(self, uid):
+    i = 0
+    l = len(self.context.children)
+    while(i < l):
+      if (self.context.children[i].uid == uid):
+        self.context.children.pop(i)
+        break
+      else:
+        i += 1
+        
 
+  def stepForward(self):
+    if(not self.stepped):
+      # get material 
+      low = sys.maxsize 
+      self.pendingIterators = []
+      exhaustedIteratorIds = []
+      for ctx in self.context.children:
+        newLow = ctx.it.pendingMoment()
+        if (newLow == MOMENT_EXHAUSTED):
+          exhaustedIteratorIds.append(ctx.uid)
+        elif(newLow < low):
+          low = newLow
+          self.pendingIterators = [ctx.it]
+        elif(newLow == low):
+          self.pendingIterators.append(ctx.it)
+      
+      # delete exhausted iterators
+      for uid in exhaustedIteratorIds:
+        self._deleteChild(uid)
+  
+      # Now check existance of iterators to provide data
+      if (self.pendingIterators):  
+        self._pendingMoment = low
+      else:
+        self._pendingMoment = MOMENT_EXHAUSTED 
+
+
+  def pendingMoment(self):
+    self.stepForward()
+    self.stepped = True
+    return self._pendingMoment
+
+    
+  def __next__(self):
+    self.stepped = False
+    events = []
+    for it in self.pendingIterators:
+      events.extend(it.__next__())
+    return events
+
+
+#########################################################
+from EventIterators import EventIterator, EventIterator2
+
+#x
 # Aside from the prepare(), this is an EventIterator 
 class ParseCompileIterator(EventIterator):
   '''
@@ -274,9 +436,86 @@ class ParseCompileIterator(EventIterator):
 
     
     
-#from events import *
 
-#stream1 =  [MoveEvent(3, 'clap', 1, []), MoveEvent(3, 'clap', 1, ['overhead']), MoveEvent(3, 'step', 1, ['west']), SimultaneousEventsEvent([MoveEvent(3, 'cross', 1, ['legs']), MoveEvent(3, 'cross', 1, ['hands'])]), SimultaneousEventsEvent([MoveEvent(3, 'jump', 1, ['south']), MoveEvent(3, 'hands', 1, ['ears'])]), MoveEvent(3, 'bend', 1, ['knees']), MoveEvent(3, 'slap', 1, ['other']), MoveEvent(3, 'slap', 2, ['knees']), MoveEvent(3, 'twirl', 1, ['right']), MoveEvent(3, 'split', 1, ['knees']), MoveEvent(3, 'turn', 1, ['west']), BeatsPerBarChangeEvent(3, 3), TempoChangeEvent(3, 80), MoveEvent(3, 'kick', 1, ['low']), BarlineEvent(4, 'end')]
+class ClutchToStreamIterator(EventIterator2):
+  '''
+  Reduces clutches of events to a steady stream, adding moment marks.
+  Can only work with one child
+  Use in GlobalContext, after child-combine iteration ends.
+  '''
+  # The API interface here is an EventIterator 
+  def __init__(self, context):
+    EventIterator2.__init__(self)
+    #assert(context == GlobalContext)
+    self.eventsCache = []
+    self.pendingMoment = MOMENT_EXHAUSTED
+    self.contextId = context.uid
+    self.context = context
+    
+
+  def hasNext(self):
+    self.pendingMoment = self.context.children[0].it.pendingMoment()
+    return self.pendingMoment != MOMENT_EXHAUSTED or len(self.eventsCache) > 0
+
+    
+  def next(self):
+    if (not self.eventsCache):
+      if (self.pendingMoment != MOMENT_EXHAUSTED):
+        self.eventsCache.append(MomentStart(self.pendingMoment))
+        self.eventsCache.extend(self.context.children[0].it.__next__())
+        self.eventsCache.append(MomentEnd())
+        # reverse for easy popping
+        self.eventsCache.reverse()
+        
+    return self.eventsCache.pop()
+
+
+
+class ParseIterator(EventIterator2):
+  '''
+  Prepend and append extra events to an event stream.
+  Works on a steady stream of single events.
+  Wraps a parsing GlobalContext to create an event iterator.
+  '''
+  # The API interface here is an EventIterator 
+  def __init__(self, context, startEvents, endEvents):
+    EventIterator2.__init__(self)
+
+    self.startEvents = startEvents
+    # reverse for easy popping
+    self.startEvents.reverse() 
+        
+    self.endEvents = endEvents
+    # reverse for easy popping
+    self.endEvents.reverse()
+    
+    self.iteratorExhausted = False
+    self.endLoaded = False
+
+    self.context = context
+    self.contextId = context.uid
+        
+  def hasNext(self):
+    self.iteratorExhausted = not(self.context.it.hasNext())
+    return not self.iteratorExhausted or len(self.endEvents) > 0
+    
+  def next(self):
+    r = None
+
+    if (self.startEvents):
+      r = self.startEvents.pop()
+    elif (not self.iteratorExhausted):
+      r = self.context.it.next()
+    else:
+      r = self.endEvents.pop()
+
+    return r
+
+
+######################################################################
+from events import *
+
+stream1 =  [MoveEvent(3, 'clap', 1, []), MoveEvent(3, 'clap', 1, ['overhead']), MoveEvent(3, 'step', 1, ['west']), SimultaneousEventsEvent([MoveEvent(3, 'cross', 1, ['legs']), MoveEvent(3, 'cross', 1, ['hands'])]), SimultaneousEventsEvent([MoveEvent(3, 'jump', 1, ['south']), MoveEvent(3, 'hands', 1, ['ears'])]), MoveEvent(3, 'bend', 1, ['knees']), MoveEvent(3, 'slap', 1, ['other']), MoveEvent(3, 'slap', 2, ['knees']), MoveEvent(3, 'twirl', 1, ['right']), MoveEvent(3, 'split', 1, ['knees']), MoveEvent(3, 'turn', 1, ['west']), BeatsPerBarChangeEvent(3, 3), TempoChangeEvent(3, 80), MoveEvent(3, 'kick', 1, ['low']), BarlineEvent(4, 'end')]
 #stream2 =  [MoveEvent(4, 'clap', 1, []), MoveEvent(4, 'clap', 1, ['overhead']), MoveEvent(4, 'step', 1, ['west']), SimultaneousEventsEvent([MoveEvent(4, 'cross', 1, ['legs']), MoveEvent(4, 'cross', 1, ['hands'])]), SimultaneousEventsEvent([MoveEvent(4, 'jump', 1, ['south']), MoveEvent(4, 'hands', 1, ['ears'])]), RestEvent(4, 6), MoveEvent(4, 'swipe', 2, ['low']), MoveEvent(4, 'jump', 1, ['spot']), BarlineEvent(4, 'end')]
 
 
@@ -297,4 +536,4 @@ class ParseCompileIterator(EventIterator):
 ##print(str(len(pit._childIts)))
 #print(str(pit))
 
-
+################################################

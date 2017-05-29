@@ -36,6 +36,32 @@ class EventIterator():
       b += '\n'
     return b
     
+
+class EventIterator2():
+  '''
+  Iterate over event data.
+  '''
+  
+  def hasNext(self):
+    '''
+    Should be called before next()
+    Not repeatedly callable
+    '''
+    return False
+          
+  def next(self):
+    '''
+    On parse, return single events
+    '''
+    pass
+     
+  def __str__(self):
+    b = ''
+    while(self.hasNext()):
+      b += str(self.next())
+      b += '\n'
+    return b
+    
     
 ####################################################################
 ## Event iterators ##

@@ -75,21 +75,21 @@ class ExpandIterator():
 
             
             
-import SourceIterators
+#import SourceIterators
 
-from ConsoleStreamReporter import ConsoleStreamReporter
+#from ConsoleStreamReporter import ConsoleStreamReporter
 
-p = '../test/test.dn'
-with open(p, 'r') as f:
-    srcAsLines = f.readlines()
+#p = '../test/test.dn'
+#with open(p, 'r') as f:
+    #srcAsLines = f.readlines()
     
-r = ConsoleStreamReporter()
-sit = SourceIterators.StringIterator(p, srcAsLines)
-it = ExpandIterator(sit, r)
+#r = ConsoleStreamReporter()
+#sit = SourceIterators.StringIterator(p, srcAsLines)
+#it = ExpandIterator(sit, r)
 
-print(it.srcName + ':')
-for l in it:
-  print(str(it.lineCount) + ' ' + l)
+#print(it.srcName + ':')
+#for l in it:
+  #print(str(it.lineCount) + ' ' + l)
 
-print('variable map:')
-print(it.varMap)
+#print('variable map:')
+#print(it.varMap)
