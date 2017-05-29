@@ -20,6 +20,31 @@ def uid():
   return _uid
    
 
+class ContextType():
+  '''
+  Enumerate base context names.
+  This is needed because we have an imaginary type behind the real 
+  types, so cannot use the entityNames  (which are, for example,
+  'ScoreNode' and 'ScoreContext', not 'Score').
+  Do not write the enumeration, only full text. Enumeration values
+  are not guaranteed stable.
+  '''
+  Global = 0
+  Score = 1
+  DancerGroup = 2
+  Dancer = 3
+  
+  @classmethod
+  def toString(self, x):
+    if (x == ContextType.Global): return 'Global'
+    elif (x == ContextType.Score): return 'Score'
+    elif (x == ContextType.DancerGroup): return 'DancerGroup'
+    elif (x == ContextType.Dancer): return 'Dancer'    
+    else:
+      print('ContextType: enumeration not recognised : value:' + str(x))
+  
+  
+  
 #! should be base for other contexts
 class ContextBase(SimplePrint):
   '''
@@ -72,7 +97,7 @@ class IterableContext(ContextBase):
   def __init__(self, uid, reporter):
     ContextBase.__init__(self, uid, reporter)
     self.it = None
-    
+    self.contextType = None
     
   ## toEvent returns ##    
   def _toPropertyEvents(self, b):
@@ -82,7 +107,7 @@ class IterableContext(ContextBase):
     for child in self.children:
       # contexts are the first in a child list, so breaking is ok.
       # ...and spares us iterting every DanceMove child
-      if (isinstance(child, Context)):
+      if (isinstance(child, IterableContext)):
         child._toPropertyEvents(b)
       else:
         break
@@ -98,14 +123,12 @@ class IterableContext(ContextBase):
     # of the tree. Not putting in the stream means sparing us nasty
     # detection when processing streams.
     if (self.uid != 0):
-      #! tmp
-      e = CreateContext(parentId, self.uid, self.entityName())
-      #e = CreateContext(parentId, self.uid, self.name)
+      e = CreateContext(parentId, self.uid, ContextType.toString(self.contextType))
       b.append(e)
     for child in self.children:
       # contexts are the first in a child list, so breaking is ok.
       # ...and spares us iterting every DanceMove child
-      if (isinstance(child, Context)):
+      if (isinstance(child, IterableContext)):
         child._toCreateEvents(self.uid, b)
       else:
         break
@@ -118,8 +141,8 @@ class IterableContext(ContextBase):
     '''
     for child in self.children:
       # contexts are the first in a child list, so breaking is ok.
-      # ...and spares us iterting every DanceMove child
-      if (isinstance(child, Context)):
+      # ...and spares us iterating every DanceMove child
+      if (isinstance(child, IterableContext)):
         child._toDeleteEvents(self.uid, b)
       else:
         break
@@ -139,6 +162,7 @@ class DancerNode(IterableContext):
   def __init__(self, uid, reporter):
     IterableContext.__init__(self, uid, reporter)
     self.it = ParsedEventIterator(self)
+    self.contextType = ContextType.Dancer
 
   def appendChild(self, v):
     reporter.error('DancerNode: Can not add context to dancernodes {0}'.format(v))
@@ -157,6 +181,7 @@ class ScoreNode(IterableContext):
   def __init__(self, uid, reporter):
     IterableContext.__init__(self, uid, reporter)
     self.it = ChildContextIterator2(self)
+    self.contextType = ContextType.Score
 
   def appendChild(self, v):
     assert(isinstance(v, IterableContext))
@@ -168,7 +193,8 @@ class GlobalNode(IterableContext):
   def __init__(self, uid, reporter):
     IterableContext.__init__(self, uid, reporter)
     self.it = ClutchToStreamIterator(self)     
-    
+    self.contextType = ContextType.Global
+
   def appendChild(self, v):
     assert(not len(self.children) > 1)
     #recurse
@@ -842,11 +868,16 @@ sn.children.extend([n1, n2])
 #print(str(ns))
 #print(str(sn.it))
 
-gn = GlobalNode(2, r)
+gn = GlobalNode(0, r)
 gn.children.append(sn)
 
 #print(str(gn.it))
 
-#pi = ParseIterator(gn, [gn.toCreateEvents()], [Finish()])
-pi = ParseIterator(gn, [MomentEnd()], [Finish()])
+#for e in gn.toCreateEvents():
+#  print(str(e))
+
+eEvents = [Finish()]
+eEvents.extend(gn.toDeleteEvents())
+pi = ParseIterator(gn, gn.toCreateEvents(), eEvents)
+#pi = ParseIterator(gn, [MomentEnd()], [Finish()])
 print(str(pi))
