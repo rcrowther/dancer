@@ -125,6 +125,14 @@ class EventIteratorFile(EventIterator):
   def parse(self, line):
     params = None
     event = None
+    idx = line.find('(')
+    p = line[idx + 1: -2].split(', ')
+    name = line[:idx]
+    #for pr in p:
+    #  print('event idx: ' + pr)
+    e = toEvent(name, p)
+    print('event :'+ str(e))
+
     if (line.startswith('CreateContext')):
       p = line[14:-2].split(', ')
       #print('@'.join(p))

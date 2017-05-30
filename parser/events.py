@@ -433,9 +433,9 @@ class BarlineEvent(Event):
 
   def extendString(self, b):
     b.append(str(self.contextId))
-    b.append(", '")
+    b.append(", ")
     b.append(self.style)    
-    b.append("'")
+    #b.append("'")
     
     
 def toEvent(s, p):
@@ -460,7 +460,7 @@ def toEvent(s, p):
   elif (s == 'BeatsPerBarChangeEvent'): return BeatsPerBarChangeEvent(int(p[0]), int(p[0]))
   elif (s == 'TempoChangeEvent'): return TempoChangeEvent(int(p[0]), int(p[0]))
   elif (s == 'NothingEvent'): return NothingEvent(int(p[0]))
-  elif (s == 'BarlineEvent'): return BarlineEvent(int(p[0]))
+  elif (s == 'BarlineEvent'): return BarlineEvent(int(p[0]), p[1])
   else:
     print('unrecognised event: name{0}'.format(s))
     

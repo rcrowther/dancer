@@ -58,7 +58,6 @@ def getDataIterator(args, reporter):
     p.parse()
     ctx = p.result()
     it = p.toEventIterator()
-    #ctx.prepareAsParsedData(inPath)
     return it
 
   else:

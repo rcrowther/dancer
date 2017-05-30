@@ -212,8 +212,16 @@ class ParsedEventIterator(DataIterator):
   
       except IndexError:
         # exhaused data.
-        # set directly. 
-        self._pendingMoment = MOMENT_EXHAUSTED    
+        # may have cached non-duration items (e.g. barlines)
+        # The argument for doing nothing goes like this;
+        # the previous next() worked out where this pending moment
+        # will be. So pending moment or increment calculation is not
+        # needed.
+        # And, next iteration, cache is emptied only to except again.
+        # This time, pending moment is st to exhausted. 
+        if (not self.cache):
+          # set directly. 
+          self._pendingMoment = MOMENT_EXHAUSTED    
       
       
     

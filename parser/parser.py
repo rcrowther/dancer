@@ -227,9 +227,10 @@ class Parser:
       print('unimplemented handler for Repeat Alternative')
       return context
 
+    #! not writing?
     def functionHandlerBarline(self, context, name, posParams, namedParams):
       p = self.getParam(posParams, 0)
-      #print('barline function handler: ' + str(p))
+      print('barline function handler: ' + str(p))
       context.appendChild(BarlineEvent(context.uid, p))
       #print('ctx:' + str(context))
       return None
@@ -283,7 +284,7 @@ class Parser:
     def barlineMark(self, context):
       commit = (not self.line)
       if (commit):
-        context.appendChild(BarlineEvent(context.uid, ''))
+        context.appendChild(BarlineEvent(context.uid, 'null'))
         self._next()
       return commit
       
