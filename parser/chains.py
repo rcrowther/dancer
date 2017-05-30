@@ -1,22 +1,32 @@
-import EventWriterFile, EventWriterConsole, lTimer, lStatistics
+import lEventWriterFile, lEventWriterConsole, lTimer, lStatistics
 
-EventsToFile = [
-  EventWriterFile
-  ]
+EventsToFile = {
+'dancer' : [],
+'dancerGroup' : [],
+'score' : [],
+'global' : [lEventWriterFile]
+  }
   
-EventsToConsole = [
-  EventWriterConsole
-  ] 
+EventsToConsole = {
+'dancer' : [],
+'dancerGroup' : [],
+'score' : [],
+'global' : [lEventWriterConsole]
+  }
 
 
-GlobalStatistics = [
-#lTimer,
+GlobalStatistics = {
+'dancer' : [lTimer],
+'dancerGroup' : [],
+'score' : [],
+'global' : []
 #lStatistics
-]
+}
 
 
-Statistics = {
-'Dancer' : [lTimer],
-'Score' : [],
-'Global' : []
+LocalStatistics = {
+'dancer' : [lTimer],
+'dancerGroup' : [],
+'score' : [],
+'global' : []
 }

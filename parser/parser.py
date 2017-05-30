@@ -182,16 +182,19 @@ class Parser:
       return None
 
 
-    def functionHandlerCreateSubcontext(context, name, posParams, namedParams):
-      print('new context for' + context.name)
+    def functionHandlerCreateSubcontext(self, context, name, posParams, namedParams):
+      print("new context for: '{0}'".format(ContextType.toString(context.contextType)))
       newCtx = None
       ct = ContextType.fromString(name)
-      if (name == ContextType.Score):
-        newCtx = ScoreContext()
-      elif (name == ContextType.DancerGroup):
-        newCtx = DancerContext()
-      elif (name == ContextType.Dancer):
-        newCtx = DancerContext()
+      if (ct == ContextType.Score):
+        newCtx = ScoreNode()
+      elif (ct == ContextType.DancerGroup):
+        newCtx = DancerNode()
+      elif (ct == ContextType.Dancer):
+        newCtx = DancerNode()
+      else:
+        self.error("CreateSubcontext", "Context type not recognised : type '{0}'".format(ContextType.toString(context.contextType)), True)
+
       context.appendChild(newCtx)
       return newCtx
       
@@ -245,16 +248,14 @@ class Parser:
     def result(self):
       return self.globalExp
     
-    #! dont do this here. just call this and ast
-    #! resultExp()
-    #def toEvents(self):
-      #b = []
-      #b.extend(self.globalExp.toCreateEvents())
-      #b.append(MomentStart(0))
-      ##? not sure trigger by dancer? This is a big clump of startup properties.
-      ##? by iteration? here for now.
-      #b.extend(self.globalExp.toPropertyEvents())
-      #return b 
+    def toEventIterator(self):
+      g = self.globalExp
+      eBegin = g.toCreateEvents()
+      eBegin.extend(g.toPropertyEvents())
+      eEnd = [Finish()]
+      eEnd.extend(g.toDeleteEvents())
+      it = ParseIterator(g, eBegin, eEnd)
+      return it
 
 
 
@@ -338,7 +339,7 @@ class Parser:
       commit = (self.line[0] == '<')
       if (commit):
         #print('simultaneousInstructions ' + str(self._prevLineNo))  
-        buildingContext = ContextBase(context.uid, self.reporter)  
+        buildingContext = ContextBase(context.uid)  
         self._next()
 
           #? some form of body 
@@ -454,7 +455,7 @@ class Parser:
         #  self.info('ow', True)
         #  print(self.line)
         if (self.line[0] != '}'):
-            self.error('functionBody', 'Seems to be end of instructions allowed, but no curly bracket close?', True)
+            self.error('FunctionBody', 'Seems to be end of instructions allowed, but no curly bracket close?', True)
            
         self._next()
       return commit
@@ -469,7 +470,7 @@ class Parser:
       
       if (commit):
         if(not context):
-          self.error('simultaneousFunctionBody', 'Not expecting a body?', True)
+          self.error('SimultaneousFunctionBody', 'Not expecting a body?', True)
        
         self._next()
         
@@ -507,7 +508,7 @@ class Parser:
             self._next()
             self.namedParameters()
             for p in self.namedParamsStash:
-              context.mergeProperty(p[0], p[1])
+              context.properties[p[0]] = p[1]
 
             bodyMountPoint = handler(context, name, posParams, self.namedParamsStash)
             
@@ -591,7 +592,7 @@ class Parser:
         self._next()
         if (not (
           #? this covers all we need and allow?
-          self.variableFunctionBody(DummyContext(self.reporter))
+          self.variableFunctionBody(DummyContext())
         )):
           self.error('variable', 'Variable must contain an understandable unit of code, currently anything allowed in a function body', True)
           
@@ -627,21 +628,23 @@ class Parser:
 
 
 # Test
-from SourceIterators import StringIterator
-from ConsoleStreamReporter import ConsoleStreamReporter
-#import ExpandIterator
+#from SourceIterators import StringIterator
+#from ConsoleStreamReporter import ConsoleStreamReporter
+##import ExpandIterator
 
-p = '../test/expanded_test.dn'
-with open(p, 'r') as f:
-    srcAsLines = f.readlines()
+#p = '../test/expanded_test.dn'
+#with open(p, 'r') as f:
+    #srcAsLines = f.readlines()
     
-r = ConsoleStreamReporter()
-sit = StringIterator(p, srcAsLines)
-#it = ExpandIterator.ExpandIterator(sit, r)
+#r = ConsoleStreamReporter()
+#sit = StringIterator(p, srcAsLines)
+##it = ExpandIterator.ExpandIterator(sit, r)
 
-p = Parser(sit, r)
+#p = Parser(sit, r)
 
-p.parse()
+#p.parse()
 
-print(str(p.result()))
+#print(str(p.result()))
 
+#it  = p.toEventIterator()
+#print(str(it))

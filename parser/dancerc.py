@@ -14,7 +14,7 @@ from ConsoleStreamReporter import ConsoleStreamReporter
 import chains
 import gChains
 
-from contexts import GlobalContext
+from contexts import GlobalContext2
 
 
 
@@ -36,14 +36,12 @@ def printError(msg):
 
 
 
-def getContextData(args, reporter):
+def getDataIterator(args, reporter):
   inPath = args.infile
   if (inPath.endswith('.dnc')):
     #assuming a compiled event file
-    ctx = GlobalContext(reporter)
     it = EventIterators.EventIteratorFile(args.infile)
-    ctx.prepareForEventSteamData(it)
-    return ctx
+    return it
     
   elif (inPath.endswith('.dn')):
     # assuming a parsable Dancer file
@@ -56,11 +54,12 @@ def getContextData(args, reporter):
     it = ExpandIterator.ExpandIterator(sit, reporter)
     #? Parser not here, it's irrelevant. Build into GlobalContext?
     p = Parser(it, reporter)
-    # This seems
+    #? redundancy?
     p.parse()
     ctx = p.result()
-    ctx.prepareAsParsedData(inPath)
-    return ctx
+    it = p.toEventIterator()
+    #ctx.prepareAsParsedData(inPath)
+    return it
 
   else:
     printError("file has no dancer extension ('.dnc', '.dn'): {0}".format(infile))
@@ -68,7 +67,11 @@ def getContextData(args, reporter):
 
 def doSomething(args):
     r = ConsoleStreamReporter()
-    ctx = getContextData(args, r)
+    it = getDataIterator(args, r)
+    
+    ctx = GlobalContext2(r)
+    ctx.eventIterator = it
+    
     
     if (args.print):
       ctx.runIteratorToGlobalChain(chains.EventsToConsole)
@@ -77,7 +80,7 @@ def doSomething(args):
       
       if (form == 'events'):
         args.outfile = args.outfile + '.dnc'
-        ctx.mergeProp('outfile', args.outfile)
+        ctx._props['outfile'] = args.outfile
         ctx.runIteratorToGlobalChain(chains.EventsToFile)
   
       if (form == 'json'):
@@ -93,12 +96,12 @@ def doSomething(args):
         print('bytecode Not enabled. Help!') 
 
       if (form == 'pdf'):
-        ctx.runIteratorToContextDispatcher()
+        ctx.runIteratorToContextDispatcher(gChains.PDF)
         print('gList:')
         print(ctx.gListToString()) 
         
       if (form == 'stats'):
-        ctx.setChains(chains.Statistics)
+        ctx.setChains(chains.LocalStatistics)
         ctx.runIteratorToContextDispatcher()
 
       printInfo('written: {0}'.format(args.outfile))

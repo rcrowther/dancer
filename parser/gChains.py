@@ -1,17 +1,10 @@
 import gDanceMove, gBarline, lTimer
 
-Dancer = [
-  gDanceMove
-]
 
-DancerGroup = [
 
-]
-
-Score = [
-
-]
-
-Global = [
-lTimer
-]
+PDF = {
+'dancer' : [lTimer, gDanceMove, gBarline],
+'dancerGroup' : [],
+'score' : [],
+'global' : []
+}

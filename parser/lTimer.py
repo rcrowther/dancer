@@ -8,10 +8,10 @@ Needed by other modules
 '''
 def before(ctx):
   print('...before setup')
-  if(not ctx.readPropOption('beatsPerBar')):
-    ctx.mergeProp('beatsPerBar', 4)
+  if(not ctx._props.get('beatsPerBar')):
+    ctx._props['beatsPerBar'] = 4
   # Moments in the first bar are bar 1
-  ctx.mergeProp('currentBarCount', 0)
+  ctx._props['currentBarCount'] = 0
   # want the first target sum to equal 1, so put into netherland
   #ctx._props['currentBarStart'] = 1 - ctx._props['beatsPerBar']
   # as per definition
