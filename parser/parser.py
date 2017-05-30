@@ -28,17 +28,18 @@ from Position import Position, NoPosition
 
 
    
-def functionHandlerCreateSubcontext(context, name, posParams, namedParams):
-  print('new context for' + context.name)
-  newCtx = None
-  if (name == 'score'):
-    newCtx = ScoreContext()
-  if (name == 'dancerGroup'):
-    newCtx = DancerContext()
-  elif (name == 'dancer'):
-    newCtx = DancerContext()
-  context.appendChild(newCtx)
-  return newCtx
+#def functionHandlerCreateSubcontext(context, name, posParams, namedParams):
+  #print('new context for' + context.name)
+  #newCtx = None
+  #ct = ContextType.fromString(name)
+  #if (name == ContextType.Score):
+    #newCtx = ScoreContext()
+  #elif (name == ContextType.DancerGroup):
+    #newCtx = DancerContext()
+  #elif (name == ContextType.Dancer):
+    #newCtx = DancerContext()
+  #context.appendChild(newCtx)
+  #return newCtx
 
 # DO NOT REMOVE
 # Unuse, but here so you know I tried it R.C.
@@ -99,7 +100,7 @@ class Parser:
 
         # namedParams gathering
         self.namedParamsStash = []
-        self.globalExp = GlobalContext(reporter)
+        self.globalExp = GlobalNode()
 
        
         self.acceptedFunctionsGlobal = {
@@ -180,16 +181,17 @@ class Parser:
       print('dummy function handler: ' + name)
       return None
 
-   
-    def functionHandlerCreateSubcontext(self, context, name, posParams, namedParams):
+
+    def functionHandlerCreateSubcontext(context, name, posParams, namedParams):
       print('new context for' + context.name)
       newCtx = None
-      if (name == 'score'):
-        newCtx = ScoreContext(self.reporter)
-      if (name == 'dancerGroup'):
-        newCtx = DancerContext(self.reporter)
-      elif (name == 'dancer'):
-        newCtx = DancerContext(self.reporter)
+      ct = ContextType.fromString(name)
+      if (name == ContextType.Score):
+        newCtx = ScoreContext()
+      elif (name == ContextType.DancerGroup):
+        newCtx = DancerContext()
+      elif (name == ContextType.Dancer):
+        newCtx = DancerContext()
       context.appendChild(newCtx)
       return newCtx
       
@@ -625,21 +627,21 @@ class Parser:
 
 
 # Test
-#from SourceIterators import StringIterator
-#from ConsoleStreamReporter import ConsoleStreamReporter
-##import ExpandIterator
+from SourceIterators import StringIterator
+from ConsoleStreamReporter import ConsoleStreamReporter
+#import ExpandIterator
 
-#p = '../test/expanded_test.dn'
-#with open(p, 'r') as f:
-    #srcAsLines = f.readlines()
+p = '../test/expanded_test.dn'
+with open(p, 'r') as f:
+    srcAsLines = f.readlines()
     
-#r = ConsoleStreamReporter()
-#sit = StringIterator(p, srcAsLines)
-##it = ExpandIterator.ExpandIterator(sit, r)
+r = ConsoleStreamReporter()
+sit = StringIterator(p, srcAsLines)
+#it = ExpandIterator.ExpandIterator(sit, r)
 
-#p = Parser(sit, r)
+p = Parser(sit, r)
 
-#p.parse()
+p.parse()
 
-#print(str(p.result()))
+print(str(p.result()))
 

@@ -19,6 +19,8 @@ def uid():
   _uid += 1
   return _uid
    
+def resetUID():
+  _uid = 1
 
 class ContextType():
   '''
@@ -33,13 +35,24 @@ class ContextType():
   Score = 1
   DancerGroup = 2
   Dancer = 3
-  
+
+  @classmethod
+  def fromString(self, x):
+    assert(isinstance(x, str))
+    if (x == 'global'): return ContextType.Global
+    elif (x == 'score'): return ContextType.Score
+    elif (x == 'dancerGroup'): return ContextType.DancerGroup
+    elif (x ==  'dancer'): return ContextType.Dancer 
+    else:
+      print('ContextType: stringified enumeration not recognised : value:' + x)
+    
   @classmethod
   def toString(self, x):
-    if (x == ContextType.Global): return 'Global'
-    elif (x == ContextType.Score): return 'Score'
-    elif (x == ContextType.DancerGroup): return 'DancerGroup'
-    elif (x == ContextType.Dancer): return 'Dancer'    
+    assert(isinstance(x, int))
+    if (x == ContextType.Global): return 'global'
+    elif (x == ContextType.Score): return 'score'
+    elif (x == ContextType.DancerGroup): return 'dancerGroup'
+    elif (x == ContextType.Dancer): return 'dancer'    
     else:
       print('ContextType: enumeration not recognised : value:' + str(x))
   
@@ -52,10 +65,9 @@ class ContextBase(SimplePrint):
   Used standalone in the parser, for gathering parsed instructions.
   For these purposes, the uid should be set to the current context uid.
   '''
-  def __init__(self, uid, reporter):
+  def __init__(self, uid):
     self.children = []  
     self.uid = uid
-    self.reporter = reporter
     
     # properties could be on the Context object
     # but I don't want this too Python
@@ -86,16 +98,31 @@ class ContextBase(SimplePrint):
       e.addString(b)
     b.append(']')
 
+#################################################
+class ReporterContext(ContextBase):
+  '''
+  A context with children and a few utilities.
+  Used standalone in the parser, for gathering parsed instructions.
+  For these purposes, the uid should be set to the current context uid.
+  '''
+  def __init__(self, uid, reporter):
+    ContextBase.__init__(self, uid)
+    self.reporter = reporter
 
+#################################################
     
 class IterableContext(ContextBase):
+  '''
+  The base of contexts for parsing.
+  The leaves of this class generate their own ids.
+  '''
     # The iterator can be
     # building from source AST
     # - child MoveEvents
     # - child context iterators
     # or from an event stream
-  def __init__(self, uid, reporter):
-    ContextBase.__init__(self, uid, reporter)
+  def __init__(self, uid):
+    ContextBase.__init__(self, uid)
     self.it = None
     self.contextType = None
     
@@ -159,8 +186,8 @@ class IterableContext(ContextBase):
 
 
 class DancerNode(IterableContext):
-  def __init__(self, uid, reporter):
-    IterableContext.__init__(self, uid, reporter)
+  def __init__(self):
+    IterableContext.__init__(self, uid())
     self.it = ParsedEventIterator(self)
     self.contextType = ContextType.Dancer
 
@@ -178,8 +205,8 @@ class DancerNode(IterableContext):
    
     
 class ScoreNode(IterableContext):
-  def __init__(self, uid, reporter):
-    IterableContext.__init__(self, uid, reporter)
+  def __init__(self):
+    IterableContext.__init__(self, uid())
     self.it = ChildContextIterator2(self)
     self.contextType = ContextType.Score
 
@@ -190,8 +217,10 @@ class ScoreNode(IterableContext):
     
     
 class GlobalNode(IterableContext):
-  def __init__(self, uid, reporter):
-    IterableContext.__init__(self, uid, reporter)
+  def __init__(self):
+    IterableContext.__init__(self, 0)
+    # auto reset the ids
+    resetUID()
     self.it = ClutchToStreamIterator(self)     
     self.contextType = ContextType.Global
 
@@ -847,37 +876,37 @@ stream2 = [MoveEvent(4, "clap", 1, []), MoveEvent(4, "clap", 1, ['overhead']), M
 #print(str(g))
 ###############################################################
 
-from ConsoleStreamReporter import ConsoleStreamReporter
-r = ConsoleStreamReporter()
+#from ConsoleStreamReporter import ConsoleStreamReporter
+#r = ConsoleStreamReporter()
 
-n1 = DancerNode(3, r)
-n1.children.extend(stream1)
-#print(str(n1))
-#print(str(n1.it))
+#n1 = DancerNode()
+#n1.children.extend(stream1)
+##print(str(n1))
+##print(str(n1.it))
 
-n2 = DancerNode(4, r)
-n2.children.extend(stream2)
-#print(str(n2))
-#print(str(n2.it))
+#n2 = DancerNode()
+#n2.children.extend(stream2)
+##print(str(n2))
+##print(str(n2.it))
 
-sn = ScoreNode(2, r)
-#sn.children.append(n1)
-#sn.children.append(n2)
-sn.children.extend([n1, n2])
+#sn = ScoreNode()
+##sn.children.append(n1)
+##sn.children.append(n2)
+#sn.children.extend([n1, n2])
 
-#print(str(ns))
-#print(str(sn.it))
+##print(str(ns))
+##print(str(sn.it))
 
-gn = GlobalNode(0, r)
-gn.children.append(sn)
+#gn = GlobalNode()
+#gn.children.append(sn)
 
-#print(str(gn.it))
+##print(str(gn.it))
 
-#for e in gn.toCreateEvents():
-#  print(str(e))
+##for e in gn.toCreateEvents():
+##  print(str(e))
 
-eEvents = [Finish()]
-eEvents.extend(gn.toDeleteEvents())
-pi = ParseIterator(gn, gn.toCreateEvents(), eEvents)
-#pi = ParseIterator(gn, [MomentEnd()], [Finish()])
-print(str(pi))
+#eEvents = [Finish()]
+#eEvents.extend(gn.toDeleteEvents())
+#pi = ParseIterator(gn, gn.toCreateEvents(), eEvents)
+##pi = ParseIterator(gn, [MomentEnd()], [Finish()])
+#print(str(pi))
