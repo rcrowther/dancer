@@ -28,4 +28,4 @@ def process(ctx, event):
   #print('ne...')
   txt = event.name
   gd = DanceMove(txt, event.duration)
-  ctx.gList.append(gd)  
+  ctx.gRoot.append(gd)  

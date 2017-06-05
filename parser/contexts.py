@@ -10,6 +10,7 @@ from EventIterators import EventIterator, EventIteratorFile
 from iterators import ParsedEventIterator, ChildContextIterator2, ClutchToStreamIterator, ParseIterator, ParsedDanceeventIterator, ChildContextIterator, ParseCompileIterator
 
 import gChains, chains
+import gRoot
 import sys
 
 # Not for threads (you know it)
@@ -311,6 +312,9 @@ class ProcessorContext(ContextBase):
     # Used to dispatch events to builder classes
     self.dispatcher = None
 
+   # both the below are hangers.
+   # they pass the same reference or part of, 
+   # through contexts.
     '''
     Processing chain data is held here.
     When a context for processing is built, it refers
@@ -319,10 +323,10 @@ class ProcessorContext(ContextBase):
     self._chainData = {}
         
     # hanger for lists of graphic objects
-    self.gList = []
+    self.gRoot = None
 
-    
-    
+
+
   ## Dispatch methods ##
   # @ctx is 'self', to satisfy dispatch callback 
   def createChildContext(self, ctx, event):
@@ -359,6 +363,9 @@ class ProcessorContext(ContextBase):
     # initialize
     for p in newCtx.processors: 
       p.before(newCtx)
+    
+    # set up the gList
+    newCtx.gRoot = self.gRoot
       
 
 
@@ -399,27 +406,27 @@ class ProcessorContext(ContextBase):
         b.append(", ")
       e.addGListString(b)
     
-  def addGListString(self, b):
-    b.append(self.entitySuffix)   
-    b.append(str(self.uid))    
+  #def addGListString(self, b):
+    #b.append(self.entityName())   
+    #b.append(str(self.uid))    
  
-    b.append('(')
-    first = True
-    for e in self.gList:
-      if (first):
-        first = False
-      else:
-        b.append("-")
-      b.append(str(e))      
-    #self.addGListChildren(b)
-    #b.append(str(self.children))
-    b.append(')')
-    return b
+    #b.append('(')
+    #first = True
+    #for e in self.gList:
+      #if (first):
+        #first = False
+      #else:
+        #b.append("-")
+      #b.append(str(e))      
+    ##self.addGListChildren(b)
+    ##b.append(str(self.children))
+    #b.append(')')
+    #return b
         
-  #? This is a tricky print, as the lists may be very long.
-  #? Undecided about the best way to go, but needed, for sure.
-  def gListToString(self):
-    return "".join(self.addGListString([]))  
+  ##? This is a tricky print, as the lists may be very long.
+  ##? Undecided about the best way to go, but needed, for sure.
+  #def gListToString(self):
+    #return "".join(self.addGListString([]))  
 
   
   
@@ -461,7 +468,11 @@ class GlobalContext2(ProcessorContext):
     self.dispatcher.startSayingTo(self.createChildContext, 'CreateContext')
     self.dispatcher.startSayingTo(self.deleteChildContext, 'DeleteContext')
     
-      
+    # ...and set this
+    self.gRoot = gRoot.GraphicRoot()
+
+
+
   def setChainData(self, chainData):      
     '''
     @data map of contextname->list(processors)

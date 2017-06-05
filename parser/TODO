@@ -4,10 +4,33 @@ I got somewhere. I defined an input language, which is ok, and bult a parser, wh
 
 Where to go fro here is difficult.
 
+=== Reading Lilypond code
+Lilypond is programmed mainly in Guile and C++. People who read code should have little trouble understanding C++ and Guile line by line. However, here are some hints for trying to understand the structure of the code.
+
+Guile is a LISP, and LISPs tend to be very clean code. However, as there is no namespacing, it is not always clear what is running where and when. If a file is 'executed' or run, it's contents are executed one by one, jumping about and sometimes using macro substitutions. In a Guile file, you may want to pay attention to isolated lines, as the file may be executed as a whole.
+
+C++ allows multiple inheritance and can define singletons. Throughout Lilypond C++ files, you will see a many imports at the top of the file. Bear in mind these may represent a wider range of possibilities than other languages. They may indicate interfaces in the way Java defines them, but also multiple inheritance patterns or singleton objects. So the imports may refer to structurally remote origins. The imported code may be building bridges with another system, it may not represent a 'this object is/inherits that' connection. And methods may manipulate contents in remote locations, not in the object itself.
+
+
+==== An example of Lilypond depths
+Here is an example of how Lilypond code, despite the clarity of layout, can can become extended. Scattered throughout the code is the command 'get_object'. Lets say you become curious how this is implemented (perhaps those who use LISP will guess, but this example is for the genral code reader). You will find that no 'get_object' method seems to exist on any object. But, deep inside a huge list returned by 'grep', you will discover,
+
+lily/include/lily-guile-macros.hh:#define get_object(x) internal_get_object (ly_symbol2scm (x))
+
+If you search for 'internal_get_object', you will find,
+
+lily/grob-property.cc:Grob::internal_get_object (SCM sym) const
+
+Ah. That command is a interface to grob properties. Sometimes it caches, sometimes not. The command negociates the differences in types which may be held as properties. The source file also defines a callback 'hook' which can be registered when a property is modified. Overall, the command is a convenience to a property system.
+
+This is an indication of Lilypond's maturity. It is also an example how Lilypond's flexible dual-language system can lead to depths in understanding the code.
+
+
 == Lillypond processing
 Not structure---thats well docuented. We'd like to know, but hard to find.
 
 Lillypond is complicated by using Guile, (look for SCM) with callbacks so most properties can be overridden.
+
 
 
 === Control
@@ -63,12 +86,32 @@ http://lilypond.org/doc/v2.18/Documentation/internals/noteevent
 
 which says the types lead to an engraver.
 
-Where the datatype 'event'?
+Where the datatype 'event'? scm/define-event-classes. These are loose, open objects, as you would expect of Guile. scm/define-music-types for the musical sub-classifucations of events.
 
-=== Engraving
+=== Translation
+lily/translation.cc
+
+contains little beyond getting the global context and adding a listener
+
+Whats an acknowlwgwmwnt?
+
+Performer_group
+Score_engraver
+
+Where defined?
+
+=== GROBs
+ scm/define-grobs.
+
+=== Penning
+
+=== Engraving and GROBs
+lists of engravers,
+ly/engraver-init
+
 We know engravers sit in stave information.
 
-We know that the 'cc' versions, not labeled engraver, inherit from 'grob.cc'. grobs have relative x/y positions, relative to a parent. Some grobs are groups of other grobs. It seems that a grob can either be in a vertical group or not, and can find that out.
+We know that the 'cc' versions, not labeled engraver, inherit from 'grob.cc'. grobs have relative x/y positions, relative to a parent. These are called, says some information ''layout objects'? Some grobs are groups of other grobs. It seems that a grob can either be in a vertical group or not, and can find that out.
 
 - Guesses
 'stencil' seems to be 'how to draw an effect'. As opposed to writing a glyph.
@@ -90,7 +133,6 @@ Engravers can be found by the *-engraver in lilly/. Engravers often carry a proc
 Where exact x/y positions are set is obscure. As is where properties like xExtent for width are set? Maybe from font metrics? In 'rest.cc' it seems the position is set by consulting a base grob property 'staff-position'?
 
 
-Engraving seems to take place in several places. Is that what 'dispatcher' is for, engraving per context? But why, if we have an event list?
 
 What is notable is that the 'staff' context process list (see below), only seems to chuse note types, etc. Whereas the 'score' context process list has  "Timing_translator", "Default_bar_line_engraver" etc.
 
@@ -103,6 +145,78 @@ TODO: Number bars?test for lengths?
 
 line-interface draws lines from 'offsets' to
 
+=== Why dispatch?
+With an event sream, why dispatch? Complicated syem, when we could stary eith data in tables?
+
+is engraving dispatch per context? But why, if we have an event list?
+
+Seems to be partly C++, partly so overridong can be in defined places and not one glob.
+
+=== Engraver/grob
+lily/engraver.cc
+
+More intersting. Tells us there are,
+Item
+Spanner
+Paper_column
+
+kinds. And that announce grob is signalled ebvery time. But not so interesting (includes a line number?)?
+
+lily/grob.cc
+Stubs for get_system() and
+
+Probably the main thing to understand is there is a lot of code unwrapping C++ layout objects and retrieving and validating properties set by users. This centres round the ''dim_cache_' structure. This is initiated per grob, and in full looks like (Axis is a simple enumeration X = 1, Y = 2, NO_AXES = 3),
+
+dim_cache_ = Array(
+Axis.X = (offset, parent, Interval(left, right),
+Axis.Y = (offset, parent, Interval(left, right),
+Axis.NO_AXES = (offset, parent, Interval(left, right)
+)
+
+ 
+getting vertical alignments
+
+=== Gathering grob data
+This is C++ so hard to trace.
+
+The key interface seems to be lilly/system.cc. Includes pre_processing, post_processing and all_elements_
+
+"This is the top-level object: Each object in a score"
+               " ultimately has a @code{System} object as its X and"
+               " Y@tie{}parent."
+
+It does include plenty of gear about pageing, unmentioned elsewhere.
+
+Also, Pointer_group_interface, which seems to be a searchable grob array, backs spanner.cc.
+
+Then,
+#bq
+For example, the System grob can be both parent (on the Y-side) and grandparent (twice on the X-side) to a VerticalAlignment grob. 
+#
+http://lilypond.org/doc/v2.18/Documentation/snippets/tweaks-and-overrides#tweaks-and-overrides-displaying-grob-ancestry
+
+
+NoteHead X,Y: NoteColumn
+    X: PaperColumn
+       X,Y: System
+    Y: VerticalAxisGroup
+       X: NonMusicalPaperColumn
+          X,Y: System
+       Y: VerticalAlignment
+          X: NonMusicalPaperColumn
+             X,Y: System
+          Y: System
+
+This does clarify something. The grob organisation is a tree of grobs, probably all relatively aligned. 
+
+define-context-properties
+
+Where the tree is rooted, I do not know?
+
+scm/define-context-properties includes,
+     (rootSystem ,ly:grob? "The System object.")
+->scm/lily.scm (loaded in)
+which suggests they are built on contexts?
 
 === in SHORT
 Don't know where control goes after scm/lilly. Does it run the functions in scm/music-functions?
