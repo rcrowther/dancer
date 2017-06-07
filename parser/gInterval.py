@@ -2,7 +2,7 @@ from utils import SimplePrint
 
 
 
-
+# flower/interval
 class GInterval(SimplePrint):
   def __init__(self, frm, to):
     self.frm = frm
@@ -16,6 +16,15 @@ class GInterval(SimplePrint):
     self.frm -= value
     self.to += value
 
+  def unionInterval(self, iv):
+    self.frm = math.min(self.frm, iv.frm)
+    self.to = math.max(self.to, iv.to)
+
+  #? for?
+  #def intersectInterval(self, iv):
+  #  self.frm = math.max(self.frm, iv.frm)
+  #  self.to = math.min(self.to, iv.to)
+        
   def size(self):
     if (self.to > self.frm):
       return self.to - self.frm
@@ -28,12 +37,12 @@ class GInterval(SimplePrint):
   def contains(self, value):
     return ((value > self.frm) and (value < self.to))
 
-  def containsInterval(self, i):
-    return ((i.frm > self.frm) and (i.to < self.to))
+  def containsInterval(self, iv):
+    return ((iv.frm > self.frm) and (iv.to < self.to))
         
-  def addInterval(self, i):
-    self.frm += i.frm
-    self.to += i.to
+  def addInterval(self, iv):
+    self.frm += iv.frm
+    self.to += iv.to
      
   def negate(self):
     frm = -self.frm 

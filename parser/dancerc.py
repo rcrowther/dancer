@@ -97,7 +97,7 @@ def doSomething(args):
       if (form == 'pdf'):
         ctx.runIteratorToContextDispatcher(gChains.PDF)
         print('gList:')
-        print(ctx.gListToString()) 
+        #print(ctx.gListToString()) 
         
       if (form == 'stats'):
         ctx.setChains(chains.LocalStatistics)

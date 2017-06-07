@@ -16,7 +16,7 @@ class GraphicData():
   #? original has lots of gear for 'set from this user-defined property'
   #? which I am skipping
   def __init__(self, offsetX, offsetY, sizeX, sizeY):
-    cache = []
+    cache = [0, 0, 0, 0]
     cache[Axis.X] = GCacheData(offsetX, None, GInterval(offsetX, sizeX + offsetX))
     cache[Axis.Y] =  GCacheData(offsetY, None, GInterval(offsetY, sizeY + offsetY))
     cache[Axis.NO_AXES] = GCacheDataEmpty()
@@ -105,7 +105,7 @@ class GraphicData():
   def setParent(self, axis, p):
     self.cache[axis].parent = p
 
-    
+  #! prob need more, like mutual parent, etc.
   def root(self):
     o = self
     #get root by going doen parents
@@ -131,8 +131,8 @@ class StencilData(GraphicData):
   '''
   render info is _x, _y,
   '''
-  def __init__(self, stencilName, stencilStyle):
-    GraphicData.__init__(self)
+  def __init__(self, offsetX, offsetY, sizeX, sizeY, stencilName, stencilStyle):
+    GraphicData.__init__(self, offsetX, offsetY, sizeX, sizeY)
     self.stencilName = stencilName
     self.stencilStyle = stencilStyle
     
@@ -146,8 +146,8 @@ class TextData(GraphicData):
   '''
   render info is _x, _y, and attributes here.
   '''
-  def __init__(self, text):
-    GraphicData.__init__(self)
+  def __init__(self, offsetX, offsetY, sizeX, sizeY, text):
+    GraphicData.__init__(self, offsetX, offsetY, sizeX, sizeY)
     ## Text
     self.text = text
     # normal, italic, oblique, smallcaps

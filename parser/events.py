@@ -5,7 +5,7 @@
 #from eventStructs import EventStruct
 from utils import SimplePrint
 
-
+BROADCAST = -4
 # Why a type property? A hangover from C++, and also because I don't
 # want to be too Python.
 #EventType = {
@@ -215,7 +215,7 @@ class MomentEnd(Event):
   @moment int, for now
   '''
   def __init__(self):
-    Event.__init__(self, 0)
+    Event.__init__(self, BROADCAST)
     self.hasInputDuration = False
 
     

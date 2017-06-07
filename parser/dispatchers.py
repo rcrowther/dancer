@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 
+import events
+
 # A hearer looks like this...
 
 #def before(self, ctx):
@@ -50,15 +52,16 @@ class Dispatcher():
     # only for debug logging, otherwise information overload.
     #print('dispatcher{0}: recieved : forwarding:{1} : event: {2}'.format(self.contextId, event.contextId != self.contextId, event))
 
-    if (event.contextId != self.contextId):
+    if (event.contextId != self.contextId or event.contextId == events.BROADCAST):
       for e in self.childDispatchers:
         e.say(event)
         
     # say to any listeners on this id
     # for now, filter for contextId e.g. a dancer need not
     # know about Tempochange (or is that ok throufh properties?)
-    else: 
+    if (event.contextId == self.contextId or event.contextId == events.BROADCAST):
       eventClass = type(event).__name__
+
       if(not eventClass in self.listeners):
         print('Dispatcher: not hearing: klass:{0} : event: {1}'.format(eventClass, event))
       else:

@@ -22,7 +22,8 @@ def before(ctx):
   
 def process(ctx, event):
   # adapt text to include params?
-  gd = Barline(ctx.readPropOption('barlineStyle'))
+  #gd = Barline(ctx._props.get('barlineStyle'))
   # reset immediately
-  ctx.setProp('barlineStyle', None)
-  ctx.gList.append(gd)  
+  #ctx._props['barlineStyle'] = None
+  #ctx.gList.append(gd) 
+  pass 
