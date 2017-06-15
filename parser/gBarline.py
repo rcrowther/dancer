@@ -1,18 +1,20 @@
-from gData import StencilData
+#from gData import StencilData
+from gSpaceFixed import SpaceFixed
 
 
-class Barline(StencilData):
+class Barline(SpaceFixed):
   '''
   '''
   def __init__(self,  style):
-    StencilData.__init__(self, 'barline')
+    SpaceFixed.__init__(self,
+    isMusical = False,
+    offsetX = 0,
+    offsetY = 0,
+    sizeX = 0.2, 
+    sizeY = 25
+    )
     self.style = style
-    
-    self.width = 0
-    self.height = 1
-    self.paddingRight = 0.2
-    self.paddingLeft = 0
-    self.setExtents()
+
 
 
 

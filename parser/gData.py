@@ -2,7 +2,7 @@
 
 
 
-from enums import GDisplay, FontStyle
+from enums import GDisplay, FontStyle, Axis
 from gCacheData import *
 from gInterval import *
     
@@ -16,10 +16,10 @@ class GraphicData():
   #? original has lots of gear for 'set from this user-defined property'
   #? which I am skipping
   def __init__(self, offsetX, offsetY, sizeX, sizeY):
-    cache = [0, 0, 0, 0]
-    cache[Axis.X] = GCacheData(offsetX, None, GInterval(offsetX, sizeX + offsetX))
-    cache[Axis.Y] =  GCacheData(offsetY, None, GInterval(offsetY, sizeY + offsetY))
-    cache[Axis.NO_AXES] = GCacheDataEmpty()
+    self.cache = [0, 0, 0, 0]
+    self.cache[Axis.X] = GCacheData(offsetX, None, GInterval(offsetX, sizeX + offsetX))
+    self.cache[Axis.Y] =  GCacheData(offsetY, None, GInterval(offsetY, sizeY + offsetY))
+    self.cache[Axis.NO_AXES] = GCacheDataEmpty()
     
     ## tree
     #self.parentX = None
@@ -35,13 +35,17 @@ class GraphicData():
     self._x = 0
     self._y = 0
 
-    self._width = 1
-    self._height = 1
+    #self._width = 1
+    #self._height = 1
     
     # absolute positioning from parents needs offsets. 
     # Could use padding top/left, but here special.
-    self.offsetX = 0
-    self.offsetY = 0
+    #self.offsetX = 0
+    #self.offsetY = 0
+    
+    # new
+    #self.sizeX = 1
+    #self.sizeY = 1
 
     # Extents are the surrounding box from the print point, top left.
     # These values are used for overall sibling calculations.
@@ -68,11 +72,35 @@ class GraphicData():
     
 
     #self.properties = []
+    # new
+  def offsetX(self):
+    '''
+    @return an int
+    '''
+    return self.cache[Axis.X].offset
+    
+  def offsetY(self):
+    '''
+    @return an int
+    '''
+    return self.cache[Axis.Y].offset
+    
+  def sizeX(self):
+    '''
+    @return an interval
+    '''
+    return self.cache[Axis.X].extent
 
-  def axis_scale(self, axis, offset):
+  def sizeY(self):
+    '''
+    @return an interval
+    '''
+    return self.cache[Axis.Y].extent
+
+  def axisScale(self, axis, offset):
     self.cache[axis].offset += offset
 
-  def offset_relative(self, gData, axis):
+  def offsetRelative(self, gData, axis):
     if (gData == self): 
       return 0.0
     else:
@@ -126,36 +154,3 @@ class GraphicData():
 
 
 
-    
-class StencilData(GraphicData):
-  '''
-  render info is _x, _y,
-  '''
-  def __init__(self, offsetX, offsetY, sizeX, sizeY, stencilName, stencilStyle):
-    GraphicData.__init__(self, offsetX, offsetY, sizeX, sizeY)
-    self.stencilName = stencilName
-    self.stencilStyle = stencilStyle
-    
-  def __str__(self):
-    return "{0}".format(type(self.stencil)._name__)
-    
-    
-    
-      
-class TextData(GraphicData):
-  '''
-  render info is _x, _y, and attributes here.
-  '''
-  def __init__(self, offsetX, offsetY, sizeX, sizeY, text):
-    GraphicData.__init__(self, offsetX, offsetY, sizeX, sizeY)
-    ## Text
-    self.text = text
-    # normal, italic, oblique, smallcaps
-    self.fontStyle = FontStyle.Normal
-    self.fontBold = False
-    #? Ever use this, or preset?
-    self.fontSize = 12
-    
-    
-  def __str__(self):
-    return "{0}".format(self.text)

@@ -1,0 +1,985 @@
+== This guide
+This guide is for those who would like to understand Lilypond source code. It is not a line-by-line analysis, or an exhastive API reference.  It is intended as help for navigating the Lilypond codebase.
+
+This guide is not needed if you wish to use Lilypond. But understanding parts of this guide may provide a deeper understanding of how features of Lilypond are constructed, how they behave, and how they connect together.
+
+=== Reading Lilypond code 
+=== The two languages
+Lilypond is programmed mainly in Guile and C++. Line by line, for reading if not writing, people who read code should have little trouble understanding C++ and Guile. However, here are some hints for trying to understand the structure of the code.
+
+==== Some language generalities
+Guile is Scheme-type LISP language, and LISPs tend to be very clean code. However, as there is no namespacing, it is not always clear what is running where and when. If a file is 'executed' or run, it's contents are executed one by one, jumping about and sometimes using macro substitutions. In a file of Guile code, you may want to pay attention to isolated lines, as the file may be executed as a whole.
+
+C++ is often explicit and verbose where other languages would provide convenience structures. Throughout Lilypond C++ files you will see many imports at the top of the file. Bear in mind these represent a wider range of possibilities than other languages.  For example, C++ allows multiple inheritance, free import of interfaces, and may refer to singularities. When looking at Lilypond C++ code, the imported code may not represent a 'this object is/inherits that' connection---it may be building bridges with another system, or encapsulating a small area of functionality. Also, C++ requires explicit definition of how data structures are constructed, so many imports are references to simple structures---for example, the ''Axis' label, very widespread in the music notational code, is a simple enumeration. 
+
+As each language is exploited for it's capabilities, there are many links between the C++ and Guile code. When you see capitalised symbols and declarations in C++ code, much of the time you can assume these are bindings between the two languages. Capitalised symbols in Guile code are usually macro declarations, but the LilyPond codebase uses these sparingly, and sometimes only to clarify code. Since LilyPond is a mature project, the naming conventions are consistent. Unless you are interested in this aspect of LilyPond code, when trying to understand LilyPond code on a general way, you can skip these.
+
+
+==== Grepping for code
+Throughout LilyPond, Scheme control code is calling into C++ object models. However, the two code bases follow the usual naming schemes for the language. For example, a call to set an X-offset,
+
+        (X-offset . ,ly:note-head::stem-x-shift)
+
+refers to a Scheme callback named ''stem-x-shift'. However, you will not find this method in the NoteHead layout object. The method is named in the C++ language style, with underscores,
+
+Note_head::stem_x_shift (SCM smob)
+{
+  Grob *me = unsmob_grob (smob);
+  ...
+}
+
+This, plus the callbacks in the code, and the potential to override both properties and methods, is why a ''grep' on LilyPond code can be initially unprofitable. To find the control of C++ code code you will need to grep for code names with ''-' spacers, not underscores. To find target methods from control code, you will often need to ''grep' for code names with ''_', not with hyphen-minus (in the LilyPond codebase, the easiest way to grep for the above method is  ''grep -ri stem.x.shift'. This is bad regex style, but returns comprehensive results).
+
+
+=== The interface between the two languages
+This guide will not often cover the how the languages pass information and fuctionality between each other. This is deliberate. The information provides little help in understanding the flow of data and control within Lilypond.
+
+C++ is mainly used in Lilypond to provide efficient data-carrying structures, and low-level collections. Guile code is used to maipulate the data, and interface to the user.
+
+=== A quick revision of LilyPond name conventions
+''grob' refers to a ''Graphical object'. It is a C++ object wrapped so it can be manipulated by Guile code. Grobs are not used if Lilypond is constructing for MIDI.
+
+''smob' is a ''Scheme object'. It is used when a Guile object is wrappped or unwrapped for use in Guile code. 
+
+''layout object' is rarely mentioned in the codebase, but we use the idea here. It is the C++ object which backs data-carrying objects used to construct some useful result from Lilypond data.  
+
+''music expression' we do not use this idea much here, but it is the abstract construct, or perhaps the Guile representation, constructed from Lilypond's input language. In more general computing terms, the Abstract Syntax Tree returned from the parser.
+
+''event stream' Lilypond reduces source file inputs to an intermediate representation, a list of ''events'. While there is no direct access to this structure, the event stream is used as the input to all processing for Lilypond's two outputs, sheet music and MIDI. For more information, see below, or the paper by Eric Sandberg.  
+
+ 
+==== An example of the depth of Lilypond code
+Here is an example of how Lilypond code, despite the clarity of layout, has become extended. Scattered throughout the code is the command 'get_object'. Let's say you become curious how this is implemented (perhaps those who use LISP and C++ languages will guess, but this example is for the general code reader). You will find that no 'get_object' method seems to exist on any object. But, deep inside a huge list returned by 'grep', you will discover,
+
+lily/include/lily-guile-macros.hh:#define get_object(x) internal_get_object (ly_symbol2scm (x))
+
+If you search for 'internal_get_object', you will find,
+
+lily/grob-property.cc:Grob::internal_get_object (SCM sym) const
+
+Ah. That command is a interface to Grobs and grob properties. Sometimes it caches, sometimes not. The backing code negociates the differences in types which may be held as properties. The source file also defines a callback 'hook' which can be registered when a property is modified. Overall, the command is for returning Grobs from storage, and an interface to a property system.
+
+This is an indication of Lilypond's maturity. It is also an example how Lilypond's flexible dual-language system can lead to depths in understanding the code.
+
+
+== Lillypond processing
+Not structure---that is well documented. We'd like to know, but hard to find.
+
+Lillypond is complicated by using Guile, (look for SCM) with callbacks so most properties can be overridden.
+
+
+
+=== Control
+==== Access from the commandline, lily/main.cc
+lilly/main degenerates into multi-processing handling. Unless you have an interest in the commandline options available, it is not a very informative file.
+
+#lily/global-context has the big methods on the controlling context.
+
+#lily/global-context-scheme contains ly_interpret_music_expression(), which runs iterators. This is likely the class you want to look at. No idea where triggered?
+
+
+#lily.scm seems to handle taking these lists and running them, somehow?
+
+#scm/define-music-types joins data to a delivery code, and mentions iterator construction.
+
+Much LilyPond code seems disconnected from control. Hundreds of functions, especially in the layout objects, seem to exist without a call from obvious places. This is partly a style of coding, and partly a result of design for user overriding. Also, control is configurable and often handled by callbacks.
+
+We'll consider detail on data and control later. But here, at the start, you may be wondering where LilyPond starts and stops processing. It is not, as you may guess, in scm/lily.scm, or any associated or similar files. It is in lily/parser.cc.
+
+==== Control flow from lily/parser.cc
+LilyPond's parser is written in Flex and Bison, a parsing solution written for C languages. We will not cover the detail here.
+
+What we will cover is that this is where control starts. With KISS strategy, LilyPond does not build an Abstract Syntax Tree for further work (as would be usual in a compiler), but goes to work immediately to build data models and starting control features. Here are a few of the abbreviated top-level/root rules,
+
+start_symbol:
+	lilypond
+        ...
+
+
+lilypond:	/* empty */ { $$ = SCM_UNSPECIFIED; }
+	| lilypond toplevel_expression {
+        ...
+
+toplevel_expression:
+	{
+        ...
+	| BOOK_IDENTIFIER {
+		SCM proc = parser->lexer_->lookup_identifier
+			(unsmob_book($1)->paper_
+			 ? "toplevel-book-handler"
+			 : "toplevel-bookpart-handler");
+		scm_call_2 (proc, parser->self_scm (), $1);
+	}
+	| score_block {
+		SCM proc = parser->lexer_->lookup_identifier ("toplevel-score-handler");
+		scm_call_2 (proc, parser->self_scm (), $1);
+	}
+        ...
+
+A parser would often here build objects to create a model. But this code looks up a functions like ''toplevel-book-handler', which then seem to be callled immediately with parts of the parser as as an argument.
+
+You will find these definitions in,
+
+ly/declarations-init.ly
+
+The declarations are somewhat abrupt, as the file gathers several definitions used generally in LilyPond code. Here they are,
+
+
+#(define toplevel-book-handler print-book-with-defaults)
+#(define toplevel-bookpart-handler collect-bookpart-for-book)
+#(define toplevel-music-handler collect-music-for-book)
+#(define toplevel-score-handler collect-scores-for-book)
+#(define toplevel-text-handler collect-scores-for-book)
+
+We follow the two we selected to ''scm/lily-library.scm', and find,
+
+(define (print-book-with parser book process-procedure)
+  (let* ((paper (ly:parser-lookup parser '$defaultpaper))
+         (layout (ly:parser-lookup parser '$defaultlayout))
+         (outfile-name (get-outfile-name parser book)))
+    (process-procedure book paper layout outfile-name)))
+
+(define-public (print-book-with-defaults parser book)
+  (print-book-with parser book ly:book-process))
+
+  ...
+
+(define-public (collect-scores-for-book parser score)
+  (ly:parser-define!
+   parser 'toplevel-scores
+   (cons score (ly:parser-lookup parser 'toplevel-scores))))
+
+lily/book-scheme.cc (making a change to C++ code) has a method, callable from Scheme, called ''ly_book_process'. At which point we have an object lily/book.cc where the code ''process_score()', choosing between a cast to Performance and Paper_score, then returning a completed book.
+
+Aside from noting that LilyPond code features a depth of indirection, we can see that the parser rule triggered these actions directly. And when we see code like this, from lily/book.cc,
+
+Book::process_score (SCM s, Paper_book *output_paper_book, Output_def *layout)
+{
+      SCM outputs = score
+                    ->book_rendering (output_paper_book->paper_, layout);
+...
+          if (Performance *perf = dynamic_cast<Performance *> (output))
+            output_paper_book->add_performance (perf->self_scm ());
+...
+
+At this point, LilyPond is not constructing a tree of data for further processing. It is taking a function that should return data, and inputing to another function which should reorganise that data for book layout. The idea of the parsing is decoupled from the idea of book layout. Which has advantages, because LilyPond can alternatively output to MIDI, where the concept of paging has no relevance. 
+
+Both concerns are returned from functions. LilyPond is not trying to decide ''what to do with the input data'. The control code is calling on functions. It lazily assumes that the function has enough code and data to evaluate it's return, if requested. 
+
+How and where does LilyPond know it is outputting to PDF, not svg or MIDI?
+
+==== Control flow in score rendering
+Lets dig deeper. Inside lily/score.cc->book_rendering() is a method, ly_run_translator. We know translators are the base for converting or streaming LilyPond data to an output form. So that looks interesting.
+
+Now, there is a note about how this method is marked as deprecated, but it is there for now, and can be found in lily/global-context-scheme.cc,
+
+LY_DEFINE (ly_run_translator, "ly:run-translator",
+           2, 1, 0, (SCM mus, SCM output_def),
+           "Process @var{mus} according to @var{output-def}.  An"
+           " interpretation context is set up, and @var{mus} is"
+           " interpreted with it.  The context is returned in its"
+           " final state.\n"
+           "\n"
+           "Optionally, this routine takes an object-key to"
+           " to uniquely identify the score block containing it.")
+{
+  LY_ASSERT_SMOB (Music, mus, 1);
+  LY_ASSERT_SMOB (Output_def, output_def, 2);
+
+  SCM glob = ly_make_global_context (output_def);
+  ly_make_global_translator (glob);
+  ly_interpret_music_expression (mus, glob);
+  return glob;
+}
+
+Considering the wide distribution of control in LilyPond, this is as close as the code comes to ''a method that controls the conversion of input into an output form'.
+
+==== Control from global-context-scheme
+In lily/global-context-scheme.cc is ly_interpret_music_expression(). We saw this called above in ly_run_translator.
+
+Global_context::run_iterator_on_me (Music_iterator *iter)
+
+This is interesting because, finally, this is where the input data is iterated. stream events are sent with the global context and a curent moment as a ''Prepare' event, the iter has process() run on it, followed by sending a ''OneTimeStep' event.
+
+====
+Where are music event distences calculated?
+
+=== Overall control summary
+So, LilyPond control starts in  lily/main.cc, but the topevel code to control the processing of input is found in the  parser, at lily/parser.cc. After that, we see the code concerns are separated into functions which return results. In particular, LilyPond control is very granular, and these control concerns are spread across several classes. Again, you will not find classes called ''handler', ''pipeline', ''manager', or other similar names. Instead, consistent with the approach in the parser, the control is handled in the class with the concern. The code of most interest will be found in lily/score.cc. And for the code for generating notation, the most interesting code is in lily/book.cc.
+
+
+
+
+==== Breaking
+Breaking music is a complex problem; how to expand/preventing breaks over some objects/how far to expand/maintaining alignment etc. LilyPond has a lot of classes for this (and that is before we mention documentation and tests),  and this is supposed to be an overview. 
+
+You will not find break engravers (nothing substancial). Page breaking is regarded as part of lily/paper-book.cc, where it is managed. which is associated with paper-score, and finally book.cc. As we have seen, book is built directly from the parser, and as soon as the iterator is pointed that way, it is used. The engraver list is enabled well before this.
+
+If you are interested in page breaking, lily/page-breaking is a base class and contains a massive comment with several clues as to how page breaking algorithmns are constructed.
+
+Here are classes directly involved, 
+
+
+lily/constrained-breaking.cc
+lily/break-alignment-interface.cc
+lily/page-turn-engraver.cc
+lily/simple-spacer.cc
+lily/forbid-break-engraver.cc
+lily/break-substitution.cc
+
+
+lily/page-spacing.cc
+lily/spacing-interface.cc
+lily/paper-column-engraver.cc
+lily/paper-score.cc
+
+lily/spanner-break-forbid-engraver.cc
+
+lily/page-turn-page-breaking.cc
+
+lily/page-layout-problem.cc
+
+lily/include/paper-system.hh
+
+list to access the below,
+lily/page-breaking-scheme.cc
+
+lily/page-breaking.cc
+  lily/optimal-page-breaking.cc
+  lily/minimal-page-breaking.cc
+  lily/one-line-page-breaking.cc
+
+
+=== Triggering and building a model, parsing
+
+We know music is a list,
+http://lilypond.org/doc/v2.18/Documentation/extending/internal-music-representation
+
+Probably made from callbacks in Lily-parser.yy (a BISON parser). The callbacks go to scm/ly-syntax-constructors.scm, which makes lists with abstract? contexts built from lists themselves.
+
+The parser is confused by mentioning 'events'. The parser does not make an 'event stream'. The parser is making a stream of Scheme 'SCM' representations of objects. The 'events' mentioned in the parser are a subcategory of a Music Event (as opposed to a Context, PropertyChange etc. in an event stream). The subcategory events are defined in scm/define-music-types.scm (along with an iterator for the data).
+
+Where does the parser make events? This makes a big difference, interleaved events make much easier.
+
+The model is the only straighforward item. Like this, Global->Score->StaffGroups->Staff->Staves->Voice, all these objects at base are contexts. So we got those as objects. Whre this gets to make event sequences?
+
+=== Iteration
+global_contxt contains run_iterator_on_me(), the key method.
+
+music-wrapper-iterator handles both 'music' and child iterators
+
+There are a few specialist iterators, unfold-loop, simultaneous-music-iterator, etc. presumably these are walking music list 'twigs'
+
+music-iterator is interesting. 
+
+- get_static_get_iterator takes 'music' and a property "iterator-ctor", generates a music-wrapper-iterator or whatever, initialises and returns it.
+
+- get_iterator gets an iterator from above, and also builds children
+
+
+
+=== MACROS
+lily/include/lily-guile-macros.hh
+
+MAKE_SCHEME_CALLBACK(TYPE, FUNC, ARGCOUNT) 
+
+=== Outputs
+
+We know that the object list then uses a 'translator' to generate either performance or a writtem scpre.
+
+Lilly parser seems to make 'events'. Events, e.g.
+
+http://lilypond.org/doc/v2.18/Documentation/internals/noteevent
+
+which says the types lead to an engraver.
+
+Where the datatype 'event'? scm/define-event-classes. These are loose, open objects, as you would expect of Guile. scm/define-music-types for the musical sub-classifucations of events.
+
+=== Translation
+lily/translation.cc
+
+contains little beyond getting the global context and adding a listener
+
+Whats an acknowledgment?
+
+Performer_group
+Score_engraver
+
+Where defined?
+
+=== GROBs
+ scm/define-grobs.
+
+=== Penning
+
+=== Engraving and GROBs
+lists of engravers,
+
+ly/engraver-init
+
+We know engravers sit in stave information.
+
+We know that the 'cc' versions, not labeled engraver, inherit from 'grob.cc'. grobs have relative x/y positions, relative to a parent. These are called, says some information ''layout objects'? Some grobs are groups of other grobs. It seems that a grob can either be in a vertical group or not, and can find that out.
+
+- Guesses
+'stencil' seems to be 'how to draw an effect'. As opposed to writing a glyph.
+extents are width/height
+spanner: "Some objects are horizontally spanned between objects.  For example, slurs, beams, ties, etc."
+
+- Unknown
+skyline? Max extend of everything, including children? Kinda ..."A skyline is a sequence of non-overlapping buildings". That did not help.
+What exactly the measurements are? Something, even relative? y can be 'lines', for notes at least?
+How to force fixed widths
+Where are they anchored
+
+The connection between grobs and engravers is obscure. 
+
+Engravers can be found by the *-engraver in lilly/. Engravers often carry a process_music() or a create-*() function. These seem to grab generality properties like "middleCPosition", so perhaps are generating grobs? They seem to be the interface between contexts and grobs, whereas the '.cc' grob cotains the full properties and methodolgy of the grob. *-engravers do little besides, say, set the staff-position.
+
+ 'item.cc' is dull, aside from showing that 'item' inhertors have visible sizes so affect spacing.
+
+Where exact x/y positions are set is obscure. As is where properties like xExtent for width are set? Maybe from font metrics? In 'rest.cc' it seems the position is set by consulting a base grob property 'staff-position'?
+
+
+
+What is notable is that the 'staff' context process list (see below), only seems to chuse note types, etc. Whereas the 'score' context process list has  "Timing_translator", "Default_bar_line_engraver" etc.
+
+bars get numbered. 
+
+
+
+
+TODO: Number bars?test for lengths?
+
+line-interface draws lines from 'offsets' to
+
+=== Why dispatch?
+With an event stream, why dispatch? Complicated system, when we could start processing data in tables?
+
+is engraving dispatch per context? But why, if we have an event list?
+
+Seems to be partly C++, partly so overriding can be in defined places and not one glob.
+
+=== Engraver/grob
+lily/engraver.cc
+
+More intersting. Tells us there are,
+Item
+Spanner
+Paper_column
+
+kinds. And that ''announce grob' is signalled every time. But not so interesting (includes a line number?)?
+
+lily/grob.cc
+Stubs for get_system() and
+
+Axis_group_interface has a mutual dependence on Align_interface
+ 
+getting vertical alignments
+
+==== Note heads engraver
+Holds a vector of note events
+
+=== Generating sheet music
+While Lilypond can be used to generate MIDI code, the main purpose is to produce sheet music. The following is some help to understanding the Lilypond code for sheet music, and how Lilypond reaches final rendering.
+
+=== Grob data organisation
+This snippet gives a clue,
+
+http://lilypond.org/doc/v2.18/Documentation/snippets/tweaks-and-overrides#tweaks-and-overrides-displaying-grob-ancestry
+
+Also, Pointer_group_interface, which seems to be a searchable grob array, backs spanner.cc.
+
+NoteHead X,Y: NoteColumn
+    X: PaperColumn
+       X,Y: System
+    Y: VerticalAxisGroup
+       X: NonMusicalPaperColumn
+          X,Y: System
+       Y: VerticalAlignment
+          X: NonMusicalPaperColumn
+             X,Y: System
+          Y: System
+
+This does clarify something. The grob organisation is a tree of grobs, probably all relatively aligned. 
+
+It also tells us something else. How does Lilypond vertically align output? In a music score, this is essential. Musical staves spread across pages, and must be broken for lines. But, in most scores, barlines on staves must be aligned vertically, and so must the notes between staves. It's worth pointing out that text processing layout engines concentrate on flowing text and line-breaking, not vertical alignment between sucessive line elements. To take an example, CSS engines in web browsers are a sophisticated text and graphic layout engine. Yet they have had, for many years, an inability to organise columns. Even sophisticated text layout engines can not align two characters in successive lines of text (they can centre text, a similar operation). Agreed, this is a feature not needed for most text layout. But the feature is needed for musical score layout.
+
+The answer is, Lilypond code separates X and Y layout positioning. X and Y positions have seperate inheritance chains. This immediately produces a complex layout of graphical model building.  but it means the   
+ 
+define-context-properties
+
+Where the tree is rooted, I do not know?
+
+scm/define-context-properties includes,
+     (rootSystem ,ly:grob? "The System object.")
+->scm/lily.scm (loaded in)
+which suggests they are built on contexts?
+
+
+==== System
+The key interface seems to be lilly/system.cc. Includes pre_processing, post_processing and all_elements_
+
+"This is the top-level object: Each object in a score"
+               " ultimately has a @code{System} object as its X and"
+               " Y@tie{}parent."
+
+It does include plenty of gear about paging, unmentioned elsewhere.
+
+
+Then,
+#bq
+For example, the System grob can be both parent (on the Y-side) and grandparent (twice on the X-side) to a VerticalAlignment grob. 
+#
+http://lilypond.org/doc/v2.18/Documentation/snippets/tweaks-and-overrides#tweaks-and-overrides-displaying-grob-ancestry
+
+
+==== Understanding grob code 
+
+===== Translator structure
+Translator -> Engraver
+
+Translator includes a,
+- context,
+- tree property for ''daddy' translators, 
+- list of virtual methods
+  ++
+  - void stop_translation_timestep ();
+  - void start_translation_timestep ();
+  - void process_music ();
+  - void process_acknowledged ();
+  +
+- list of listeners.
+
+The Engraver processes events and generates grobs. Engraver includes,
+- grob announcer (sends info to parents)
+- creation callback (not much used aside from utility?)
+- grob creators (which announce)
+
+If you see something like,
+
+make_item (...)
+
+it's in these two classes.
+???
+ Grob
+
+
+===== Where are X and Y?
+This would seem to be a good start point, yet these and similar position/size variables do not appear in layout objects?
+
+The answer is, LilyPond is exploiting the connection between the two implementation languages to build an interface. A consistent interface to X and Y offsets are provided in the Scheme grob definitions. These X/Y size variables are consistently named  (in the loose-typed Scheme language, no ''interface' is imposed) as,
+
+X-offset
+Y-offset
+X-extent
+Y-extent
+
+These properties have no complementary variables in the layout objects. The Scheme property names are used to call on methods in the layout objects. In the layout objects, X, Y and other placement and sizing variables are stored in various places, such as a layout ''dim' cache, (look down for that section).
+
+For example, it is very likely that the Scheme property ''Y-extent' will call some layout object method which returns a ''height'. However, that is not always the case (and why the values are uncoupled and interfaced). For example, some grobs/layout objects are virtual, or work with groups of grobs, such as a vertical aligner. To return a height, a vertical aligner must visit children, and maybe run some checks, to find a height.  
+
+
+===== define-grobs and callbacks
+??? calls back into 
+
+scm/define-grobs.scm is only a definition file. It contains the definitions of grobs. It is here you will find the default values for some properties (many of these can be overriden by a user). However, in Lilypond, this configuration file contains important information on program flow. 
+
+''define-grobs' is one of the key files to study to understand control of score translation. It is here that callbacks are associated with setting and changing properties. For example, in the NoteHead definition,
+
+        (stencil . ,ly:note-head::print)
+        (X-offset . ,ly:note-head::stem-x-shift)
+        (Y-offset . ,staff-symbol-referencer::callback)
+        (Y-extent . ,grob::always-Y-extent-from-stencil)
+
+''ly:note-head::print' and ''ly:note-head::stem-x-shift' are calls into C++ layout code, both found in the NoteHead layout object (lilly/note_head.cc). Please bear in mind the initial comment about the naming schemes in lamguages, ''ly:note-head::stem-x-shift' calls a method ''stem_x_shift'.
+
+''staff-symbol-referencer::callback' is somewhat different, it calls Scheme code. You will find the definition in ''scm/output-lib.scm'
+
+(define staff-symbol-referencer::callback
+  (ly:make-unpure-pure-container ly:staff-symbol-referencer::callback))
+
+Without considering the funny name, you will find that there is a C++ ''make_unpure_pure_container' method in every grob-based layout object (it's constructed via a header file ''lily/include/unpure-pure-container.hh'). This method seems to be wrapping something? You will find it is wrapping a grob-centred set of methods handling position relative to staff symbols. In the relevant file, ''lily/staff-symbol-references.cc', is a method ''Staff_symbol_referencer::callback'.
+  
+''grob::always-Y-extent-from-stencil' is another Scheme call to ''scm/output-lib.scm',
+
+;; Using this as a callback for a grob's Y-extent promises
+;; that the grob's stencil does not depend on line-spacing.
+;; We use this promise to figure the space required by Clefs
+;; and such at the note-spacing stage.
+
+(define-public grob::always-Y-extent-from-stencil
+  (ly:make-unpure-pure-container ly:grob::stencil-height))
+
+stencil-height is a method contained within ''lily/grob.cc'.
+
+So what do we conclude here? First, that ''scm/define-grobs.scm' is important to understanding the detailed flow of control around Lilypond notation rendering. Second, LilyPond's callback system takes many forms, as it makes calls across two languages and many encapsulations and classes. Finally, that the Lilypond coders have ordered this using a notation,
+
+<language:>class::method
+
+If you are trying to understand overall structure, it may be faster to follow the notation by opening class files, than attempting to trace every interlocking call.
+
+
+==== Understanding layout code
+The layout objects are where the complexity lies, and the calculation.
+
+
+===== Pure functions
+Many functions in the layout objects are labeled ''pure'. 
+
+Lilypond positioning is a complicated process. It is difficult to know the final positioning of objects before line breaking. Yet a rough estimate of position and size is needed so line breaking can be performed. This problem can be extended to a generality---Lilypond object positions often depend on the positions of other objects. These interactions can cascade---if notes appear on ledger lines, their position is calculated in a different way to notes on staff lines. In turn, the heights of leger lines then affect staff line spacing.
+
+Lilypond layout object informally categorise the ongoing process of positioning by creating a set of functions called 'pure' functions. Pure functions are a guess at the size and positioning of Lilypond objects. While the ideas around how pure functions are informal, they are mostly the same. The calculation of a guess should not rely on data that mutates (the data may be pre-set from properties but, for example, should not be a temporary or an accumulating variable). A pure function should always return the same result (be 'idempotent'). And a pure function should not affect data elsewhere (cause side-effects). 
+
+Sometimes the positioning and height can be provided by pure functions only. Note heads are only styled from music properties like duration. They not change size depending on other values. The guess will be the final value.
+
+Pure functions are used early in the positioning process, before line-breaking. pure functions have a formal signature which may include start and end positioning, end position is not needed for single items, and is redundant. Pure functions do not need to be registered, and Lilypond searches to see if a grob can return a pure value.
+
+Pure functions only appear for Y axis calculations, because the X axis is 'free', and the Y axis positioning depends on it. 
+
+This commentary is enough to help you identify a large swathe of funtionality when reading the code. It is probably not enough to help you write a pure function. For that, see the documetation below.
+
+Lillypond ''Contributors' manual contains a full section on ''pure' functions,  
+http://lilypond.org/doc/v2.18/Documentation/contributor/understanding-pure-properties
+
+
+===== The Dim cache structure
+Probably the main thing to understand is there is a lot of code unwrapping C++ layout objects and retrieving and validating properties set by users. This centres round the ''dim_cache_' structure. This is initiated per grob, and in full looks like (Axis is a simple enumeration X = 1, Y = 2, NO_AXES = 3),
+
+dim_cache_ = Array(
+Axis.X = (offset, parent, Interval(left, right),
+Axis.Y = (offset, parent, Interval(left, right),
+Axis.NO_AXES = (offset, parent, Interval(left, right)
+)
+
+The result seems to gather given data with user overrides?
+
+==== the drul array
+You may see Drul_array about. 
+
+Bear in mind that Lilypond takes a universal approach to directions (there is an enumumeration). Up/left/min/start are a thing, Down/right/max/stop are a thing, only center is different.
+ 
+Drul_array is commented,
+
+/**
+   Left/right or Up/down arrays. Drul is nicer sounding than udlr
+*/
+
+It's a pair carring data for complementary directions. It's implemented as a C++ template, so can carry any data. It's not that different to an Interval, except it can carry any type of data, and has only one transformation operation; ''scale'.
+
+
+
+=== Columns
+Several areas are called ''column. ''tie', ''paper', ''script'. Seem to be connected to ''system' with before_line_breaking().
+
+=== Paper column
+Labels abstract columns with the stange name ''rank' (a sequential numbering, really). These colums seem to reference note-level stacks? X column only?
+
+=== Note rendering
+Lilypond places stems first. Note heads are attached to them.
+
+
+=== Stencils
+For SVG? or more? All Pango, essentially. Note pure-functions-from-stencils
+Appears to be a built-in transformer?
+lily/stencil-integral.cc
+
+Seems to contain complex ideas like word wrap and coloured backgrounds,
+scm/define-markup-commands.scm
+
+Stencil as dimensions and a path, various transformations,
+scm/stencil.scm
+
+Generates Stencils for lines (zig-zag, daashed etc.),
+lily/line-interface.cc
+
+Interesting. Where imported?
+ps/music-drawing-routines.ps 
+
+Simple draw routines,
+scm/output-ps.scm
+scm/output-svg.scm
+
+=== in SHORT
+Don't know where control goes after scm/lilly. Does it run the functions in scm/music-functions?
+
+Don't know what a music event is as data, besides a type.
+
+Don't know how engravers get attached to contexts
+
+Don't know if final coordinates are controlled by engravers or layout. Or where they are triggerd.
+
+Can't find layout data either
+
+Or how bars are handled---objects or calculated?
+
+Or how columns align across lists
+
+
+Or final X/Y coordinate holders.
+
+All bad.
+
+See also,
+http://lilypond.org/doc/v2.18/Documentation/contributor/overview-of-lilypond-architecture
+?
+This is good, on the music sreaam, though it fails to explain interlacing?
+
+http://lilypond.org/website/pdf/thesis-erik-sandberg.pdf
+?
+
+
+== LilyPond engraving control
+
+The control of engravers is a pipeline, one feeding another. As you would expect, control of LilyPond engraving is configurable. You will also know this if you have worked with LilyPond enough to have read the manual sections on ''how to change engravers'??? That section describes how the commands /remove and /insert can be used to change the engravers in score and staff contexts.
+
+Of course, there is a default pipeline configuration. You find this data in a configuration file, ly/engraver-init.ly. Here are some samples,
+
+ly/engraver-init.ly:
+in declarations-init.ly
+in init.ly
+in lily/lily-parsr-scheme.cc
+
+Score:
+
+  \consists "Paper_column_engraver"
+  \consists "Repeat_acknowledge_engraver"
+  \consists "Staff_collecting_engraver"
+
+  \alias "Timing"
+
+  %% An alias for Timing is established by the Timing_translator in
+  %% whatever context it is initialized, and the timing variables are
+  %% then copied from wherever Timing had been previously established.
+  %% The alias at Score level provides a target for initializing
+  %% Timing variables in layout definitions before any
+  %% Timing_translator has been run.
+
+  % timing translator must come BEFORE bar number engraver
+  \consists "Timing_translator"
+  \consists "Default_bar_line_engraver"
+  \consists "Output_property_engraver"
+  \consists "Tweak_engraver"
+  \consists "System_start_delimiter_engraver"
+  \consists "Mark_engraver"
+  \consists "Volta_engraver"
+  \consists "Metronome_mark_engraver"
+  \consists "Break_align_engraver"
+  \consists "Spacing_engraver"
+  \consists "Grace_spacing_engraver"
+  \consists "Vertical_align_engraver"
+  \consists "Stanza_number_align_engraver"
+  \consists "Bar_number_engraver"
+  \consists "Parenthesis_engraver"
+  \consists "Concurrent_hairpin_engraver"
+  \consists "Beam_collision_engraver"
+  \consists "Footnote_engraver"
+
+  \defaultchild "Staff"
+
+  \accepts "FretBoards"
+  \accepts "Staff"
+  \accepts "RhythmicStaff"
+  \accepts "TabStaff"
+  \accepts "VaticanaStaff"
+  \accepts "GregorianTranscriptionStaff"
+  \accepts "MensuralStaff"
+  \accepts "PetrucciStaff"
+  \accepts "StaffGroup"
+  \accepts "DrumStaff"
+  \accepts "KievanStaff"
+  \accepts "Lyrics"
+  \accepts "ChordNames"
+  \accepts "GrandStaff"
+  \accepts "ChoirStaff"
+  \accepts "PianoStaff"
+  \accepts "Devnull"
+  \accepts "NoteNames"
+  \accepts "FiguredBass"
+
+  noteToFretFunction = #determine-frets
+  predefinedDiagramTable = ##f
+  soloText = #"Solo"
+  soloIIText = #"Solo II"
+  aDueText = #"a2"
+  printPartCombineTexts = ##t
+  partCombineTextsOnNote = ##t
+  systemStartDelimiter =#'SystemStartBar
+
+  drumStyleTable = #drums-style
+
+  melismaBusyProperties = #default-melisma-properties
+  tieWaitForNote = ##f
+  clefGlyph = #"clefs.G"
+  clefPosition = #-2
+  middleCClefPosition = #-6
+  middleCPosition = #-6
+  firstClef = ##t
+
+  crescendoSpanner = #'hairpin
+  decrescendoSpanner = #'hairpin
+
+  defaultBarType = #"|"
+  doubleRepeatType = #":..:"
+  startRepeatType = #".|:"
+  endRepeatType = #":|."
+  barNumberVisibility = #first-bar-number-invisible-and-no-parenthesized-bar-numbers
+  barNumberFormatter = #robust-bar-number-function
+  clefTranspositionFormatter = #clef-transposition-markup
+  cueClefTranspositionFormatter = #clef-transposition-markup
+  automaticBars = ##t
+
+  explicitClefVisibility = #all-visible
+  explicitCueClefVisibility = #end-of-line-invisible
+  explicitKeySignatureVisibility = #all-visible
+  implicitTimeSignatureVisibility = #end-of-line-invisible
+
+  repeatCountVisibility = #all-repeat-counts-visible
+
+%% Other Timing variables are derived and set by the Timing_translator
+%% at initialization time by calling the functions in
+%% scm/time-signature-settings.scm
+
+  timeSignatureSettings = #default-time-signature-settings
+  timeSignatureFraction = 4/4
+
+  beamHalfMeasure = ##t
+
+  autoBeaming = ##t
+  autoBeamCheck = #default-auto-beam-check
+
+  scriptDefinitions = #default-script-alist
+
+  pedalSustainStrings = #'("Ped." "*Ped." "*")
+  pedalSustainStyle = #'text
+  pedalUnaCordaStrings = #'("una corda" "" "tre corde")
+  pedalUnaCordaStyle = #'text
+
+%% These are in ordinary italic font, including the *,
+%% but they are unlikely to be used,
+%% as the default pedal-style for SostenutoPedal is 'mixed':
+%% i.e.  Sost. Ped_____________________
+  pedalSostenutoStrings = #'("Sost. Ped." "*Sost. Ped." "*")
+  pedalSostenutoStyle = #'mixed
+
+  harmonicAccidentals = ##t
+  fingeringOrientations = #'(up down)
+  stringNumberOrientations = #'(up down)
+  strokeFingerOrientations = #'(right)
+
+  lyricMelismaAlignment = #LEFT
+  markFormatter = #format-mark-letters
+  rehearsalMark = #1
+  subdivideBeams = ##f
+  extraNatural = ##t
+  autoAccidentals = #`(Staff ,(make-accidental-rule 'same-octave 0))
+  autoCautionaries = #'()
+
+  printKeyCancellation = ##t
+  keyAlterationOrder = #`(
+    (6 . ,FLAT) (2  . ,FLAT) (5 . ,FLAT ) (1  . ,FLAT) (4  . ,FLAT) (0  . ,FLAT) (3  . ,FLAT)
+    (3 . ,SHARP) (0 . ,SHARP) (4 . ,SHARP) (1 . ,SHARP) (5 . ,SHARP) (2 . ,SHARP) (6 . ,SHARP)
+    (6 . ,DOUBLE-FLAT) (2 . ,DOUBLE-FLAT) (5 . ,DOUBLE-FLAT ) (1 . ,DOUBLE-FLAT) (4 . ,DOUBLE-FLAT) (0 . ,DOUBLE-FLAT) (3 . ,DOUBLE-FLAT)
+    (3  . ,DOUBLE-SHARP) (0 . ,DOUBLE-SHARP) (4 . ,DOUBLE-SHARP) (1 . ,DOUBLE-SHARP) (5 . ,DOUBLE-SHARP) (2 . ,DOUBLE-SHARP) (6 . ,DOUBLE-SHARP)
+  )
+
+  barCheckSynchronize = ##f
+
+%% chord names:
+  chordNameFunction = #ignatzek-chord-names
+  minorChordModifier = #(make-simple-markup "m")
+  additionalPitchPrefix = #"" % was "add"
+  majorSevenSymbol = #whiteTriangleMarkup
+  chordNameLowercaseMinor = ##f
+  chordNameSeparator = #(make-hspace-markup 0.5)
+  slashChordSeparator = #(make-simple-markup "/")
+  chordNameExceptions = #ignatzekExceptions
+  chordNoteNamer = #'()
+  chordRootNamer = #note-name->markup
+  chordPrefixSpacer = #0
+  chordNameExceptionsFull = #fullJazzExceptions
+  chordNameExceptionsPartial = #partialJazzExceptions
+  noChordSymbol = #(make-simple-markup "N.C.")
+
+  bassStaffProperties = #'((assign clefGlyph "clefs.F")
+  (assign clefPosition 2)
+  (assign middleCPosition 6)
+  (assign middleCClefPosition 6))
+%% tablature:
+  stringOneTopmost = ##t
+  highStringOne = ##t
+
+%% One may change the string tunings as follows :
+%% The length of the list must be equal to the number of strings
+  stringTunings = #guitar-tuning
+  tablatureFormat = #fret-number-tablature-format
+  tabStaffLineLayoutFunction = #tablature-position-on-lines
+
+%%
+  figuredBassFormatter = #format-bass-figure
+  metronomeMarkFormatter = #format-metronome-markup
+
+  %% See also make-voice-props-set
+  graceSettings = #score-grace-settings
+
+  keepAliveInterfaces = #'(
+    bass-figure-interface
+    chord-name-interface
+    cluster-beacon-interface
+    fret-diagram-interface
+    lyric-syllable-interface
+    note-head-interface
+    tab-note-head-interface
+    lyric-interface
+    percent-repeat-item-interface
+    percent-repeat-interface
+
+    ;; need this, as stanza numbers are items, and appear only once.
+    stanza-number-interface
+  )
+  % \quoteDuring is supposed to quote everything, cueDuring only the essentials
+  quotedEventTypes = #'(StreamEvent)
+  quotedCueEventTypes = #'(
+    note-event
+    rest-event
+    tie-event
+    beam-event
+    tuplet-span-event)
+  instrumentTransposition = #(ly:make-pitch 0 0 0)
+
+  topLevelAlignment = ##t
+
+  timing = ##t
+
+Staff:
+
+  \consists "Font_size_engraver"
+
+  \consists "Pitched_trill_engraver"
+  \consists "Output_property_engraver"
+  \consists "Arpeggio_engraver"
+  \consists "Multi_measure_rest_engraver"
+  \consists "Text_spanner_engraver"
+  \consists "Trill_spanner_engraver"
+  \consists "Grob_pq_engraver"
+  \consists "Forbid_line_break_engraver"
+  \consists "Laissez_vibrer_engraver"
+  \consists "Repeat_tie_engraver"
+  \consists "Note_head_line_engraver"
+  \consists "Glissando_engraver"
+  \consists "Ligature_bracket_engraver"
+  \consists "Breathing_sign_engraver"
+  \consists "Note_heads_engraver"
+  \consists "Dots_engraver"
+  \consists "Rest_engraver"
+
+  %% switch on to make stem directions interpolate for the
+  %% center line.
+  %  \consists "Melody_engraver"
+
+  \consists "Stem_engraver"
+  \consists "Beam_engraver"
+  \consists "Grace_beam_engraver"
+  \consists "Auto_beam_engraver"
+  \consists "Grace_auto_beam_engraver"
+
+  %% must come before Script_column_engraver.
+  \consists "New_fingering_engraver"
+
+  \consists "Chord_tremolo_engraver"
+  \consists "Double_percent_repeat_engraver"
+  \consists "Percent_repeat_engraver"
+  \consists "Slash_repeat_engraver"
+  \consists "Part_combine_engraver"
+
+  \consists "Text_engraver"
+  \consists "Dynamic_engraver"
+  \consists "Dynamic_align_engraver"
+  \consists "Fingering_engraver"
+  \consists "Bend_engraver"
+
+  \consists "Script_engraver"
+  \consists "Script_column_engraver"
+  \consists "Rhythmic_column_engraver"
+  \consists "Note_spacing_engraver"
+  \consists "Spanner_break_forbid_engraver"
+  \consists "Phrasing_slur_engraver"
+  \consists "Cluster_spanner_engraver"
+  \consists "Slur_engraver"
+  \consists "Tie_engraver"
+  \consists "Tuplet_engraver"
+  \consists "Grace_engraver"
+  \consists "Instrument_switch_engraver"
+
+
+voice: 
+
+  \consists "Font_size_engraver"
+
+  \consists "Pitched_trill_engraver"
+  \consists "Output_property_engraver"
+  \consists "Arpeggio_engraver"
+  \consists "Multi_measure_rest_engraver"
+  \consists "Text_spanner_engraver"
+  \consists "Trill_spanner_engraver"
+  \consists "Grob_pq_engraver"
+  \consists "Forbid_line_break_engraver"
+  \consists "Laissez_vibrer_engraver"
+  \consists "Repeat_tie_engraver"
+  \consists "Note_head_line_engraver"
+  \consists "Glissando_engraver"
+  \consists "Ligature_bracket_engraver"
+  \consists "Breathing_sign_engraver"
+  \consists "Note_heads_engraver"
+  \consists "Dots_engraver"
+  \consists "Rest_engraver"
+
+  %% switch on to make stem directions interpolate for the
+  %% center line.
+  %  \consists "Melody_engraver"
+
+  \consists "Stem_engraver"
+  \consists "Beam_engraver"
+  \consists "Grace_beam_engraver"
+  \consists "Auto_beam_engraver"
+  \consists "Grace_auto_beam_engraver"
+
+  %% must come before Script_column_engraver.
+  \consists "New_fingering_engraver"
+
+  \consists "Chord_tremolo_engraver"
+  \consists "Double_percent_repeat_engraver"
+  \consists "Percent_repeat_engraver"
+  \consists "Slash_repeat_engraver"
+  \consists "Part_combine_engraver"
+
+  \consists "Text_engraver"
+  \consists "Dynamic_engraver"
+  \consists "Dynamic_align_engraver"
+  \consists "Fingering_engraver"
+  \consists "Bend_engraver"
+
+  \consists "Script_engraver"
+  \consists "Script_column_engraver"
+  \consists "Rhythmic_column_engraver"
+  \consists "Note_spacing_engraver"
+  \consists "Spanner_break_forbid_engraver"
+  \consists "Phrasing_slur_engraver"
+  \consists "Cluster_spanner_engraver"
+  \consists "Slur_engraver"
+  \consists "Tie_engraver"
+  \consists "Tuplet_engraver"
+  \consists "Grace_engraver"
+  \consists "Instrument_switch_engraver"
+
+
+ 
+== PDF rendering
+TODO: Main one---decide how to generate x/y coordinates fron the tree parse.
+And also, how to coordinate between dancers?
+
+scm/music-functions has tree recursers? These pesumably do...
+TODO: compiler phases to generate specifics from the generic parse. In particular, instruction functions must be run to generate event, e.g. non visual repeats expanded, visual repeats with barline instructions, etc.
+ 
+
+

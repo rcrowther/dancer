@@ -8,11 +8,22 @@ class GraphicRoot():
     self.parentX = []
     self.parentY = []
     self.contexts = []
-    self.objects = []
+    #self.objects = []
+    self.children = []
     
     self.currentVerticalAlign = []
     self.currentVerticalAlignMaxWidth = 0
     
+  def childrenSize(self):
+    return len(self.children)
+    
+  def spannerSize(self):
+    ss = 0
+    for e in self.children:
+      if (isinstance(e, Spanner)):
+         ss += 1
+    return ss
+
   def newMoment(self):
     for e in self.currentVerticalAlign:
       e.extentRight = currentVerticalAlignMaxWidth
@@ -24,7 +35,7 @@ class GraphicRoot():
     self.parentX.append()
     self.parentY.append()
     self.contexts.append()
-    self.objects.append(gObj)
+    self.children.append(gObj)
     #if(gObj):    
     
 #def get_root_system(gOb)
