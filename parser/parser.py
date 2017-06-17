@@ -27,19 +27,7 @@ from Position import Position, NoPosition
    
 
 
-   
-#def functionHandlerCreateSubcontext(context, name, posParams, namedParams):
-  #print('new context for' + context.name)
-  #newCtx = None
-  #ct = ContextType.fromString(name)
-  #if (name == ContextType.Score):
-    #newCtx = ScoreContext()
-  #elif (name == ContextType.DancerGroup):
-    #newCtx = DancerContext()
-  #elif (name == ContextType.Dancer):
-    #newCtx = DancerContext()
-  #context.appendChild(newCtx)
-  #return newCtx
+
 
 # DO NOT REMOVE
 # Unuse, but here so you know I tried it R.C.

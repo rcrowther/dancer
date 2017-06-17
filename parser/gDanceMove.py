@@ -39,7 +39,7 @@ class DanceMove(SpaceFixed):
 
 
 
-    
+
 
 def before(ctx):
   #?! damm. A rest is a DanceMove?

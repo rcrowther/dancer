@@ -168,6 +168,7 @@ Both concerns are returned from functions. LilyPond is not trying to decide ''wh
 
 How and where does LilyPond know it is outputting to PDF, not svg or MIDI?
 
+
 ==== Control flow in score rendering
 Lets dig deeper. Inside lily/score.cc->book_rendering() is a method, ly_run_translator. We know translators are the base for converting or streaming LilyPond data to an output form. So that looks interesting.
 
@@ -249,6 +250,8 @@ lily/page-breaking.cc
   lily/minimal-page-breaking.cc
   lily/one-line-page-breaking.cc
 
+Good desription of the various break steps,
+http://lilypond.org/doc/v2.18/Documentation/notation/spacing-issues
 
 === Triggering and building a model, parsing
 
@@ -600,6 +603,13 @@ Simple draw routines,
 scm/output-ps.scm
 scm/output-svg.scm
 
+=== Final positions
+So far, LilyPond has functions which return structure of relative positions. It then extensively, as needed (lazily), extensively changes this structure to account for grob interactions, line and page breaking, etc.
+
+Perhaps the one overall queestion which we are missing is how and where do these relaticve positions in the grobs become real X/Y positions on a page?
+
+TODO:
+(the answer seems to be, at the very end in)  
 === in SHORT
 Don't know where control goes after scm/lilly. Does it run the functions in scm/music-functions?
 

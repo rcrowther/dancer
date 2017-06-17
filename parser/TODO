@@ -4,7 +4,174 @@ I got somewhere. I defined an input language, which is ok, and bult a parser, wh
 
 Where to go from here is difficult.
 
+###################################################################
+== TODOs
 
+=== Lilypond-like work
+Need work on
+
+- barlines
+Needs overall timer engraver?
+- staff spacing
+In lilypond, 'spacing'?
+- spanners
+Needed for Volta-repeat engraving
+- circle
+Like lilypond, but the original has no action. We need a new event.
+
+
+=== Non-LilyPond-like
+\part is the main big thing to do. Contexts will be a model of \part, not \score.
+
+==== Part
+Now agreed that 'score' is not a bad name for the 'stream of active expressions' input structure.
+
+But we need something for structuring these, probably called 'part'.
+
+A part would have children, which could be \part, or \score.
+ 
+'part' idea means fundamental change.
+
+===== The parser 
+Needs the new idea 'part'. A basic /part looks like this,
+
+\part {
+
+  \about
+
+  \init
+
+  \score
+  <<
+    \dancer
+    \dancer
+    ...
+  >>
+}
+
+so could be nested,
+
+\part {
+  # carries titles/credits
+  \about
+
+  \part {
+    # sub part for the dance
+
+    # carries titles/credits
+    \about
+
+    \part {
+       # sub-sub part for the dance
+
+       # carries titles/credits
+       \about
+
+       \init
+
+       # alternative child to \part
+       \score
+        <<
+          \dancer
+          \dancer
+          ...
+        >>
+    }
+  }
+}
+
+and sequenced,
+
+\part {
+
+  \about
+
+  \part {
+     # sub part for the dance
+     \score
+      <<
+        \dancer
+        \dancer
+        ...
+      >>
+  }
+
+  \part {
+     # sub part for the dance
+     \score
+      <<
+        \dancer
+        \dancer
+        ...
+      >>
+  }
+  ...
+}
+
+Do we need an explicit children mark, like XML would require (I'd say yes)? Called \do?
+
+\part {
+
+  \about
+
+  \init
+
+  \do {
+    \score
+    <<
+      \dancer
+      \dancer
+      ...
+    >>
+  }
+}
+
+\part would be implicit at base so simple input is like,
+
+\about
+
+\init
+
+\do
+  \score
+  <<
+    \dancer
+    \dancer
+    ...
+  >>
+
+\part seems more consistent and simpler than LilyPond's modelling-of-scores \book/\layout business?
+
+TOCONSIDER:
+- Where /init go?
+Its part of \score really. As attributes to score, but then they are required attributes. We did not want required attributes, or is that not bad (probably not)?
+
+- Use /children?
+Probably yes, but find another name? \action, \do?
+
+You may also want to look at how MusicXML do this.
+
+==== Contexts
+/part would correspond to context, not \score. \score would be inside \part.
+
+This means lots of changes in contexts.py. It also means events.py needs some small changes, for \part handling?
+
+Also,
+=== Error reporting an varables
+Pre parsing variables is great, but would it be better/more efficient to put them in place, but not the source?
+
+===  Output
+We've not started on how a template will be called. If \part was put in place this would be easier.
+
+=== template communication
+Templates need to write titles. And return usable page size. and turn pages.
+
+They could return usable block sizes, after titling? this might cover the interesting situation of a title which does not take a new page.
+
+
+
+
+######################################################################
 === in SHORT
 Don't know where control goes after scm/lilly. Does it run the functions in scm/music-functions?
 
